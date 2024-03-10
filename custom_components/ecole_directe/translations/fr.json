@@ -1,0 +1,32 @@
+{
+    "title": "Ecole Directe",
+    "config": {
+        "flow_title": "configuration Ecole Directe",
+        "abort": {
+            "already_configured": "Intégration déjà configurée"
+        },
+        "error": {
+            "cannot_connect": "Impossible de se connecter",
+            "invalid_auth": "Erreur d'authentification",
+            "unknown": "Une erreur est survenue"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "password": "Mot de passe",
+                    "username": "Identifiant"
+                }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "description": "Personnalisez le fonctionnement de l'intégration",
+                "data": {
+                    "refresh_interval": "Intervale de mise à jour des données (en minutes)"
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,13 @@
+{
+    "domain": "ecole_directe",
+    "name": "Ecole Directe",
+    "codeowners": [
+        "@hacf-fr",
+        "@giga77"
+    ],
+    "config_flow": true,
+    "documentation": "https://github.com/hacf-fr/hass-ecoledirecte",
+    "iot_class": "cloud_polling",
+    "issue_tracker": "https://github.com/hacf-fr/hass-ecoledirecte/issues",
+    "version": "0.0.1"
+}

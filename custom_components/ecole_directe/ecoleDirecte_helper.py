@@ -6,7 +6,7 @@ import logging
 _LOGGER = logging.getLogger(__name__)
 
 APIURL="https://api.ecoledirecte.com/v3"
-APIVERSION="4.19.0"
+APIVERSION="4.53.0"
 
 def encodeString(string):
     return string.replace("%", "%25").replace("&", "%26").replace("+", "%2B").replace("+", "%2B").replace("\\", "\\\\\\").replace("\\\\", "\\\\\\\\")
@@ -81,38 +81,46 @@ def get_ecoledirecte_session(data) -> ED_Session | None:
 
     return session
 
-def getMessages(session, year):
-    return getResponse(session,
-                       f"{APIURL}/Eleves/{session.id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=10&getAll=0&verbe=get&v={APIVERSION}",
+def getMessages(session, eleve, year):
+    if(eleve == None):
+        return getResponse(session,
+                       f"{APIURL}/familles/{session.id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
                        encodeBody({"data": {"anneeMessages": year}}))
+    return getResponse(session,
+                    f"{APIURL}/eleves/{eleve.eleve_id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
+                    encodeBody({"data": {"anneeMessages": year}}))
 
 def getHomework(session, eleve, date):
     return getResponse(session,
-                       f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte/{date}.awp?verbe=get&v={APIVERSION}",
+                       f"{APIURL}/eleves/{eleve.eleve_id}/cahierdetexte/{date}.awp?verbe=get&v={APIVERSION}",
                        "data={}")
 
 def getHomework(session, eleve):
     return getResponse(session,
-                       f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte.awp?verbe=get&v={APIVERSION}",
+                       f"{APIURL}/eleves/{eleve.eleve_id}/cahierdetexte.awp?verbe=get&v={APIVERSION}",
                        "data={}")
 
 def getNotes(session, eleve):
     return getResponse(session,
-                       f"{APIURL}/Eleves/{eleve.eleve_id}/notes.awp?verbe=get&v={APIVERSION}",
+                       f"{APIURL}/eleves/{eleve.eleve_id}/notes.awp?verbe=get&v={APIVERSION}",
                        "data='data={\"anneeScolaire\": \"\"}'")
 
 def getHeaders(token):
     headers = {
-        "authority": "api.ecoledirecte.com",
-        "accept": "application/json, text/plain, */*",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:105.0) Gecko/20100101 Firefox/105.0",
-        "content-type": "application/x-www-form-urlencoded",
-        "origin": "https://www.ecoledirecte.com",
-        "sec-fetch-site": "same-site",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-dest": "empty",
-        "referer": "https://www.ecoledirecte.com/",
-        "accept-language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7"
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-language": "fr,fr-FR;q=0.8,en-US;q=0.5,en;q=0.3",
+        "Connection": "keep-alive",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "DNT": "1",
+        "Host": "api.ecoledirecte.com",
+        "Origin": "https://www.ecoledirecte.com",
+        "Referer": "https://www.ecoledirecte.com/",
+        "Sec-fetch-dest": "empty",
+        "Sec-fetch-mode": "cors",
+        "Sec-fetch-site": "same-site",
+        "Sec-GPC": "1",
+        "User-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:105.0) Gecko/20100101 Firefox/105.0"
     }
     if token != None:
         headers["X-Token"] = token

@@ -39,6 +39,9 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         """Get the latest data from Ecole Directe and updates the state."""
 
         data = self.config_entry.data
+        self.data = {
+            "account_type": data['account_type'],
+        }
 
         session = await self.hass.async_add_executor_job(get_ecoledirecte_session, data)
 
@@ -48,11 +51,12 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
         self.data['session'] = session
 
-        try:
-            self.data['messages'] = await self.hass.async_add_executor_job(getMessages, session, None)
-        except Exception as ex:
-            self.data['messages'] = None
-            _LOGGER.warning("Error getting messages from ecole directe: %s", ex)
+        if (data['account_type'] == 'famille'):
+            try:
+                self.data['messages'] = await self.hass.async_add_executor_job(getMessages, session, None, None)
+            except Exception as ex:
+                self.data['messages'] = None
+                _LOGGER.warning("Error getting messages for family from ecole directe: %s", ex)
 
         for eleve in session.eleves:
             if "CAHIER_DE_TEXTES" in eleve.modules:
@@ -63,6 +67,11 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             if "NOTES" in eleve.modules:
                 try:
                     self.data['notes'+ eleve.eleve_id] = await self.hass.async_add_executor_job(getNotes, session, eleve)
+                except Exception as ex:
+                    _LOGGER.warning("Error getting notes from ecole directe: %s", ex)
+            if "MESSAGERIE" in eleve.modules:
+                try:
+                    self.data['notes'+ eleve.eleve_id] = await self.hass.async_add_executor_job(getMessages, session, eleve, None)
                 except Exception as ex:
                     _LOGGER.warning("Error getting notes from ecole directe: %s", ex)
 

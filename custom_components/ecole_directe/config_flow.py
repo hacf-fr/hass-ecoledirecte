@@ -26,6 +26,7 @@ STEP_USER_DATA_SCHEMA_UP = vol.Schema(
     {
         vol.Required("username"): str,
         vol.Required("password"): str,
+        vol.Required("account_type"): vol.In({'eleve': 'Student', 'famille': 'Family'})
     }
 )
 

@@ -1,4 +1,5 @@
 {
   "name": "Ecole Directe for Home Assistant",
-  "country": "FR"
+  "country": "FR",
+  "render_readme": true
 }

@@ -26,7 +26,7 @@ STEP_USER_DATA_SCHEMA_UP = vol.Schema(
     {
         vol.Required("username"): str,
         vol.Required("password"): str,
-        vol.Required("account_type"): vol.In({'eleve': 'Student', 'famille': 'Family'})
+        vol.Required("account_type"): vol.In({'famille': 'Famille', 'eleve': 'Elève'})
     }
 )
 
@@ -42,20 +42,21 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input: dict | None = None) -> FlowResult:
         """Handle a flow initialized by the user."""
-        _LOGGER.debug("Setup process initiated by user.")
+        _LOGGER.debug("ED - Setup process initiated by user.")
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
-                _LOGGER.debug("User Input: %s", user_input)
+                _LOGGER.debug("ED - User Input: %s", user_input)
                 self._user_inputs.update(user_input)
                 session = await self.hass.async_add_executor_job(get_ecoledirecte_session, self._user_inputs)
 
                 if session is None:
                     raise InvalidAuth
+
+                _LOGGER.debug(f"ED - User Inputs UP: {self._user_inputs} - identifiant: [{session.identifiant}]")
+                return self.async_create_entry(title=session.identifiant, data=self._user_inputs)
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
-            _LOGGER.debug("_User Inputs UP: %s", self._user_inputs)
-            return self.async_create_entry(title=session.identifiant, data=self._user_inputs)
 
         return self.async_show_form(step_id="user", data_schema=STEP_USER_DATA_SCHEMA_UP, errors=errors)
 

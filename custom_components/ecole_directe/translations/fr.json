@@ -14,7 +14,8 @@
             "user": {
                 "data": {
                     "password": "Mot de passe",
-                    "username": "Identifiant"
+                    "username": "Identifiant",
+                    "account_type": "Type de compte"
                 }
             }
         }

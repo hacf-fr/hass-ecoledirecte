@@ -31,15 +31,24 @@ def decodeB64(string):
     return base64.b64decode(string)
 
 def getResponse(session, url, data):
-    if not isLogin(session):
-        return None
+    if session is not None and isLogin(session):
+        token = session.token
+    else:
+        token = None
 
-    response = requests.post(url, data=data, headers=getHeaders(session.token))
+    response = requests.post(url, data = data, headers = getHeaders(token))
+
     if 'application/json' in response.headers.get('Content-Type', ''):
-        return response.json()
+        respJson = response.json()
+        if respJson['code'] != 200:
+            raise RequestError('Error with URL:[{}] - Code {}: {}'.format(url, respJson['code'], respJson['message']))
+        return respJson
 
-    _LOGGER.warning(f"Error with URL:[{url}] - response:[{response.content}]")
-    return None
+    raise RequestError('Error with URL:[{}]: {}'.format(url, response.content))
+
+class RequestError(Exception):
+    def __init__(self, message):
+        super(RequestError, self).__init__(message)
 
 class ED_Session:
     def __init__(self, data):
@@ -73,13 +82,22 @@ class ED_Eleve:
 
 def get_ecoledirecte_session(data) -> ED_Session | None:
     try:
-        session = login(data['username'], data['password'])
-        _LOGGER.info(f"Connection OK - identifiant: [{session.identifiant}]")
+        _LOGGER.debug(f"Try connection for username: {data['username']} and password: {data['password']}")
+
+        login = getResponse(None, f"{APIURL}/login.awp?v={APIVERSION}", encodeBody({
+            "data": {
+                "identifiant": data['username'],
+                "motdepasse": data['password']
+            }
+        }))
+
+        _LOGGER.debug(f"login: {login}")
+        _LOGGER.info(f"Connection OK - identifiant: [{login["data"]["accounts"][0]["identifiant"]}]")
+        return ED_Session(login);
+
     except Exception as err:
         _LOGGER.critical(err)
         return None
-
-    return session
 
 def getMessages(session, eleve, year):
     if(eleve == None):
@@ -126,22 +144,6 @@ def getHeaders(token):
         headers["X-Token"] = token
 
     return headers
-
-def login(username, password) ->  ED_Session | None:
-    _LOGGER.debug(f"Coordinator uses connection for username: {username} and password: {password}")
-    try:
-        login = requests.post(f"{APIURL}/login.awp?v={APIVERSION}", data=encodeBody({
-            "data": {
-                "identifiant": username,
-                "motdepasse": password
-            }
-        }), headers=getHeaders(None)).json()
-    except Exception as err:
-        _LOGGER.critical(err)
-        return None
-
-    _LOGGER.debug(f"login: {login}")
-    return ED_Session(login);
 
 def isLogin(session):
     if session.token != None and session.id != None:

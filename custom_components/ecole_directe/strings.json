@@ -8,11 +8,13 @@
         "description": "Donnez vos informations de connexion à Ecole Directe",
         "data": {
           "username": "[%key:common::config_flow::data::username%]",
-          "password": "[%key:common::config_flow::data::password%]"
+          "password": "[%key:common::config_flow::data::password%]",
+          "account_type": "[%key:common::config_flow::data::account_type%]"
         },
         "data_description": {
           "username": "user name",
-          "password": "Password"
+          "password": "Password",
+          "account_type": "Account type"
         }
       }
     },

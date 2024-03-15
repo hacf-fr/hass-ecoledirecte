@@ -26,17 +26,17 @@ def encodeBody(dictionnary, isRecursive=False):
     return body[:-1]
 
 
-def getResponse(session, url, data):
+def getResponse(session, url, payload):
     if session is not None and isLogin(session):
         token = session.token
     else:
         token = None
 
-    if data is None:
-        data = "{" + "}"
+    if payload is None:
+        payload = "data={}"
 
-    _LOGGER.debug("URL: [%s] - Data: [%s]", url, data)
-    response = requests.post(url, data=data, headers=getHeaders(token))
+    _LOGGER.debug("URL: [%s] - Data: [%s]", url, payload)
+    response = requests.post(url, data=payload, headers=getHeaders(token))
 
     if "application/json" in response.headers.get("Content-Type", ""):
         respJson = response.json()
@@ -123,6 +123,98 @@ class ED_Eleve:
         return f"{self.eleve_firstname} {self.eleve_lastname}"
 
 
+class ED_Devoir:
+    def __init__(self, data, pourLe):
+        try:
+            self.matiere = data["matiere"]
+            self.codeMatiere = data["codeMatiere"]
+            self.aFaire = data["aFaire"]
+            self.idDevoir = data["idDevoir"]
+            self.documentsAFaire = data["documentsAFaire"]
+            self.donneLe = data["donneLe"]
+            self.pourLe = pourLe
+            self.effectue = data["effectue"]
+            self.interrogation = data["interrogation"]
+            self.rendreEnLigne = data["rendreEnLigne"]
+        except Exception as err:
+            _LOGGER.warning(err)
+
+    def format(self):
+        try:
+            return {
+                "matiere": self.matiere,
+                "codeMatiere": self.codeMatiere,
+                "aFaire": self.aFaire,
+                "idDevoir": self.idDevoir,
+                "documentsAFaire": self.documentsAFaire,
+                "donneLe": self.donneLe,
+                "pourLe": self.pourLe,
+                "effectue": self.effectue,
+                "interrogation": self.interrogation,
+                "rendreEnLigne": self.rendreEnLigne,
+            }
+        except Exception:
+            return {}
+
+
+class ED_Note:
+    def __init__(self, data):
+        try:
+            self.id = data["id"]
+            self.devoir = data["devoir"]
+            self.codePeriode = data["codePeriode"]
+            self.codeMatiere = data["codeMatiere"]
+            self.libelleMatiere = data["libelleMatiere"]
+            self.codeSousMatiere = data["codeSousMatiere"]
+            self.typeDevoir = data["typeDevoir"]
+            self.enLettre = data["enLettre"]
+            self.commentaire = data["commentaire"]
+            self.uncSujet = data["uncSujet"]
+            self.uncCorrige = data["uncCorrige"]
+            self.coef = data["coef"]
+            self.noteSur = data["noteSur"]
+            self.valeur = data["valeur"]
+            self.nonSignificatif = data["nonSignificatif"]
+            self.date = data["date"]
+            self.dateSaisie = data["dateSaisie"]
+            self.valeurisee = data["valeurisee"]
+            self.moyenneClasse = data["moyenneClasse"]
+            self.minClasse = data["minClasse"]
+            self.maxClasse = data["maxClasse"]
+            self.elementsProgramme = data["elementsProgramme"]
+        except Exception as err:
+            _LOGGER.warning(err)
+
+    def format(self):
+        try:
+            return {
+                "id": self.id,
+                "devoir": self.devoir,
+                "codePeriode": self.codePeriode,
+                "codeMatiere": self.codeMatiere,
+                "libelleMatiere": self.libelleMatiere,
+                "codeSousMatiere": self.codeSousMatiere,
+                "typeDevoir": self.typeDevoir,
+                "enLettre": self.enLettre,
+                "commentaire": self.commentaire,
+                "uncSujet": self.uncSujet,
+                "uncCorrige": self.uncCorrige,
+                "coef": self.coef,
+                "noteSur": self.noteSur,
+                "valeur": self.valeur,
+                "nonSignificatif": self.nonSignificatif,
+                "date": self.date,
+                "dateSaisie": self.dateSaisie,
+                "valeurisee": self.valeurisee,
+                "moyenneClasse": self.moyenneClasse,
+                "minClasse": self.minClasse,
+                "maxClasse": self.maxClasse,
+                "elementsProgramme": self.elementsProgramme,
+            }
+        except Exception:
+            return {}
+
+
 def get_ecoledirecte_session(data) -> ED_Session | None:
     try:
         _LOGGER.debug(
@@ -165,7 +257,7 @@ def getMessages(session, eleve, anneeScolaire):
     )
 
 
-def getHomeworkByDate(session, eleve, date):
+def getDevoirsByDate(session, eleve, date):
     return getResponse(
         session,
         f"{APIURL}/eleves/{eleve.eleve_id}/cahierdetexte/{date}.awp?verbe=get&v={APIVERSION}",
@@ -173,7 +265,7 @@ def getHomeworkByDate(session, eleve, date):
     )
 
 
-def getHomework(session, eleve):
+def getDevoirs(session, eleve):
     return getResponse(
         session,
         f"{APIURL}/eleves/{eleve.eleve_id}/cahierdetexte.awp?verbe=get&v={APIVERSION}",

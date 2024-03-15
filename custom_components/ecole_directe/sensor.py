@@ -10,12 +10,11 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
 
-from .ecoleDirecte_formatter import format_note, format_homework
-from .ecoleDirecte_helper import ED_Eleve
+from .ecoleDirecte_helper import ED_Eleve, ED_Devoir, ED_Note
 from .coordinator import EDDataUpdateCoordinator
 from .const import (
     DOMAIN,
-    EVALUATIONS_TO_DISPLAY,
+    NOTES_TO_DISPLAY,
 )
 
 
@@ -33,7 +32,7 @@ async def async_setup_entry(
     for eleve in coordinator.data["session"].eleves:
         sensors.append(EDChildSensor(coordinator, eleve))
         if "CAHIER_DE_TEXTES" in eleve.modules:
-            sensors.append(EDHomeworkSensor(coordinator, eleve))
+            sensors.append(EDDevoirsSensor(coordinator, eleve))
         if "NOTES" in eleve.modules:
             sensors.append(EDNotesSensor(coordinator, eleve))
 
@@ -134,13 +133,13 @@ class EDChildSensor(EDGenericSensor):
         return self.coordinator.last_update_success
 
 
-class EDHomeworkSensor(EDGenericSensor):
+class EDDevoirsSensor(EDGenericSensor):
     """Representation of a ED sensor."""
 
     def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: ED_Eleve) -> None:
         """Initialize the ED sensor."""
         super().__init__(
-            coordinator, "homework" + eleve.get_fullnameLower(), eleve, "len"
+            coordinator, "devoirs" + eleve.get_fullnameLower(), eleve, "len"
         )
 
     @property
@@ -149,20 +148,23 @@ class EDHomeworkSensor(EDGenericSensor):
         attributes = []
         todo_counter = None
         if (
-            self.coordinator.data[f"homework{self._child_info.get_fullnameLower()}"]
+            self.coordinator.data[f"devoirs{self._child_info.get_fullnameLower()}"]
             is not None
         ):
             todo_counter = 0
-            for homework in self.coordinator.data[
-                f"homework{self._child_info.get_fullnameLower()}"
+            for date in self.coordinator.data[
+                f"devoirs{self._child_info.get_fullnameLower()}"
             ]:
-                attributes.append(format_homework(homework))
-                if homework.done is False:
-                    todo_counter += 1
+                for devoirs in date:
+                    devoir = ED_Devoir(devoirs, date)
+                    if devoir is not None:
+                        attributes.append(devoir.format())
+                        if devoir.effectue is False:
+                            todo_counter += 1
 
         return {
             "updated_at": self.coordinator.last_update_success_time,
-            "homework": attributes,
+            "devoirs": attributes,
             "todo_counter": todo_counter,
         }
 
@@ -178,18 +180,15 @@ class EDNotesSensor(EDGenericSensor):
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
+        notes = self.coordinator.data["notes" + self._child_info.get_fullnameLower()]
         index_note = 0
-        if (
-            self.coordinator.data["notes" + self._child_info.get_fullnameLower()]
-            is not None
-        ):
-            for note in self.coordinator.data[
-                "notes" + self._child_info.get_fullnameLower()
-            ]:
+        if notes is not None:
+            for note in notes:
                 index_note += 1
-                if index_note == EVALUATIONS_TO_DISPLAY:
+                if index_note == NOTES_TO_DISPLAY:
                     break
-                attributes.append(format_note(note))
+                n = ED_Note(note)
+                attributes.append(n.format())
 
         return {
             "updated_at": self.coordinator.last_update_success_time,

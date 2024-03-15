@@ -12,7 +12,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordinator
 
-from .ecoleDirecte_helper import get_ecoledirecte_session, getHomework, getNotes
+from .ecoleDirecte_helper import get_ecoledirecte_session, getDevoirs, getNotes
 
 from .const import (
     DEFAULT_REFRESH_INTERVAL,
@@ -70,12 +70,12 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             if "CAHIER_DE_TEXTES" in eleve.modules:
                 try:
                     self.data[
-                        "homework" + eleve.get_fullnameLower()
+                        "devoirs" + eleve.get_fullnameLower()
                     ] = await self.hass.async_add_executor_job(
-                        getHomework, session, eleve
+                        getDevoirs, session, eleve
                     )
                 except Exception as ex:
-                    _LOGGER.warning("Error getting homework from ecole directe: %s", ex)
+                    _LOGGER.warning("Error getting devoirs from ecole directe: %s", ex)
             if "NOTES" in eleve.modules:
                 try:
                     self.data[

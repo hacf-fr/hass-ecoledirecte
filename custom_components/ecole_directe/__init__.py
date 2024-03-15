@@ -1,4 +1,5 @@
 """Ecole Directe integration."""
+
 from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
@@ -11,17 +12,14 @@ import logging
 
 from .coordinator import EDDataUpdateCoordinator
 
-from .const import (
-    DEFAULT_REFRESH_INTERVAL,
-    DOMAIN,
-    PLATFORMS
-)
+from .const import DEFAULT_REFRESH_INTERVAL, DOMAIN, PLATFORMS
 
 _LOGGER = logging.getLogger(__name__)
 
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Ecole Directe from a config entry."""
-    _LOGGER.debug(f"async_setup_entry")
+    _LOGGER.debug("async_setup_entry")
     hass.data.setdefault(DOMAIN, {})
 
     coordinator = EDDataUpdateCoordinator(hass, entry)
@@ -41,6 +39,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     return True
 
+
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
@@ -48,8 +47,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     return unload_ok
 
+
 async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
     """Handle options update."""
-    hass.data[DOMAIN][entry.entry_id]['coordinator'].update_interval = timedelta(minutes=entry.options.get("refresh_interval", DEFAULT_REFRESH_INTERVAL))
+    hass.data[DOMAIN][entry.entry_id]["coordinator"].update_interval = timedelta(
+        minutes=entry.options.get("refresh_interval", DEFAULT_REFRESH_INTERVAL)
+    )
 
     return True

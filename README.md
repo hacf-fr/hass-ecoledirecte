@@ -1,5 +1,7 @@
 # Ecole directe integration for Home Assistant
 
+![Version](https://img.shields.io/github/v/release/hacf-fr/hass-ecoledirecte?label=version)
+
 ### Manual install
 
 Copy the `ecole_directe` folder from latest release to the `custom_components` folder in your `config` folder.
@@ -14,6 +16,7 @@ Or go to :
 Settings > Devices & Sevices > Integrations > Add Integration, and search for "Ecole Directe"
 
 Use your username and password :
+
 ![Ecole directe config flow](doc/config_flow_username_password.png)
 
 ## Usage

@@ -32,6 +32,9 @@ def getResponse(session, url, data):
     else:
         token = None
 
+    if data is None:
+        data = "{" + "}"
+
     _LOGGER.debug("URL: [%s] - Data: [%s]", url, data)
     response = requests.post(url, data=data, headers=getHeaders(token))
 
@@ -166,7 +169,7 @@ def getHomeworkByDate(session, eleve, date):
     return getResponse(
         session,
         f"{APIURL}/eleves/{eleve.eleve_id}/cahierdetexte/{date}.awp?verbe=get&v={APIVERSION}",
-        "data={}",
+        None,
     )
 
 
@@ -174,7 +177,7 @@ def getHomework(session, eleve):
     return getResponse(
         session,
         f"{APIURL}/eleves/{eleve.eleve_id}/cahierdetexte.awp?verbe=get&v={APIVERSION}",
-        "data={}",
+        None,
     )
 
 

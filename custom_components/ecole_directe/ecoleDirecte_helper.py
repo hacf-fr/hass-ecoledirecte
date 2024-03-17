@@ -358,7 +358,7 @@ def get_ecoledirecte_session(data) -> ED_Session | None:
 def getDevoirsByDate(session, eleve, date):
     json = getResponse(
         session,
-        f"{APIURL}/eleves/{eleve.eleve_id}/cahierdetexte/{date}.awp?verbe=get&v={APIVERSION}",
+        f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte/{date}.awp?verbe=get&v={APIVERSION}",
         None,
     )
     if "data" in json:
@@ -370,7 +370,7 @@ def getDevoirsByDate(session, eleve, date):
 def getDevoirs(session, eleve):
     json = getResponse(
         session,
-        f"{APIURL}/eleves/{eleve.eleve_id}/cahierdetexte.awp?verbe=get&v={APIVERSION}",
+        f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte.awp?verbe=get&v={APIVERSION}",
         None,
     )
     if "data" in json:

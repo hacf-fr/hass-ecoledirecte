@@ -1,3 +1,5 @@
+import logging
+
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -16,6 +18,8 @@ from .const import (
     DOMAIN,
     NOTES_TO_DISPLAY,
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -147,9 +151,11 @@ class EDDevoirsSensor(EDGenericSensor):
         attributes = []
         todo_counter = 0
         if f"devoirs{self._child_info.get_fullnameLower()}" in self.coordinator.data:
-            for date in self.coordinator.data[
+            json = self.coordinator.data[
                 f"devoirs{self._child_info.get_fullnameLower()}"
-            ]:
+            ]
+            _LOGGER.debug("EDDevoirsSensor attributes json: [%s]", json)
+            for date in json:
                 for devoirs in date:
                     for devoir_json in devoirs:
                         devoir = ED_Devoir(devoir_json, date)
@@ -182,10 +188,11 @@ class EDNotesSensor(EDGenericSensor):
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
-        notes = self.coordinator.data["notes" + self._child_info.get_fullnameLower()]
+        json = self.coordinator.data["notes" + self._child_info.get_fullnameLower()]
         index_note = 0
-        if notes is not None:
-            for note in notes:
+        if json is not None and "notes" in json:
+            _LOGGER.debug("EDNotesSensor attributes json: [%s]", json)
+            for note in json["notes"]:
                 index_note += 1
                 if index_note == NOTES_TO_DISPLAY:
                     break
@@ -194,5 +201,5 @@ class EDNotesSensor(EDGenericSensor):
 
         return {
             "updated_at": self.coordinator.last_update_success_time,
-            "evaluations": attributes,
+            "notes": attributes,
         }

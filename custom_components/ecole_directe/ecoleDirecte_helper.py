@@ -36,7 +36,7 @@ def getResponse(session, url, payload):
         payload = "data={}"
 
     _LOGGER.debug("URL: [%s] - Payload: [%s]", url, payload)
-    response = requests.post(url, data=payload, headers=getHeaders(token), timeout=60)
+    response = requests.post(url, data=payload, headers=getHeaders(token), timeout=120)
 
     if "application/json" in response.headers.get("Content-Type", ""):
         respJson = response.json()
@@ -341,42 +341,54 @@ def get_ecoledirecte_session(data) -> ED_Session | None:
         return None
 
 
-def getMessages(session, eleve, anneeScolaire):
-    if eleve is None:
-        return getResponse(
-            session,
-            f"{APIURL}/familles/{session.id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
-            encodeBody({"data": {"anneeMessages": anneeScolaire}}),
-        )
-    return getResponse(
-        session,
-        f"{APIURL}/eleves/{eleve.eleve_id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
-        encodeBody({"data": {"anneeMessages": anneeScolaire}}),
-    )
+# def getMessages(session, eleve, anneeScolaire):
+#     if eleve is None:
+#         return getResponse(
+#             session,
+#             f"{APIURL}/familles/{session.id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
+#             encodeBody({"data": {"anneeMessages": anneeScolaire}}),
+#         )
+#     return getResponse(
+#         session,
+#         f"{APIURL}/eleves/{eleve.eleve_id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
+#         encodeBody({"data": {"anneeMessages": anneeScolaire}}),
+#     )
 
 
 def getDevoirsByDate(session, eleve, date):
-    return getResponse(
+    json = getResponse(
         session,
         f"{APIURL}/eleves/{eleve.eleve_id}/cahierdetexte/{date}.awp?verbe=get&v={APIVERSION}",
         None,
     )
+    if "data" in json:
+        return json["data"]
+    _LOGGER.warning("getDevoirsByDate: [%s]", json)
+    return None
 
 
 def getDevoirs(session, eleve):
-    return getResponse(
+    json = getResponse(
         session,
         f"{APIURL}/eleves/{eleve.eleve_id}/cahierdetexte.awp?verbe=get&v={APIVERSION}",
         None,
     )
+    if "data" in json:
+        return json["data"]
+    _LOGGER.warning("getDevoirs: [%s]", json)
+    return None
 
 
 def getNotes(session, eleve, anneeScolaire):
-    return getResponse(
+    json = getResponse(
         session,
         f"{APIURL}/eleves/{eleve.eleve_id}/notes.awp?verbe=get&v={APIVERSION}",
         encodeBody({"data": {"anneeScolaire": anneeScolaire}}),
     )
+    if "data" in json:
+        return json["data"]
+    _LOGGER.warning("getNotes: [%s]", json)
+    return None
 
 
 def getHeaders(token):
@@ -405,5 +417,4 @@ def getHeaders(token):
 def isLogin(session):
     if session.token is not None and session.id is not None:
         return True
-
     return False

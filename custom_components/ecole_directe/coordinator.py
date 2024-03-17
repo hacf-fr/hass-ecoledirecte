@@ -76,6 +76,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     )
                 except Exception as ex:
                     _LOGGER.warning("Error getting devoirs from ecole directe: %s", ex)
+                    self.data["devoirs" + eleve.get_fullnameLower()] = {}
             if "NOTES" in eleve.modules:
                 try:
                     self.data[
@@ -85,6 +86,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     )
                 except Exception as ex:
                     _LOGGER.warning("Error getting notes from ecole directe: %s", ex)
+                    self.data["notes" + eleve.get_fullnameLower()] = {}
             # if "MESSAGERIE" in eleve.modules:
             #     try:
             #         self.data['messages'+ eleve.eleve_id] = await self.hass.async_add_executor_job(getMessages, session, eleve, yearData)

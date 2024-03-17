@@ -35,8 +35,8 @@ def getResponse(session, url, payload):
     if payload is None:
         payload = "data={}"
 
-    _LOGGER.debug("URL: [%s] - Data: [%s]", url, payload)
-    response = requests.post(url, data=payload, headers=getHeaders(token))
+    _LOGGER.debug("URL: [%s] - Payload: [%s]", url, payload)
+    response = requests.post(url, data=payload, headers=getHeaders(token), timeout=60)
 
     if "application/json" in response.headers.get("Content-Type", ""):
         respJson = response.json()
@@ -90,7 +90,7 @@ class ED_Session:
 class ED_Eleve:
     def __init__(
         self,
-        data,
+        data=None,
         id=None,
         firstName=None,
         lastName=None,
@@ -106,8 +106,9 @@ class ED_Eleve:
             self.eleve_firstname = firstName
             self.modules = modules
         else:
-            self.classe_id = data["classe"]["id"]
-            self.classe_name = data["classe"]["libelle"]
+            if "classe" in data:
+                self.classe_id = data["classe"]["id"]
+                self.classe_name = data["classe"]["libelle"]
             self.eleve_id = data["id"]
             self.eleve_lastname = data["nom"]
             self.eleve_firstname = data["prenom"]
@@ -126,18 +127,45 @@ class ED_Eleve:
 class ED_Devoir:
     def __init__(self, data, pourLe):
         try:
-            self.matiere = data["matiere"]
-            self.codeMatiere = data["codeMatiere"]
-            self.aFaire = data["aFaire"]
-            self.idDevoir = data["idDevoir"]
-            self.documentsAFaire = data["documentsAFaire"]
-            self.donneLe = data["donneLe"]
+            if "matiere" in data:
+                self.matiere = data["matiere"]
+            else:
+                self.matiere = ""
+            if "codeMatiere" in data:
+                self.codeMatiere = data["codeMatiere"]
+            else:
+                self.codeMatiere = ""
+            if "aFaire" in data:
+                self.aFaire = data["aFaire"]
+            else:
+                self.aFaire = ""
+            if "idDevoir" in data:
+                self.idDevoir = data["idDevoir"]
+            else:
+                self.idDevoir = ""
+            if "documentsAFaire" in data:
+                self.documentsAFaire = data["documentsAFaire"]
+            else:
+                self.documentsAFaire = ""
+            if "donneLe" in data:
+                self.donneLe = data["donneLe"]
+            else:
+                self.donneLe = ""
             self.pourLe = pourLe
-            self.effectue = data["effectue"]
-            self.interrogation = data["interrogation"]
-            self.rendreEnLigne = data["rendreEnLigne"]
+            if "effectue" in data:
+                self.effectue = data["effectue"]
+            else:
+                self.effectue = ""
+            if "interrogation" in data:
+                self.interrogation = data["interrogation"]
+            else:
+                self.interrogation = ""
+            if "rendreEnLigne" in data:
+                self.rendreEnLigne = data["rendreEnLigne"]
+            else:
+                self.rendreEnLigne = ""
         except Exception as err:
-            _LOGGER.warning(err)
+            _LOGGER.warning("ED_Devoir Error: [%s] - Data[%s]", err, data)
 
     def format(self):
         try:
@@ -160,30 +188,96 @@ class ED_Devoir:
 class ED_Note:
     def __init__(self, data):
         try:
-            self.id = data["id"]
-            self.devoir = data["devoir"]
-            self.codePeriode = data["codePeriode"]
-            self.codeMatiere = data["codeMatiere"]
-            self.libelleMatiere = data["libelleMatiere"]
-            self.codeSousMatiere = data["codeSousMatiere"]
-            self.typeDevoir = data["typeDevoir"]
-            self.enLettre = data["enLettre"]
-            self.commentaire = data["commentaire"]
-            self.uncSujet = data["uncSujet"]
-            self.uncCorrige = data["uncCorrige"]
-            self.coef = data["coef"]
-            self.noteSur = data["noteSur"]
-            self.valeur = data["valeur"]
-            self.nonSignificatif = data["nonSignificatif"]
-            self.date = data["date"]
-            self.dateSaisie = data["dateSaisie"]
-            self.valeurisee = data["valeurisee"]
-            self.moyenneClasse = data["moyenneClasse"]
-            self.minClasse = data["minClasse"]
-            self.maxClasse = data["maxClasse"]
-            self.elementsProgramme = data["elementsProgramme"]
+            if "id" in data:
+                self.id = data["id"]
+            else:
+                self.id = ""
+            if "devoir" in data:
+                self.devoir = data["devoir"]
+            else:
+                self.devoir = ""
+            if "codePeriode" in data:
+                self.codePeriode = data["codePeriode"]
+            else:
+                self.codePeriode = ""
+            if "codeMatiere" in data:
+                self.codeMatiere = data["codeMatiere"]
+            else:
+                self.codeMatiere = ""
+            if "libelleMatiere" in data:
+                self.libelleMatiere = data["libelleMatiere"]
+            else:
+                self.libelleMatiere = ""
+            if "codeSousMatiere" in data:
+                self.codeSousMatiere = data["codeSousMatiere"]
+            else:
+                self.codeSousMatiere = ""
+            if "typeDevoir" in data:
+                self.typeDevoir = data["typeDevoir"]
+            else:
+                self.typeDevoir = ""
+            if "enLettre" in data:
+                self.enLettre = data["enLettre"]
+            else:
+                self.enLettre = ""
+            if "commentaire" in data:
+                self.commentaire = data["commentaire"]
+            else:
+                self.commentaire = ""
+            if "uncSujet" in data:
+                self.uncSujet = data["uncSujet"]
+            else:
+                self.uncSujet = ""
+            if "uncCorrige" in data:
+                self.uncCorrige = data["uncCorrige"]
+            else:
+                self.uncCorrige = ""
+            if "coef" in data:
+                self.coef = data["coef"]
+            else:
+                self.coef = ""
+            if "noteSur" in data:
+                self.noteSur = data["noteSur"]
+            else:
+                self.noteSur = ""
+            if "valeur" in data:
+                self.valeur = data["valeur"]
+            else:
+                self.valeur = ""
+            if "nonSignificatif" in data:
+                self.nonSignificatif = data["nonSignificatif"]
+            else:
+                self.nonSignificatif = ""
+            if "date" in data:
+                self.date = data["date"]
+            else:
+                self.date = ""
+            if "dateSaisie" in data:
+                self.dateSaisie = data["dateSaisie"]
+            else:
+                self.dateSaisie = ""
+            if "valeurisee" in data:
+                self.valeurisee = data["valeurisee"]
+            else:
+                self.valeurisee = ""
+            if "moyenneClasse" in data:
+                self.moyenneClasse = data["moyenneClasse"]
+            else:
+                self.moyenneClasse = ""
+            if "minClasse" in data:
+                self.minClasse = data["minClasse"]
+            else:
+                self.minClasse = ""
+            if "maxClasse" in data:
+                self.maxClasse = data["maxClasse"]
+            else:
+                self.maxClasse = ""
+            if "elementsProgramme" in data:
+                self.elementsProgramme = data["elementsProgramme"]
+            else:
+                self.elementsProgramme = ""
         except Exception as err:
-            _LOGGER.warning(err)
+            _LOGGER.warning("ED_Note error: [%s] - Data[%s]", err, data)
 
     def format(self):
         try:
@@ -216,9 +310,12 @@ class ED_Note:
 
 
 def get_ecoledirecte_session(data) -> ED_Session | None:
+    """Function connecting to Ecole Directe"""
     try:
         _LOGGER.debug(
-            f"Try connection for username: {data['username']} and password: {data['password']}"
+            "Try connection for username: {%s} and password: {%s}",
+            data["username"],
+            data["password"],
         )
 
         login = getResponse(
@@ -235,7 +332,8 @@ def get_ecoledirecte_session(data) -> ED_Session | None:
         )
 
         _LOGGER.info(
-            f"Connection OK - identifiant: [{login["data"]["accounts"][0]["identifiant"]}]"
+            "Connection OK - identifiant: [{%s}]",
+            login["data"]["accounts"][0]["identifiant"],
         )
         return ED_Session(login)
     except Exception as err:

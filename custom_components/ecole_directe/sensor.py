@@ -78,7 +78,7 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        if self.coordinator.data[self._name] is None:
+        if self._name not in self.coordinator.data:
             return "unavailable"
         elif self._state == "len":
             return len(self.coordinator.data[self._name])
@@ -95,8 +95,7 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
     def available(self) -> bool:
         """Return if entity is available."""
         return (
-            self.coordinator.last_update_success
-            and self.coordinator.data[self._name] is not None
+            self.coordinator.last_update_success and self._name in self.coordinator.data
         )
 
 
@@ -146,21 +145,24 @@ class EDDevoirsSensor(EDGenericSensor):
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
-        todo_counter = None
-        if (
-            self.coordinator.data[f"devoirs{self._child_info.get_fullnameLower()}"]
-            is not None
-        ):
-            todo_counter = 0
+        todo_counter = 0
+        if f"devoirs{self._child_info.get_fullnameLower()}" in self.coordinator.data:
             for date in self.coordinator.data[
                 f"devoirs{self._child_info.get_fullnameLower()}"
             ]:
                 for devoirs in date:
-                    devoir = ED_Devoir(devoirs, date)
-                    if devoir is not None:
-                        attributes.append(devoir.format())
-                        if devoir.effectue is False:
-                            todo_counter += 1
+                    for devoir_json in devoirs:
+                        devoir = ED_Devoir(devoir_json, date)
+                        if devoir is not None:
+                            attributes.append(devoir.format())
+                            if devoir.effectue is False:
+                                todo_counter += 1
+        else:
+            attributes.append(
+                {
+                    "Erreur": f"devoirs{self._child_info.get_fullnameLower()} n'existe pas."
+                }
+            )
 
         return {
             "updated_at": self.coordinator.last_update_success_time,

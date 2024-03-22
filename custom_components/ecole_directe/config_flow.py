@@ -12,7 +12,7 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import callback
 
-from .ecoleDirecte_helper import (
+from .ecole_directe_helper import (
     get_ecoledirecte_session,
 )
 
@@ -83,6 +83,8 @@ class InvalidAuth(HomeAssistantError):
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
+    """Configuration of integration options"""
+
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
         self.config_entry = config_entry

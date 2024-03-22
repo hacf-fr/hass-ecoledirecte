@@ -1,7 +1,11 @@
+"""Module to help communication with Ecole Directe API"""
+
 import re
-import requests
 import logging
 import urllib
+import requests
+
+from .const import HOMEWORK_DESC_MAX_LENGTH
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -9,16 +13,17 @@ APIURL = "https://api.ecoledirecte.com/v3"
 APIVERSION = "4.53.0"
 
 
-def encodeBody(dictionnary, isRecursive=False):
+def encode_body(dictionnary, is_recursive=False):
+    """encode payload to send to API"""
     body = ""
     for key in dictionnary:
-        if isRecursive:
+        if is_recursive:
             body += '"' + key + '":'
         else:
             body += key + "="
 
         if isinstance(dictionnary[key], dict):
-            body += "{" + encodeBody(dictionnary[key], True) + "}"
+            body += "{" + encode_body(dictionnary[key], True) + "}"
         else:
             body += '"' + urllib.parse.quote(str(dictionnary[key]), safe="") + '"'
         body += ","
@@ -26,8 +31,9 @@ def encodeBody(dictionnary, isRecursive=False):
     return body[:-1]
 
 
-def getResponse(session, url, payload):
-    if session is not None and isLogin(session):
+def get_response(session, url, payload):
+    """send a request to API and return a json if possible or raise an error"""
+    if session is not None and is_login(session):
         token = session.token
     else:
         token = None
@@ -36,43 +42,48 @@ def getResponse(session, url, payload):
         payload = "data={}"
 
     _LOGGER.debug("URL: [%s] - Payload: [%s]", url, payload)
-    response = requests.post(url, data=payload, headers=getHeaders(token), timeout=120)
+    response = requests.post(url, data=payload, headers=get_headers(token), timeout=120)
 
-    if "application/json" in response.headers.get("Content-Type", ""):
-        respJson = response.json()
-        if respJson["code"] != 200:
-            raise RequestError(
-                "Error with URL:[{}] - Code {}: {}".format(
-                    url, respJson["code"], respJson["message"]
-                )
-            )
-        _LOGGER.debug("%s", respJson)
-        return respJson
-
-    raise RequestError("Error with URL:[{}]: {}".format(url, response.content))
+    try:
+        resp_json = response.json()
+    except Exception as ex:
+        raise RequestError(f"Error with URL:[{url}]: {response.content}") from ex
+    if "code" not in resp_json:
+        raise RequestError(f"Error with URL:[{url}]: json:[{resp_json}]")
+    if resp_json["code"] != 200:
+        raise RequestError(
+            f"Error with URL:[{url}] - Code {resp_json["code"]}: {resp_json["message"]}"
+        )
+    _LOGGER.debug("%s", resp_json)
+    return resp_json
 
 
 class RequestError(Exception):
+    """Request error from API"""
+
     def __init__(self, message):
         super(RequestError, self).__init__(message)
 
 
-class ED_Session:
+class EDSession:
+    """Ecole Directe session with Token"""
+
     def __init__(self, data):
         self.token = data["token"]
         self.id = data["data"]["accounts"][0]["id"]
         self.identifiant = data["data"]["accounts"][0]["identifiant"]
-        self.idLogin = data["data"]["accounts"][0]["idLogin"]
-        self.typeCompte = data["data"]["accounts"][0]["typeCompte"]
+        self._id_login = data["data"]["accounts"][0]["idLogin"]
+        self._account_type = data["data"]["accounts"][0]["typeCompte"]
         self.modules = []
         for module in data["data"]["accounts"][0]["modules"]:
             if module["enable"]:
                 self.modules.append(module["code"])
         self.eleves = []
-        if self.typeCompte == "E":
+        if self._account_type == "E":
             self.eleves.append(
-                ED_Eleve(
+                EDEleve(
                     None,
+                    data["data"]["accounts"][0]["nomEtablissement"],
                     self.id,
                     data["data"]["accounts"][0]["prenom"],
                     data["data"]["accounts"][0]["nom"],
@@ -84,16 +95,21 @@ class ED_Session:
         else:
             if "eleves" in data["data"]["accounts"][0]["profile"]:
                 for eleve in data["data"]["accounts"][0]["profile"]["eleves"]:
-                    self.eleves.append(ED_Eleve(eleve))
+                    self.eleves.append(
+                        EDEleve(eleve, data["data"]["accounts"][0]["nomEtablissement"])
+                    )
 
 
-class ED_Eleve:
+class EDEleve:
+    """Student information"""
+
     def __init__(
         self,
         data=None,
-        id=None,
-        firstName=None,
-        lastName=None,
+        establishment=None,
+        eleve_id=None,
+        first_name=None,
+        last_name=None,
         classe_id=None,
         classe_name=None,
         modules=None,
@@ -101,10 +117,11 @@ class ED_Eleve:
         if data is None:
             self.classe_id = classe_id
             self.classe_name = classe_name
-            self.eleve_id = id
-            self.eleve_lastname = lastName
-            self.eleve_firstname = firstName
+            self.eleve_id = eleve_id
+            self.eleve_lastname = last_name
+            self.eleve_firstname = first_name
             self.modules = modules
+            self.establishment = establishment
         else:
             if "classe" in data:
                 self.classe_id = data["classe"]["id"]
@@ -112,46 +129,54 @@ class ED_Eleve:
             self.eleve_id = data["id"]
             self.eleve_lastname = data["nom"]
             self.eleve_firstname = data["prenom"]
+            self.establishment = establishment
             self.modules = []
             for module in data["modules"]:
                 if module["enable"]:
                     self.modules.append(module["code"])
 
-    def get_fullnameLower(self) -> str | None:
-        return f"{re.sub("[^A-Za-z]", "_", self.eleve_firstname.lower())}_{re.sub("[^A-Za-z]", "_", self.eleve_lastname.lower())}"
+    def get_fullname_lower(self) -> str | None:
+        """Student fullname lowercase"""
+        return f"{re.sub("[^A-Za-z]", "_",
+                         self.eleve_firstname.lower())
+                         }_{
+                             re.sub("[^A-Za-z]", "_", self.eleve_lastname.lower())}"
 
     def get_fullname(self) -> str | None:
+        """Student fullname"""
         return f"{self.eleve_firstname} {self.eleve_lastname}"
 
 
-class ED_Devoir:
-    def __init__(self, data, pourLe):
+class EDHomework:
+    """Homework information"""
+
+    def __init__(self, data, pour_le):
         try:
             if "matiere" in data:
                 self.matiere = data["matiere"]
             else:
                 self.matiere = ""
             if "codeMatiere" in data:
-                self.codeMatiere = data["codeMatiere"]
+                self.code_matiere = data["codeMatiere"]
             else:
-                self.codeMatiere = ""
+                self.code_matiere = ""
             if "aFaire" in data:
-                self.aFaire = data["aFaire"]
+                self.a_faire = data["aFaire"]
             else:
-                self.aFaire = ""
+                self.a_faire = ""
             if "idDevoir" in data:
-                self.idDevoir = data["idDevoir"]
+                self.id_devoir = data["idDevoir"]
             else:
-                self.idDevoir = ""
+                self.id_devoir = ""
             if "documentsAFaire" in data:
-                self.documentsAFaire = data["documentsAFaire"]
+                self.documents_a_faire = data["documentsAFaire"]
             else:
-                self.documentsAFaire = ""
+                self.documents_a_faire = ""
             if "donneLe" in data:
-                self.donneLe = data["donneLe"]
+                self.donne_le = data["donneLe"]
             else:
-                self.donneLe = ""
-            self.pourLe = pourLe
+                self.donne_le = ""
+            self.pour_le = pour_le
             if "effectue" in data:
                 self.effectue = data["effectue"]
             else:
@@ -161,31 +186,51 @@ class ED_Devoir:
             else:
                 self.interrogation = ""
             if "rendreEnLigne" in data:
-                self.rendreEnLigne = data["rendreEnLigne"]
+                self.rendre_en_ligne = data["rendreEnLigne"]
             else:
-                self.rendreEnLigne = ""
+                self.rendre_en_ligne = ""
+            if "nbJourMaxRenduDevoir" in data:
+                self.nb_jour_max_rendu_devoir = data["nbJourMaxRenduDevoir"]
+            else:
+                self.nb_jour_max_rendu_devoir = ""
+            if "contenu" in data:
+                self.contenu = data["contenu"]
+            else:
+                self.contenu = ""
         except Exception as err:
             _LOGGER.warning("ED_Devoir Error: [%s] - Data[%s]", err, data)
 
-    def format(self):
+    def format_homework(self):
+        """format homework"""
         try:
             return {
+                "date": self.pour_le,
+                "subject": self.matiere,
+                "short_description": self.contenu[0:HOMEWORK_DESC_MAX_LENGTH],
+                "description": self.contenu,
+                "done": self.effectue,
+                "background_color": None,
+                "files": None,
                 "matiere": self.matiere,
-                "codeMatiere": self.codeMatiere,
-                "aFaire": self.aFaire,
-                "idDevoir": self.idDevoir,
-                "documentsAFaire": self.documentsAFaire,
-                "donneLe": self.donneLe,
-                "pourLe": self.pourLe,
+                "codeMatiere": self.code_matiere,
+                "aFaire": self.a_faire,
+                "idDevoir": self.id_devoir,
+                "documentsAFaire": self.documents_a_faire,
+                "donneLe": self.donne_le,
+                "pourLe": self.pour_le,
                 "effectue": self.effectue,
                 "interrogation": self.interrogation,
-                "rendreEnLigne": self.rendreEnLigne,
+                "rendreEnLigne": self.rendre_en_ligne,
+                "nbJourMaxRenduDevoir": self.nb_jour_max_rendu_devoir,
+                "contenu": self.contenu,
             }
         except Exception:
             return {}
 
 
-class ED_Note:
+class EDGrade:
+    """Grade information"""
+
     def __init__(self, data):
         try:
             if "id" in data:
@@ -197,119 +242,133 @@ class ED_Note:
             else:
                 self.devoir = ""
             if "codePeriode" in data:
-                self.codePeriode = data["codePeriode"]
+                self.code_periode = data["codePeriode"]
             else:
-                self.codePeriode = ""
+                self.code_periode = ""
             if "codeMatiere" in data:
-                self.codeMatiere = data["codeMatiere"]
+                self.code_matiere = data["codeMatiere"]
             else:
-                self.codeMatiere = ""
+                self.code_matiere = ""
             if "libelleMatiere" in data:
-                self.libelleMatiere = data["libelleMatiere"]
+                self.libelle_matiere = data["libelleMatiere"]
             else:
-                self.libelleMatiere = ""
+                self.libelle_matiere = ""
             if "codeSousMatiere" in data:
-                self.codeSousMatiere = data["codeSousMatiere"]
+                self.code_sous_matiere = data["codeSousMatiere"]
             else:
-                self.codeSousMatiere = ""
+                self.code_sous_matiere = ""
             if "typeDevoir" in data:
-                self.typeDevoir = data["typeDevoir"]
+                self.type_devoir = data["typeDevoir"]
             else:
-                self.typeDevoir = ""
+                self.type_devoir = ""
             if "enLettre" in data:
-                self.enLettre = data["enLettre"]
+                self.en_lettre = data["enLettre"]
             else:
-                self.enLettre = ""
+                self.en_lettre = ""
             if "commentaire" in data:
                 self.commentaire = data["commentaire"]
             else:
                 self.commentaire = ""
             if "uncSujet" in data:
-                self.uncSujet = data["uncSujet"]
+                self.unc_sujet = data["uncSujet"]
             else:
-                self.uncSujet = ""
+                self.unc_sujet = ""
             if "uncCorrige" in data:
-                self.uncCorrige = data["uncCorrige"]
+                self.unc_corrige = data["uncCorrige"]
             else:
-                self.uncCorrige = ""
+                self.unc_corrige = ""
             if "coef" in data:
                 self.coef = data["coef"]
             else:
                 self.coef = ""
             if "noteSur" in data:
-                self.noteSur = data["noteSur"]
+                self.note_sur = data["noteSur"]
             else:
-                self.noteSur = ""
+                self.note_sur = ""
             if "valeur" in data:
                 self.valeur = data["valeur"]
             else:
                 self.valeur = ""
             if "nonSignificatif" in data:
-                self.nonSignificatif = data["nonSignificatif"]
+                self.non_significatif = data["nonSignificatif"]
             else:
-                self.nonSignificatif = ""
+                self.non_significatif = ""
             if "date" in data:
                 self.date = data["date"]
             else:
                 self.date = ""
             if "dateSaisie" in data:
-                self.dateSaisie = data["dateSaisie"]
+                self.date_saisie = data["dateSaisie"]
             else:
-                self.dateSaisie = ""
+                self.date_saisie = ""
             if "valeurisee" in data:
                 self.valeurisee = data["valeurisee"]
             else:
                 self.valeurisee = ""
             if "moyenneClasse" in data:
-                self.moyenneClasse = data["moyenneClasse"]
+                self.moyenne_classe = data["moyenneClasse"]
             else:
-                self.moyenneClasse = ""
+                self.moyenne_classe = ""
             if "minClasse" in data:
-                self.minClasse = data["minClasse"]
+                self.min_classe = data["minClasse"]
             else:
-                self.minClasse = ""
+                self.min_classe = ""
             if "maxClasse" in data:
-                self.maxClasse = data["maxClasse"]
+                self.max_classe = data["maxClasse"]
             else:
-                self.maxClasse = ""
+                self.max_classe = ""
             if "elementsProgramme" in data:
-                self.elementsProgramme = data["elementsProgramme"]
+                self.elements_programme = data["elementsProgramme"]
             else:
-                self.elementsProgramme = ""
+                self.elements_programme = ""
         except Exception as err:
             _LOGGER.warning("ED_Note error: [%s] - Data[%s]", err, data)
 
-    def format(self):
+    def format_grade(self):
+        """grade fromat"""
         try:
             return {
+                "date": self.date,
+                "subject": self.code_matiere,
+                "comment": self.devoir,
+                "grade": self.valeur,
+                "out_of": str(self.note_sur).replace(".", ","),
+                "default_out_of": str(self.note_sur).replace(".", ","),
+                "grade_out_of": self.valeur + "/" + self.note_sur,
+                "coefficient": str(self.coef).replace(".", ","),
+                "class_average": str(self.moyenne_classe).replace(".", ","),
+                "max": str(self.max_classe).replace(".", ","),
+                "min": str(self.min_classe).replace(".", ","),
+                "is_bonus": None,
+                "is_optionnal": None,
+                "is_out_of_20": None,
                 "id": self.id,
                 "devoir": self.devoir,
-                "codePeriode": self.codePeriode,
-                "codeMatiere": self.codeMatiere,
-                "libelleMatiere": self.libelleMatiere,
-                "codeSousMatiere": self.codeSousMatiere,
-                "typeDevoir": self.typeDevoir,
-                "enLettre": self.enLettre,
+                "codePeriode": self.code_periode,
+                "codeMatiere": self.code_matiere,
+                "libelleMatiere": self.libelle_matiere,
+                "codeSousMatiere": self.code_sous_matiere,
+                "typeDevoir": self.type_devoir,
+                "enLettre": self.en_lettre,
                 "commentaire": self.commentaire,
-                "uncSujet": self.uncSujet,
-                "uncCorrige": self.uncCorrige,
+                "uncSujet": self.unc_sujet,
+                "uncCorrige": self.unc_corrige,
                 "coef": self.coef,
-                "noteSur": self.noteSur,
+                "noteSur": self.note_sur,
                 "valeur": self.valeur,
-                "nonSignificatif": self.nonSignificatif,
-                "date": self.date,
-                "dateSaisie": self.dateSaisie,
+                "nonSignificatif": self.non_significatif,
+                "dateSaisie": self.date_saisie,
                 "valeurisee": self.valeurisee,
-                "moyenneClasse": self.moyenneClasse,
-                "minClasse": self.minClasse,
-                "maxClasse": self.maxClasse,
-                "elementsProgramme": self.elementsProgramme,
+                "moyenneClasse": self.moyenne_classe,
+                "minClasse": self.min_classe,
+                "maxClasse": self.max_classe,
+                "elementsProgramme": self.elements_programme,
             }
         except Exception:
             return {}
 
 
-def get_ecoledirecte_session(data) -> ED_Session | None:
+def get_ecoledirecte_session(data) -> EDSession | None:
     """Function connecting to Ecole Directe"""
     try:
         _LOGGER.debug(
@@ -318,10 +377,10 @@ def get_ecoledirecte_session(data) -> ED_Session | None:
             data["password"],
         )
 
-        login = getResponse(
+        login = get_response(
             None,
             f"{APIURL}/login.awp?v={APIVERSION}",
-            encodeBody(
+            encode_body(
                 {
                     "data": {
                         "identifiant": data["username"],
@@ -335,63 +394,68 @@ def get_ecoledirecte_session(data) -> ED_Session | None:
             "Connection OK - identifiant: [{%s}]",
             login["data"]["accounts"][0]["identifiant"],
         )
-        return ED_Session(login)
+        return EDSession(login)
     except Exception as err:
         _LOGGER.critical(err)
         return None
 
 
-# def getMessages(session, eleve, anneeScolaire):
+# def get_messages(session, eleve, annee_scolaire):
+#     """Get messages from Ecole Directe"""
 #     if eleve is None:
-#         return getResponse(
+#         return get_response(
 #             session,
 #             f"{APIURL}/familles/{session.id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
-#             encodeBody({"data": {"anneeMessages": anneeScolaire}}),
+#             encode_body({"data": {"anneeMessages": annee_scolaire}}),
 #         )
-#     return getResponse(
+#     return get_response(
 #         session,
 #         f"{APIURL}/eleves/{eleve.eleve_id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
-#         encodeBody({"data": {"anneeMessages": anneeScolaire}}),
+#         encode_body({"data": {"anneeMessages": annee_scolaire}}),
 #     )
 
 
-def getDevoirsByDate(session, eleve, date):
-    json = getResponse(
+def get_homeworks_by_date(session, eleve, date):
+    """get homeworks by date"""
+    json = get_response(
         session,
         f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte/{date}.awp?verbe=get&v={APIVERSION}",
         None,
     )
     if "data" in json:
         return json["data"]
-    _LOGGER.warning("getDevoirsByDate: [%s]", json)
+    _LOGGER.warning("get_homeworks_by_date: [%s]", json)
     return None
 
 
-def getDevoirs(session, eleve):
-    json = getResponse(
+def get_homeworks(session, eleve):
+    """get homeworks"""
+    json = get_response(
         session,
         f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte.awp?verbe=get&v={APIVERSION}",
         None,
     )
     if "data" in json:
         return json["data"]
-    _LOGGER.warning("getDevoirs: [%s]", json)
+    _LOGGER.warning("get_homeworks: [%s]", json)
     return None
 
 
-def getNotes(session, eleve, anneeScolaire):
-    json = getResponse(
+def get_grades(session, eleve, annee_scolaire):
+    """get grades"""
+    json = get_response(
         session,
         f"{APIURL}/eleves/{eleve.eleve_id}/notes.awp?verbe=get&v={APIVERSION}",
-        encodeBody({"data": {"anneeScolaire": anneeScolaire}}),
+        encode_body({"data": {"anneeScolaire": annee_scolaire}}),
     )
     if "data" in json:
         return json["data"]
-    _LOGGER.warning("getNotes: [%s]", json)
+    _LOGGER.warning("get_grades: [%s]", json)
     return None
 
 
-def getHeaders(token):
+def get_headers(token):
+    """return headers needed from Ecole Directe API"""
     headers = {
         "Accept": "application/json, text/plain, */*",
         "Accept-Encoding": "gzip, deflate, br",
@@ -414,7 +478,8 @@ def getHeaders(token):
     return headers
 
 
-def isLogin(session):
+def is_login(session):
+    """Ckeck valid login"""
     if session.token is not None and session.id is not None:
         return True
     return False

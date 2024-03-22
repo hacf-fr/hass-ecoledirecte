@@ -1,3 +1,5 @@
+"""Module providing sensors to Home Assistant."""
+
 import logging
 
 from homeassistant.core import HomeAssistant
@@ -12,11 +14,11 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
 
-from .ecoleDirecte_helper import ED_Eleve, ED_Devoir, ED_Note
+from .ecole_directe_helper import EDEleve, EDHomework, EDGrade
 from .coordinator import EDDataUpdateCoordinator
 from .const import (
     DOMAIN,
-    NOTES_TO_DISPLAY,
+    GRADES_TO_DISPLAY,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -27,6 +29,8 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
+    """Set up a bridge from a config entry."""
+
     coordinator: EDDataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id][
         "coordinator"
     ]
@@ -36,9 +40,9 @@ async def async_setup_entry(
     for eleve in coordinator.data["session"].eleves:
         sensors.append(EDChildSensor(coordinator, eleve))
         if "CAHIER_DE_TEXTES" in eleve.modules:
-            sensors.append(EDDevoirsSensor(coordinator, eleve))
+            sensors.append(EDHomeworksSensor(coordinator, eleve))
         if "NOTES" in eleve.modules:
-            sensors.append(EDNotesSensor(coordinator, eleve))
+            sensors.append(EDGradesSensor(coordinator, eleve))
 
     async_add_entities(sensors, False)
 
@@ -50,7 +54,7 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
         self,
         coordinator,
         name: str,
-        eleve: ED_Eleve = None,
+        eleve: EDEleve = None,
         state: str = None,
         device_class: str = None,
     ) -> None:
@@ -68,7 +72,7 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
             entry_type=DeviceEntryType.SERVICE,
             identifiers={(DOMAIN, f"ED - {identifiant}")},
             manufacturer="Ecole Directe",
-            model=str(f"ED - {identifiant}"),
+            model=f"ED - {identifiant}",
         )
 
         if device_class is not None:
@@ -106,10 +110,11 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
 class EDChildSensor(EDGenericSensor):
     """Representation of a ED child sensor."""
 
-    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: ED_Eleve) -> None:
+    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
         super().__init__(coordinator, eleve.get_fullname(), eleve, "len")
-        self._attr_unique_id = f"ed_{eleve.get_fullnameLower()}_{eleve.eleve_id}]"
+        self._attr_unique_id = f"ed_{eleve.get_fullname_lower()}_{eleve.eleve_id}]"
+        self._account_type = self.coordinator.data["session"]._account_type
 
     @property
     def name(self):
@@ -125,8 +130,12 @@ class EDChildSensor(EDGenericSensor):
     def extra_state_attributes(self):
         """Return the state attributes."""
         return {
+            "firstname": self._child_info.eleve_firstname,
+            "lastname": self._child_info.eleve_lastname,
             "full_name": self._child_info.get_fullname(),
             "class_name": self._child_info.classe_name,
+            "establishment": self._child_info.establishment,
+            "via_parent_account": self._account_type == "1",
             "updated_at": self.coordinator.last_update_success_time,
         }
 
@@ -136,13 +145,16 @@ class EDChildSensor(EDGenericSensor):
         return self.coordinator.last_update_success
 
 
-class EDDevoirsSensor(EDGenericSensor):
+class EDHomeworksSensor(EDGenericSensor):
     """Representation of a ED sensor."""
 
-    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: ED_Eleve) -> None:
+    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
         super().__init__(
-            coordinator, "devoirs" + eleve.get_fullnameLower(), eleve, "len"
+            coordinator,
+            f"homeworks{self._child_info.get_fullname_lower()}",
+            eleve,
+            "len",
         )
 
     @property
@@ -150,54 +162,59 @@ class EDDevoirsSensor(EDGenericSensor):
         """Return the state attributes."""
         attributes = []
         todo_counter = 0
-        if f"devoirs{self._child_info.get_fullnameLower()}" in self.coordinator.data:
+        if f"homeworks{self._child_info.get_fullname_lower()}" in self.coordinator.data:
             json = self.coordinator.data[
-                f"devoirs{self._child_info.get_fullnameLower()}"
+                f"homeworks{self._child_info.get_fullname_lower()}"
             ]
-            _LOGGER.debug("EDDevoirsSensor attributes json: [%s]", json)
-            for date in json:
-                for devoirs in date:
-                    for devoir_json in devoirs:
-                        devoir = ED_Devoir(devoir_json, date)
-                        if devoir is not None:
-                            attributes.append(devoir.format())
-                            if devoir.effectue is False:
+            _LOGGER.debug("EDHomeworksSensor attributes json: [%s]", json)
+            for key in json.keys():
+                for homeworks in json[key]:
+                    for homework_json in homeworks:
+                        homework = EDHomework(homework_json, key)
+                        if homework is not None:
+                            attributes.append(homework.format_homework())
+                            if homework.effectue is False:
                                 todo_counter += 1
         else:
             attributes.append(
                 {
-                    "Erreur": f"devoirs{self._child_info.get_fullnameLower()} n'existe pas."
+                    "Erreur": f"homeworks{self._child_info.get_fullname_lower()} n'existe pas."
                 }
             )
 
+        attributes.sort(key="pour_le")
+
         return {
             "updated_at": self.coordinator.last_update_success_time,
-            "devoirs": attributes,
+            "homeworks": attributes,
             "todo_counter": todo_counter,
         }
 
 
-class EDNotesSensor(EDGenericSensor):
+class EDGradesSensor(EDGenericSensor):
     """Representation of a ED sensor."""
 
-    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: ED_Eleve) -> None:
+    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
-        super().__init__(coordinator, "notes" + eleve.get_fullnameLower(), eleve, "len")
+        super().__init__(
+            coordinator, f"grades{self._child_info.get_fullname_lower()}", eleve, "len"
+        )
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
-        json = self.coordinator.data["notes" + self._child_info.get_fullnameLower()]
-        index_note = 0
+        json = self.coordinator.data[f"grades{self._child_info.get_fullname_lower()}"]
+        index = 0
         if json is not None and "notes" in json:
-            _LOGGER.debug("EDNotesSensor attributes json: [%s]", json)
-            for note in json["notes"]:
-                index_note += 1
-                if index_note == NOTES_TO_DISPLAY:
+            _LOGGER.debug("EDGradesSensor attributes json: [%s]", json)
+            grades = sorted(json["notes"], key=lambda grade: grade.date, reverse=True)
+            for grade_json in grades:
+                index += 1
+                if index == GRADES_TO_DISPLAY:
                     break
-                n = ED_Note(note)
-                attributes.append(n.format())
+                grade = EDGrade(grade_json)
+                attributes.append(grade.format_grade())
 
         return {
             "updated_at": self.coordinator.last_update_success_time,

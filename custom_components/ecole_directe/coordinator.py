@@ -12,7 +12,12 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordinator
 
-from .ecoleDirecte_helper import get_ecoledirecte_session, getDevoirs, getNotes
+from .ecole_directe_helper import (
+    get_ecoledirecte_session,
+    get_homeworks,
+    get_grades,
+    get_homeworks_by_date,
+)
 
 from .const import (
     DEFAULT_REFRESH_INTERVAL,
@@ -52,45 +57,70 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         self.data = {}
         self.data["session"] = session
 
-        currentYear = datetime.datetime.now().year
-        if (currentYear % 2) == 0:
-            yearData = f"{str(currentYear-1)}-{str(currentYear)}"
+        current_year = datetime.datetime.now().year
+        if (current_year % 2) == 0:
+            year_data = f"{str(current_year-1)}-{str(current_year)}"
         else:
-            yearData = f"{str(currentYear)}-{str(currentYear + 1)}"
+            year_data = f"{str(current_year)}-{str(current_year + 1)}"
 
-        # if (session.typeCompte == '1'): # famille
+        # if session._account_type == "1":  # famille
         #     if "MESSAGERIE" in session.modules:
         #         try:
-        #             self.data['messages'] = await self.hass.async_add_executor_job(getMessages, session, None, yearData)
+        #             self.data["messages"] = await self.hass.async_add_executor_job(
+        #                 get_messages, session, None, year_data
+        #             )
         #         except Exception as ex:
-        #             self.data['messages'] = None
-        #             _LOGGER.warning("Error getting messages for family from ecole directe: %s", ex)
+        #             self.data["messages"] = None
+        #             _LOGGER.warning(
+        #                 "Error getting messages for family from ecole directe: %s", ex
+        #             )
 
         for eleve in session.eleves:
             if "CAHIER_DE_TEXTES" in eleve.modules:
                 try:
-                    self.data[
-                        "devoirs" + eleve.get_fullnameLower()
-                    ] = await self.hass.async_add_executor_job(
-                        getDevoirs, session, eleve
+                    homeworks_json = await self.hass.async_add_executor_job(
+                        get_homeworks, session, eleve
                     )
+                    for key in homeworks_json.keys():
+                        homeworks_by_date_json = await self.hass.async_add_executor_job(
+                            get_homeworks_by_date, session, eleve, key
+                        )
+                        _LOGGER.debug(
+                            "homeworks_by_date_json:%s", homeworks_by_date_json
+                        )
+                        for matiere in homeworks_by_date_json["matieres"]:
+                            for homework in homeworks_json[key]:
+                                if matiere["id"] == homework["idDevoir"]:
+                                    homework["nbJourMaxRenduDevoir"] = matiere[
+                                        "nbJourMaxRenduDevoir"
+                                    ]
+                                    homework["contenu"] = matiere["aFaire"]["contenu"]
+
+                        _LOGGER.debug("homeworks_json:%s", homeworks_json)
+                    self.data[f"homeworks{eleve.get_fullname_lower()}"] = homeworks_json
                 except Exception as ex:
-                    _LOGGER.warning("Error getting devoirs from ecole directe: %s", ex)
-                    self.data["devoirs" + eleve.get_fullnameLower()] = {}
+                    _LOGGER.warning(
+                        "Error getting homeworks from ecole directe: %s", ex
+                    )
+                    self.data[f"homeworks{eleve.get_fullname_lower()}"] = {}
             if "NOTES" in eleve.modules:
                 try:
                     self.data[
-                        "notes" + eleve.get_fullnameLower()
+                        f"grades{eleve.get_fullname_lower()}"
                     ] = await self.hass.async_add_executor_job(
-                        getNotes, session, eleve, yearData
+                        get_grades, session, eleve, year_data
                     )
                 except Exception as ex:
-                    _LOGGER.warning("Error getting notes from ecole directe: %s", ex)
-                    self.data["notes" + eleve.get_fullnameLower()] = {}
+                    _LOGGER.warning("Error getting grades from ecole directe: %s", ex)
+                    self.data[f"grades{eleve.get_fullname_lower()}"] = {}
             # if "MESSAGERIE" in eleve.modules:
             #     try:
-            #         self.data['messages'+ eleve.eleve_id] = await self.hass.async_add_executor_job(getMessages, session, eleve, yearData)
+            #         self.data[
+            #             "messages" + eleve.eleve_id
+            #         ] = await self.hass.async_add_executor_job(
+            #             get_messages, session, eleve, year_data
+            #         )
             #     except Exception as ex:
-            #         _LOGGER.warning("Error getting notes from ecole directe: %s", ex)
+            #         _LOGGER.warning("Error getting messages from ecole directe: %s", ex)
 
         return self.data

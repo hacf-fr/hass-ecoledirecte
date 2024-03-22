@@ -3,7 +3,7 @@
 ![Version](https://img.shields.io/github/v/release/hacf-fr/hass-ecoledirecte?label=version) [![HACS: Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
 
 - [Installation](#Installation)
-  - [Installation via l'interface utilisateur via HACS](#Installation-via-l'interface-utilisateur-via-hacs)
+  - [Installation via l'interface utilisateur via HACS](#Installation-via-linterface-utilisateur-via-hacs)
   - [Installation manuelle](<#Installation-manuelle>)
 - [Configuration](#Configuration)
 - [Utilisation](#Utilisation)

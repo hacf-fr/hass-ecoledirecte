@@ -12,7 +12,10 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordinator
 
+from .ecole_directe_formatter import format_grade
+
 from .ecole_directe_helper import (
+    EDEleve,
     get_ecoledirecte_session,
     get_homeworks,
     get_grades,
@@ -21,6 +24,7 @@ from .ecole_directe_helper import (
 
 from .const import (
     DEFAULT_REFRESH_INTERVAL,
+    EVENT_TYPE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,6 +49,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict[Platform, dict[str, Any]]:
         """Get the latest data from Ecole Directe and updates the state."""
+
+        previous_data = None if self.data is None else self.data.copy()
 
         data = self.config_entry.data
 
@@ -110,6 +116,14 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     ] = await self.hass.async_add_executor_job(
                         get_grades, session, eleve, year_data
                     )
+                    self.compare_data(
+                        previous_data,
+                        f"grades{eleve.get_fullname_lower()}",
+                        ["date", "subject", "grade_out_of"],
+                        "new_grade",
+                        eleve,
+                        format_grade,
+                    )
                 except Exception as ex:
                     _LOGGER.warning("Error getting grades from ecole directe: %s", ex)
                     self.data[f"grades{eleve.get_fullname_lower()}"] = {}
@@ -124,3 +138,43 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             #         _LOGGER.warning("Error getting messages from ecole directe: %s", ex)
 
         return self.data
+
+    def compare_data(
+        self,
+        previous_data,
+        data_key,
+        compare_keys,
+        event_type,
+        eleve: EDEleve,
+        format_func,
+    ):
+        """Compare data from previous session"""
+
+        if (
+            previous_data is not None
+            and previous_data[data_key] is not None
+            and self.data[data_key] is not None
+        ):
+            not_found_items = []
+            for item in self.data[data_key]:
+                found = False
+                for previous_item in previous_data[data_key]:
+                    if {
+                        key: format_func(previous_item)[key] for key in compare_keys
+                    } == {key: format_func(item)[key] for key in compare_keys}:
+                        found = True
+                        break
+                if found is False:
+                    not_found_items.append(item)
+            for not_found_item in not_found_items:
+                self.trigger_event(event_type, eleve, format_func(not_found_item))
+
+    def trigger_event(self, event_type, eleve: EDEleve, event_data):
+        """Trigger an event if there is new data"""
+
+        event_data = {
+            "child_name": eleve.get_fullname(),
+            "type": event_type,
+            "data": event_data,
+        }
+        self.hass.bus.async_fire(EVENT_TYPE, event_data)

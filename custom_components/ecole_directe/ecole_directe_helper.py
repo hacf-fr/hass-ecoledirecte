@@ -5,8 +5,6 @@ import logging
 import urllib
 import requests
 
-from .const import HOMEWORK_DESC_MAX_LENGTH
-
 _LOGGER = logging.getLogger(__name__)
 
 APIURL = "https://api.ecoledirecte.com/v3"
@@ -200,33 +198,6 @@ class EDHomework:
         except Exception as err:
             _LOGGER.warning("ED_Devoir Error: [%s] - Data[%s]", err, data)
 
-    def format_homework(self):
-        """format homework"""
-        try:
-            return {
-                "date": self.pour_le,
-                "subject": self.matiere,
-                "short_description": self.contenu[0:HOMEWORK_DESC_MAX_LENGTH],
-                "description": self.contenu,
-                "done": self.effectue,
-                "background_color": None,
-                "files": None,
-                "matiere": self.matiere,
-                "codeMatiere": self.code_matiere,
-                "aFaire": self.a_faire,
-                "idDevoir": self.id_devoir,
-                "documentsAFaire": self.documents_a_faire,
-                "donneLe": self.donne_le,
-                "pourLe": self.pour_le,
-                "effectue": self.effectue,
-                "interrogation": self.interrogation,
-                "rendreEnLigne": self.rendre_en_ligne,
-                "nbJourMaxRenduDevoir": self.nb_jour_max_rendu_devoir,
-                "contenu": self.contenu,
-            }
-        except Exception:
-            return {}
-
 
 class EDGrade:
     """Grade information"""
@@ -323,49 +294,6 @@ class EDGrade:
                 self.elements_programme = ""
         except Exception as err:
             _LOGGER.warning("ED_Note error: [%s] - Data[%s]", err, data)
-
-    def format_grade(self):
-        """grade fromat"""
-        try:
-            return {
-                "date": self.date,
-                "subject": self.code_matiere,
-                "comment": self.devoir,
-                "grade": self.valeur,
-                "out_of": str(self.note_sur).replace(".", ","),
-                "default_out_of": str(self.note_sur).replace(".", ","),
-                "grade_out_of": self.valeur + "/" + self.note_sur,
-                "coefficient": str(self.coef).replace(".", ","),
-                "class_average": str(self.moyenne_classe).replace(".", ","),
-                "max": str(self.max_classe).replace(".", ","),
-                "min": str(self.min_classe).replace(".", ","),
-                "is_bonus": None,
-                "is_optionnal": None,
-                "is_out_of_20": None,
-                "id": self.id,
-                "devoir": self.devoir,
-                "codePeriode": self.code_periode,
-                "codeMatiere": self.code_matiere,
-                "libelleMatiere": self.libelle_matiere,
-                "codeSousMatiere": self.code_sous_matiere,
-                "typeDevoir": self.type_devoir,
-                "enLettre": self.en_lettre,
-                "commentaire": self.commentaire,
-                "uncSujet": self.unc_sujet,
-                "uncCorrige": self.unc_corrige,
-                "coef": self.coef,
-                "noteSur": self.note_sur,
-                "valeur": self.valeur,
-                "nonSignificatif": self.non_significatif,
-                "dateSaisie": self.date_saisie,
-                "valeurisee": self.valeurisee,
-                "moyenneClasse": self.moyenne_classe,
-                "minClasse": self.min_classe,
-                "maxClasse": self.max_classe,
-                "elementsProgramme": self.elements_programme,
-            }
-        except Exception:
-            return {}
 
 
 def get_ecoledirecte_session(data) -> EDSession | None:

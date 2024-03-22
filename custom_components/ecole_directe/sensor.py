@@ -14,6 +14,11 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
 
+from .ecole_directe_formatter import (
+    format_grade,
+    format_homework,
+)
+
 from .ecole_directe_helper import EDEleve, EDHomework, EDGrade
 from .coordinator import EDDataUpdateCoordinator
 from .const import (
@@ -172,7 +177,7 @@ class EDHomeworksSensor(EDGenericSensor):
                     for homework_json in homeworks:
                         homework = EDHomework(homework_json, key)
                         if homework is not None:
-                            attributes.append(homework.format_homework())
+                            attributes.append(format_homework(homework))
                             if homework.effectue is False:
                                 todo_counter += 1
         else:
@@ -214,7 +219,7 @@ class EDGradesSensor(EDGenericSensor):
                 if index == GRADES_TO_DISPLAY:
                     break
                 grade = EDGrade(grade_json)
-                attributes.append(grade.format_grade())
+                attributes.append(format_grade(grade))
 
         return {
             "updated_at": self.coordinator.last_update_success_time,

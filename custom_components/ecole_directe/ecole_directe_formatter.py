@@ -1,16 +1,21 @@
 """Data Formatter for the Ecole Directe integration."""
 
+import base64
+import logging
 from .const import HOMEWORK_DESC_MAX_LENGTH
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def format_homework(homework):
     """format homework"""
     try:
+        contenu = base64.b64decode(homework.contenu).decode("utf-8")
         return {
             "date": homework.pour_le,
             "subject": homework.matiere,
-            "short_description": homework.contenu[0:HOMEWORK_DESC_MAX_LENGTH],
-            "description": homework.contenu,
+            "short_description": contenu[0:HOMEWORK_DESC_MAX_LENGTH],
+            "description": contenu,
             "done": homework.effectue,
             "background_color": None,
             "files": None,
@@ -25,9 +30,10 @@ def format_homework(homework):
             "interrogation": homework.interrogation,
             "rendreEnLigne": homework.rendre_en_ligne,
             "nbJourMaxRenduDevoir": homework.nb_jour_max_rendu_devoir,
-            "contenu": homework.contenu,
+            "contenu": contenu,
         }
-    except Exception:
+    except Exception as ex:
+        _LOGGER.warning("Error: %s - format_homework: %s", ex, homework)
         return {}
 
 
@@ -71,5 +77,6 @@ def format_grade(grade):
             "maxClasse": grade.max_classe,
             "elementsProgramme": grade.elements_programme,
         }
-    except Exception:
+    except Exception as ex:
+        _LOGGER.warning("Error: %s - format_grade: %s", ex, grade)
         return {}

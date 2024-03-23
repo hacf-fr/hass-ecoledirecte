@@ -157,7 +157,7 @@ class EDHomeworksSensor(EDGenericSensor):
         """Initialize the ED sensor."""
         super().__init__(
             coordinator,
-            f"homeworks{self._child_info.get_fullname_lower()}",
+            f"homeworks{eleve.get_fullname_lower()}",
             eleve,
             "len",
         )
@@ -202,7 +202,7 @@ class EDGradesSensor(EDGenericSensor):
     def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
         super().__init__(
-            coordinator, f"grades{self._child_info.get_fullname_lower()}", eleve, "len"
+            coordinator, f"grades{eleve.get_fullname_lower()}", eleve, "len"
         )
 
     @property

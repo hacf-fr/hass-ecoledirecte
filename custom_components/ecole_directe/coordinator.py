@@ -103,22 +103,24 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                                     homework["contenu"] = matiere["aFaire"]["contenu"]
 
                         _LOGGER.debug("homeworks_json:%s", homeworks_json)
-                    self.data[f"homeworks{eleve.get_fullname_lower()}"] = homeworks_json
+                    self.data[f"{eleve.get_fullname_lower()}_homeworks"] = (
+                        homeworks_json
+                    )
                 except Exception as ex:
                     _LOGGER.warning(
                         "Error getting homeworks from ecole directe: %s", ex
                     )
-                    self.data[f"homeworks{eleve.get_fullname_lower()}"] = {}
+                    self.data[f"{eleve.get_fullname_lower()}_homeworks"] = {}
             if "NOTES" in eleve.modules:
                 try:
                     self.data[
-                        f"grades{eleve.get_fullname_lower()}"
+                        f"{eleve.get_fullname_lower()}_grades"
                     ] = await self.hass.async_add_executor_job(
                         get_grades, session, eleve, year_data
                     )
                     self.compare_data(
                         previous_data,
-                        f"grades{eleve.get_fullname_lower()}",
+                        f"{eleve.get_fullname_lower()}_grades",
                         ["date", "subject", "grade_out_of"],
                         "new_grade",
                         eleve,
@@ -126,16 +128,16 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     )
                 except Exception as ex:
                     _LOGGER.warning("Error getting grades from ecole directe: %s", ex)
-                    self.data[f"grades{eleve.get_fullname_lower()}"] = {}
-            # if "MESSAGERIE" in eleve.modules:
-            #     try:
-            #         self.data[
-            #             "messages" + eleve.eleve_id
-            #         ] = await self.hass.async_add_executor_job(
-            #             get_messages, session, eleve, year_data
-            #         )
-            #     except Exception as ex:
-            #         _LOGGER.warning("Error getting messages from ecole directe: %s", ex)
+                    self.data[f"{eleve.get_fullname_lower()}_grades"] = {}
+        # if "MESSAGERIE" in eleve.modules:
+        #     try:
+        #         self.data[
+        #             "messages" + eleve.eleve_id
+        #         ] = await self.hass.async_add_executor_job(
+        #             get_messages, session, eleve, year_data
+        #         )
+        #     except Exception as ex:
+        #         _LOGGER.warning("Error getting messages from ecole directe: %s", ex)
 
         return self.data
 

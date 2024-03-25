@@ -10,7 +10,10 @@ _LOGGER = logging.getLogger(__name__)
 def format_homework(homework):
     """format homework"""
     try:
-        contenu = base64.b64decode(homework.contenu).decode("utf-8")
+        if homework.contenu is not None:
+            contenu = base64.b64decode(homework.contenu).decode("utf-8")
+        else:
+            contenu = ""
         return {
             "date": homework.pour_le,
             "subject": homework.matiere,

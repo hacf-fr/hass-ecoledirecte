@@ -1,0 +1,36 @@
+{
+    "code": 200,
+    "data": {
+            "date": "2024-03-20",
+            "matieres": [{
+              "entityCode": "1A",
+              "entityLibelle": "PREMIERE A",
+              "entityType": "C",
+              "matiere": "ITALIEN",
+              "codeMatiere": "ITA3",
+              "nomProf": "prof asdf",
+              "id": 16340,
+              "interrogation": false,
+              "blogActif": false,
+              "nbJourMaxRenduDevoir": 10,
+              "aFaire": {
+                "idDevoir": 16340,
+                "contenu": "",
+                "rendreEnLigne": false,
+                "donneLe": "2024-03-10",
+                "effectue": false,
+                "ressource": "",
+                "ressourceDocuments": [],
+                "documents": [],
+                "commentaires": [],
+                "elementsProg": [],
+                "liensManuel": [],
+                "documentsRendus": [],
+                "contenuDeSeance": {}
+              },
+              "contenuDeSeance": {}
+            }]
+    },
+    "host": "HTTP12",
+    "token": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+}

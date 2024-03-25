@@ -1,6 +1,7 @@
 """Module providing sensors to Home Assistant."""
 
 import logging
+import operator
 
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
@@ -157,7 +158,7 @@ class EDHomeworksSensor(EDGenericSensor):
         """Initialize the ED sensor."""
         super().__init__(
             coordinator,
-            f"homeworks{eleve.get_fullname_lower()}",
+            f"{eleve.get_fullname_lower()}_homeworks",
             eleve,
             "len",
         )
@@ -167,27 +168,29 @@ class EDHomeworksSensor(EDGenericSensor):
         """Return the state attributes."""
         attributes = []
         todo_counter = 0
-        if f"homeworks{self._child_info.get_fullname_lower()}" in self.coordinator.data:
+        if (
+            f"{self._child_info.get_fullname_lower()}_homeworks"
+            in self.coordinator.data
+        ):
             json = self.coordinator.data[
-                f"homeworks{self._child_info.get_fullname_lower()}"
+                f"{self._child_info.get_fullname_lower()}_homeworks"
             ]
             _LOGGER.debug("EDHomeworksSensor attributes json: [%s]", json)
             for key in json.keys():
-                for homeworks in json[key]:
-                    for homework_json in homeworks:
-                        homework = EDHomework(homework_json, key)
-                        if homework is not None:
-                            attributes.append(format_homework(homework))
-                            if homework.effectue is False:
-                                todo_counter += 1
+                for homework_json in json[key]:
+                    homework = EDHomework(homework_json, key)
+                    if not homework.effectue:
+                        todo_counter += 1
+                        attributes.append(format_homework(homework))
+            if attributes is not None:
+                _LOGGER.debug("attributes: [%s]", attributes)
+                attributes.sort(key=operator.itemgetter("pourLe"))
         else:
             attributes.append(
                 {
-                    "Erreur": f"homeworks{self._child_info.get_fullname_lower()} n'existe pas."
+                    "Erreur": f"{self._child_info.get_fullname_lower()}_homeworks n'existe pas."
                 }
             )
-
-        attributes.sort(key="pour_le")
 
         return {
             "updated_at": self.coordinator.last_update_success_time,
@@ -202,19 +205,20 @@ class EDGradesSensor(EDGenericSensor):
     def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
         super().__init__(
-            coordinator, f"grades{eleve.get_fullname_lower()}", eleve, "len"
+            coordinator, f"{eleve.get_fullname_lower()}_grades", eleve, "len"
         )
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
-        json = self.coordinator.data[f"grades{self._child_info.get_fullname_lower()}"]
+        json = self.coordinator.data[f"{self._child_info.get_fullname_lower()}_grades"]
         index = 0
         if json is not None and "notes" in json:
             _LOGGER.debug("EDGradesSensor attributes json: [%s]", json)
-            grades = sorted(json["notes"], key=lambda grade: grade.date, reverse=True)
-            for grade_json in grades:
+            json["notes"].sort(key=operator.itemgetter("date"))
+            json["notes"].reverse()
+            for grade_json in json["notes"]:
                 index += 1
                 if index == GRADES_TO_DISPLAY:
                     break

@@ -152,8 +152,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
         if (
             previous_data is not None
-            and previous_data[data_key] is not None
-            and self.data[data_key] is not None
+            and data_key in previous_data
+            and data_key in self.data
         ):
             not_found_items = []
             for item in self.data[data_key]:

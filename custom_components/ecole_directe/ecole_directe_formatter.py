@@ -21,7 +21,7 @@ def format_homework(homework):
             "description": contenu,
             "done": homework.effectue,
             "background_color": None,
-            "files": None,
+            "files": [],
             "matiere": homework.matiere,
             "codeMatiere": homework.code_matiere,
             "aFaire": homework.a_faire,
@@ -45,7 +45,7 @@ def format_grade(grade):
     try:
         return {
             "date": grade.date,
-            "subject": grade.code_matiere,
+            "subject": grade.libelle_matiere,
             "comment": grade.devoir,
             "grade": grade.valeur,
             "out_of": str(grade.note_sur).replace(".", ","),

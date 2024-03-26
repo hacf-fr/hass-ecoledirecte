@@ -69,7 +69,10 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
 
         identifiant = self.coordinator.data["session"].identifiant
 
-        self._name = name
+        if name == "":
+            self._name = eleve.get_fullname_lower()
+        else:
+            self._name = f"{eleve.get_fullname_lower()}_{name}"
         self._state = state
         self._child_info = eleve
         self._attr_unique_id = f"ed_{identifiant}_{self._name}"
@@ -118,14 +121,14 @@ class EDChildSensor(EDGenericSensor):
 
     def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
-        super().__init__(coordinator, eleve.get_fullname(), eleve, "len")
+        super().__init__(coordinator, "", eleve, "len")
         self._attr_unique_id = f"ed_{eleve.get_fullname_lower()}_{eleve.eleve_id}]"
         self._account_type = self.coordinator.data["session"]._account_type
 
     @property
     def name(self):
         """Return the name of the sensor."""
-        return self._child_info.get_fullname()
+        return f"{DOMAIN}_{self._name}"
 
     @property
     def native_value(self):
@@ -158,7 +161,7 @@ class EDHomeworksSensor(EDGenericSensor):
         """Initialize the ED sensor."""
         super().__init__(
             coordinator,
-            f"{eleve.get_fullname_lower()}_homeworks",
+            "homework",
             eleve,
             "len",
         )
@@ -168,12 +171,9 @@ class EDHomeworksSensor(EDGenericSensor):
         """Return the state attributes."""
         attributes = []
         todo_counter = 0
-        if (
-            f"{self._child_info.get_fullname_lower()}_homeworks"
-            in self.coordinator.data
-        ):
+        if f"{self._child_info.get_fullname_lower()}_homework" in self.coordinator.data:
             json = self.coordinator.data[
-                f"{self._child_info.get_fullname_lower()}_homeworks"
+                f"{self._child_info.get_fullname_lower()}_homework"
             ]
             _LOGGER.debug("EDHomeworksSensor attributes json: [%s]", json)
             for key in json.keys():
@@ -188,13 +188,13 @@ class EDHomeworksSensor(EDGenericSensor):
         else:
             attributes.append(
                 {
-                    "Erreur": f"{self._child_info.get_fullname_lower()}_homeworks n'existe pas."
+                    "Erreur": f"{self._child_info.get_fullname_lower()}_homework n'existe pas."
                 }
             )
 
         return {
             "updated_at": self.coordinator.last_update_success_time,
-            "homeworks": attributes,
+            "homework": attributes,
             "todo_counter": todo_counter,
         }
 
@@ -204,9 +204,7 @@ class EDGradesSensor(EDGenericSensor):
 
     def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
-        super().__init__(
-            coordinator, f"{eleve.get_fullname_lower()}_grades", eleve, "len"
-        )
+        super().__init__(coordinator, "grades", eleve, "len")
 
     @property
     def extra_state_attributes(self):
@@ -227,5 +225,5 @@ class EDGradesSensor(EDGenericSensor):
 
         return {
             "updated_at": self.coordinator.last_update_success_time,
-            "notes": attributes,
+            "grades": attributes,
         }

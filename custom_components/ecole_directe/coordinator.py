@@ -103,14 +103,12 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                                     homework["contenu"] = matiere["aFaire"]["contenu"]
 
                         _LOGGER.debug("homeworks_json:%s", homeworks_json)
-                    self.data[f"{eleve.get_fullname_lower()}_homeworks"] = (
-                        homeworks_json
-                    )
+                    self.data[f"{eleve.get_fullname_lower()}_homework"] = homeworks_json
                 except Exception as ex:
                     _LOGGER.warning(
                         "Error getting homeworks from ecole directe: %s", ex
                     )
-                    self.data[f"{eleve.get_fullname_lower()}_homeworks"] = {}
+                    self.data[f"{eleve.get_fullname_lower()}_homework"] = {}
             if "NOTES" in eleve.modules:
                 try:
                     self.data[

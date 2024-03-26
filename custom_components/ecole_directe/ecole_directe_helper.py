@@ -338,7 +338,7 @@ def get_ecoledirecte_session(data) -> EDSession | None:
 
 
 def get_homeworks_by_date(session, eleve, date):
-    """get homeworks by date"""
+    # """get homeworks by date"""
     json_resp = get_response(
         session,
         f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte/{date}.awp?verbe=get&v={APIVERSION}",
@@ -369,7 +369,7 @@ def get_homeworks(session, eleve):
     _LOGGER.warning("get_homeworks: [%s]", json_resp)
     return None
 
-    # Opening JSON file
+    # # Opening JSON file
     # f = open("config/custom_components/ecole_directe/test_homeworks.json")
 
     # # returns JSON object as

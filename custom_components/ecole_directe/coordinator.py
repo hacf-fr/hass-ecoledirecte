@@ -76,7 +76,6 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         #                 get_messages, session, None, year_data
         #             )
         #         except Exception as ex:
-        #             self.data["messages"] = None
         #             _LOGGER.warning(
         #                 "Error getting messages for family from ecole directe: %s", ex
         #             )
@@ -108,7 +107,6 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     _LOGGER.warning(
                         "Error getting homeworks from ecole directe: %s", ex
                     )
-                    self.data[f"{eleve.get_fullname_lower()}_homework"] = {}
             if "NOTES" in eleve.modules:
                 try:
                     self.data[
@@ -116,17 +114,16 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     ] = await self.hass.async_add_executor_job(
                         get_grades, session, eleve, year_data
                     )
-                    self.compare_data(
-                        previous_data,
-                        f"{eleve.get_fullname_lower()}_grades",
-                        ["date", "subject", "grade_out_of"],
-                        "new_grade",
-                        eleve,
-                        format_grade,
-                    )
                 except Exception as ex:
                     _LOGGER.warning("Error getting grades from ecole directe: %s", ex)
-                    self.data[f"{eleve.get_fullname_lower()}_grades"] = {}
+                self.compare_data(
+                    previous_data,
+                    f"{eleve.get_fullname_lower()}_grades",
+                    ["date", "subject", "grade_out_of"],
+                    "new_grade",
+                    eleve,
+                    format_grade,
+                )
         # if "MESSAGERIE" in eleve.modules:
         #     try:
         #         self.data[
@@ -150,24 +147,33 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
     ):
         """Compare data from previous session"""
 
-        if (
-            previous_data is not None
-            and data_key in previous_data
-            and data_key in self.data
-        ):
-            not_found_items = []
-            for item in self.data[data_key]:
-                found = False
-                for previous_item in previous_data[data_key]:
-                    if {
-                        key: format_func(previous_item)[key] for key in compare_keys
-                    } == {key: format_func(item)[key] for key in compare_keys}:
-                        found = True
-                        break
-                if found is False:
-                    not_found_items.append(item)
-            for not_found_item in not_found_items:
-                self.trigger_event(event_type, eleve, format_func(not_found_item))
+        try:
+            if (
+                previous_data is not None
+                and data_key in previous_data
+                and data_key in self.data
+            ):
+                not_found_items = []
+                for item in self.data[data_key]:
+                    found = False
+                    for previous_item in previous_data[data_key]:
+                        if {
+                            key: format_func(previous_item)[key] for key in compare_keys
+                        } == {key: format_func(item)[key] for key in compare_keys}:
+                            found = True
+                            break
+                    if found is False:
+                        not_found_items.append(item)
+                for not_found_item in not_found_items:
+                    self.trigger_event(event_type, eleve, format_func(not_found_item))
+        except Exception as ex:
+            _LOGGER.warning(
+                "Error comparing data: self[%s] previous_data[%s] data_key[%s] ex[%s]",
+                self,
+                previous_data,
+                data_key,
+                ex,
+            )
 
     def trigger_event(self, event_type, eleve: EDEleve, event_data):
         """Trigger an event if there is new data"""

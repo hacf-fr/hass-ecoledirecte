@@ -8,7 +8,7 @@ import requests
 _LOGGER = logging.getLogger(__name__)
 
 APIURL = "https://api.ecoledirecte.com/v3"
-APIVERSION = "4.53.0"
+APIVERSION = "4.53.4"
 
 
 def encode_body(dictionnary, is_recursive=False):

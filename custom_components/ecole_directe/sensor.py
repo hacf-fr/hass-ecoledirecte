@@ -42,15 +42,15 @@ async def async_setup_entry(
     ]
 
     sensors = []
+    if "session" in coordinator.data and "eleves" in coordinator.data["session"]:
+        for eleve in coordinator.data["session"].eleves:
+            sensors.append(EDChildSensor(coordinator, eleve))
+            if "CAHIER_DE_TEXTES" in eleve.modules:
+                sensors.append(EDHomeworksSensor(coordinator, eleve))
+            if "NOTES" in eleve.modules:
+                sensors.append(EDGradesSensor(coordinator, eleve))
 
-    for eleve in coordinator.data["session"].eleves:
-        sensors.append(EDChildSensor(coordinator, eleve))
-        if "CAHIER_DE_TEXTES" in eleve.modules:
-            sensors.append(EDHomeworksSensor(coordinator, eleve))
-        if "NOTES" in eleve.modules:
-            sensors.append(EDGradesSensor(coordinator, eleve))
-
-    async_add_entities(sensors, False)
+        async_add_entities(sensors, False)
 
 
 class EDGenericSensor(CoordinatorEntity, SensorEntity):

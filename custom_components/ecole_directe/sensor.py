@@ -42,7 +42,11 @@ async def async_setup_entry(
     ]
 
     sensors = []
-    if "session" in coordinator.data and "eleves" in coordinator.data["session"]:
+    if (
+        coordinator.data is not None
+        and "session" in coordinator.data
+        and "eleves" in coordinator.data["session"]
+    ):
         for eleve in coordinator.data["session"].eleves:
             sensors.append(EDChildSensor(coordinator, eleve))
             if "CAHIER_DE_TEXTES" in eleve.modules:
@@ -175,7 +179,6 @@ class EDHomeworksSensor(EDGenericSensor):
             json = self.coordinator.data[
                 f"{self._child_info.get_fullname_lower()}_homework"
             ]
-            _LOGGER.debug("EDHomeworksSensor attributes json: [%s]", json)
             for key in json.keys():
                 for homework_json in json[key]:
                     homework = EDHomework(homework_json, key)
@@ -183,7 +186,6 @@ class EDHomeworksSensor(EDGenericSensor):
                         todo_counter += 1
                         attributes.append(format_homework(homework))
             if attributes is not None:
-                _LOGGER.debug("attributes: [%s]", attributes)
                 attributes.sort(key=operator.itemgetter("pourLe"))
         else:
             attributes.append(
@@ -213,7 +215,6 @@ class EDGradesSensor(EDGenericSensor):
         json = self.coordinator.data[f"{self._child_info.get_fullname_lower()}_grades"]
         index = 0
         if json is not None and "notes" in json:
-            _LOGGER.debug("EDGradesSensor attributes json: [%s]", json)
             json["notes"].sort(key=operator.itemgetter("date"))
             json["notes"].reverse()
             for grade_json in json["notes"]:

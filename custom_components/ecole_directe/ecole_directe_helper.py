@@ -293,12 +293,6 @@ class EDGrade:
 def get_ecoledirecte_session(data) -> EDSession | None:
     """Function connecting to Ecole Directe"""
     try:
-        _LOGGER.debug(
-            "Try connection for username: {%s} and password: {%s}",
-            data["username"],
-            data["password"],
-        )
-
         login = get_response(
             None,
             f"{APIURL}/login.awp?v={APIVERSION}",

@@ -45,7 +45,7 @@ async def async_setup_entry(
     if (
         coordinator.data is not None
         and "session" in coordinator.data
-        and "eleves" in coordinator.data["session"]
+        and coordinator.data["session"].eleves is not None
     ):
         for eleve in coordinator.data["session"].eleves:
             sensors.append(EDChildSensor(coordinator, eleve))

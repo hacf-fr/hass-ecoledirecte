@@ -407,7 +407,8 @@ def get_headers(token):
         "Sec-fetch-mode": "cors",
         "Sec-fetch-site": "same-site",
         "Sec-GPC": "1",
-        "User-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:105.0) Gecko/20100101 Firefox/105.0",
+        "User-agent": "EDMOBILE",
+        # "User-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:105.0) Gecko/20100101 Firefox/105.0",
     }
     if token is not None:
         headers["X-Token"] = token

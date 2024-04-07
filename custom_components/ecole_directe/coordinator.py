@@ -16,6 +16,7 @@ from .ecole_directe_formatter import format_grade
 
 from .ecole_directe_helper import (
     EDEleve,
+    EDGrade,
     get_ecoledirecte_session,
     get_homeworks,
     get_grades,
@@ -124,15 +125,45 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     eleve,
                     format_grade,
                 )
-        # if "MESSAGERIE" in eleve.modules:
-        #     try:
-        #         self.data[
-        #             "messages" + eleve.eleve_id
-        #         ] = await self.hass.async_add_executor_job(
-        #             get_messages, session, eleve, year_data
-        #         )
-        #     except Exception as ex:
-        #         _LOGGER.warning("Error getting messages from ecole directe: %s", ex)
+            # if "MESSAGERIE" in eleve.modules:
+            #     try:
+            #         self.data[
+            #             "messages" + eleve.eleve_id
+            #         ] = await self.hass.async_add_executor_job(
+            #             get_messages, session, eleve, year_data
+            #         )
+            #     except Exception as ex:
+            #         _LOGGER.warning("Error getting messages from ecole directe: %s", ex)
+
+            # fake event new_grade
+            # grade = EDGrade(
+            #     data={
+            #         "codeMatiere": "FRANC",
+            #         "codePeriode": "A001",
+            #         "codeSousMatiere": "",
+            #         "coef": "1",
+            #         "commentaire": "",
+            #         "date": "2023-09-23",
+            #         "dateSaisie": "2023-10-04",
+            #         "devoir": "Rédaction : randonnée de début d'année",
+            #         "enLettre": False,
+            #         "id": 8388851,
+            #         "libelleMatiere": "FRANCAIS",
+            #         "moyenneClasse": "12.61",
+            #         "nonSignificatif": False,
+            #         "noteSur": "20",
+            #         "typeDevoir": "ECRIT",
+            #         "uncCorrige": "",
+            #         "uncSujet": "",
+            #         "valeur": "14,5",
+            #         "valeurisee": False,
+            #     }
+            # )
+            # self.trigger_event(
+            #     "new_grade",
+            #     eleve,
+            #     format_grade(grade),
+            # )
 
         return self.data
 

@@ -40,7 +40,7 @@ def format_homework(homework):
         return {}
 
 
-def format_grade(grade):
+def format_grade(grade) -> dict:
     """grade fromat"""
     try:
         return {

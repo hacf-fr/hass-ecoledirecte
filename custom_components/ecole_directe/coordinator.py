@@ -115,16 +115,16 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     ] = await self.hass.async_add_executor_job(
                         get_grades, session, eleve, year_data
                     )
+                    self.compare_data(
+                        previous_data,
+                        f"{eleve.get_fullname_lower()}_grades",
+                        ["date", "subject", "grade_out_of"],
+                        "new_grade",
+                        eleve,
+                        format_grade,
+                    )
                 except Exception as ex:
                     _LOGGER.warning("Error getting grades from ecole directe: %s", ex)
-                self.compare_data(
-                    previous_data,
-                    f"{eleve.get_fullname_lower()}_grades",
-                    ["date", "subject", "grade_out_of"],
-                    "new_grade",
-                    eleve,
-                    format_grade,
-                )
             # if "MESSAGERIE" in eleve.modules:
             #     try:
             #         self.data[

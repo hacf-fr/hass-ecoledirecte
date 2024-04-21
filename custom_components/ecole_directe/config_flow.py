@@ -13,6 +13,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import callback
 
 from .ecole_directe_helper import (
+    QCMError,
     get_ecoledirecte_session,
 )
 
@@ -60,6 +61,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(
                     title=session.identifiant, data=self._user_inputs
                 )
+            except QCMError:
+                errors["base"] = "double_auth"
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
 

@@ -312,6 +312,9 @@ def get_ecoledirecte_session(data, config_path) -> EDSession | None:
                 question = base64.b64decode(qcm["question"]).decode("utf-8")
 
                 if qcm_json is not None and question in qcm_json:
+                    if len(qcm_json[question]) > 1:
+                        try_login -= 1
+                        continue
                     reponse = base64.b64encode(
                         bytes(qcm_json[question][0], "utf-8")
                     ).decode("ascii")

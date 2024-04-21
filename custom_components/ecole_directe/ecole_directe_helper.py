@@ -284,7 +284,7 @@ class EDGrade:
             self.elements_programme = ""
 
 
-def get_ecoledirecte_session(data) -> EDSession | None:
+def get_ecoledirecte_session(data, config_path) -> EDSession | None:
     """Function connecting to Ecole Directe"""
     try:
         payload = (
@@ -299,7 +299,7 @@ def get_ecoledirecte_session(data) -> EDSession | None:
         # Si connexion initiale
         if login["code"] == 250:
             with open(
-                "config/custom_components/ecole_directe/qcm.json",
+                config_path + "/custom_components/ecole_directe/qcm.json",
                 encoding="utf-8",
             ) as f:
                 qcm_json = json.load(f)
@@ -336,7 +336,7 @@ def get_ecoledirecte_session(data) -> EDSession | None:
                     qcm_json[question] = rep
 
                     with open(
-                        "config/custom_components/ecole_directe/qcm.json",
+                        config_path + "/custom_components/ecole_directe/qcm.json",
                         "w",
                         encoding="utf-8",
                     ) as f:
@@ -371,6 +371,8 @@ def get_ecoledirecte_session(data) -> EDSession | None:
             login["data"]["accounts"][0]["identifiant"],
         )
         return EDSession(login)
+    except QCMError:
+        raise
     except Exception as err:
         _LOGGER.critical(err)
         return None

@@ -49,7 +49,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 self._user_inputs.update(user_input)
                 session = await self.hass.async_add_executor_job(
-                    get_ecoledirecte_session, self._user_inputs
+                    get_ecoledirecte_session,
+                    self._user_inputs,
+                    self.hass.config.config_dir,
                 )
 
                 if session is None:

@@ -85,11 +85,11 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             if "CAHIER_DE_TEXTES" in eleve.modules:
                 try:
                     homeworks_json = await self.hass.async_add_executor_job(
-                        get_homeworks, session, eleve
+                        get_homeworks, session.token, eleve
                     )
                     for key in homeworks_json.keys():
                         homeworks_by_date_json = await self.hass.async_add_executor_job(
-                            get_homeworks_by_date, session, eleve, key
+                            get_homeworks_by_date, session.token, eleve, key
                         )
                         _LOGGER.debug(
                             "homeworks_by_date_json:%s", homeworks_by_date_json
@@ -113,7 +113,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     self.data[
                         f"{eleve.get_fullname_lower()}_grades"
                     ] = await self.hass.async_add_executor_job(
-                        get_grades, session, eleve, year_data
+                        get_grades, session.token, eleve, year_data
                     )
                     self.compare_data(
                         previous_data,

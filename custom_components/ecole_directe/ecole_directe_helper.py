@@ -1,40 +1,20 @@
 """Module to help communication with Ecole Directe API"""
 
+import json
 import re
 import logging
 import urllib
+import base64
 import requests
 
 _LOGGER = logging.getLogger(__name__)
 
 APIURL = "https://api.ecoledirecte.com/v3"
-APIVERSION = "4.54.2"
+APIVERSION = "4.55.0"
 
 
-def encode_body(dictionnary, is_recursive=False):
-    """encode payload to send to API"""
-    body = ""
-    for key in dictionnary:
-        if is_recursive:
-            body += '"' + key + '":'
-        else:
-            body += key + "="
-
-        if isinstance(dictionnary[key], dict):
-            body += "{" + encode_body(dictionnary[key], True) + "}"
-        else:
-            body += '"' + urllib.parse.quote(str(dictionnary[key]), safe="") + '"'
-        body += ","
-
-    return body[:-1]
-
-
-def get_response(session, url, payload):
+def get_response(token, url, payload):
     """send a request to API and return a json if possible or raise an error"""
-    if session is not None and is_login(session):
-        token = session.token
-    else:
-        token = None
 
     if payload is None:
         payload = "data={}"
@@ -46,12 +26,19 @@ def get_response(session, url, payload):
         resp_json = response.json()
     except Exception as ex:
         raise RequestError(f"Error with URL:[{url}]: {response.content}") from ex
+
     if "code" not in resp_json:
         raise RequestError(f"Error with URL:[{url}]: json:[{resp_json}]")
+
+    if resp_json["code"] == 250 and token is None:
+        _LOGGER.debug("%s", resp_json)
+        return resp_json
+
     if resp_json["code"] != 200:
         raise RequestError(
             f"Error with URL:[{url}] - Code {resp_json["code"]}: {resp_json["message"]}"
         )
+
     _LOGGER.debug("%s", resp_json)
     return resp_json
 
@@ -61,6 +48,13 @@ class RequestError(Exception):
 
     def __init__(self, message):
         super(RequestError, self).__init__(message)
+
+
+class QCMError(Exception):
+    """QCM error on double autentication from API"""
+
+    def __init__(self, message):
+        super(QCMError, self).__init__(message)
 
 
 class EDSession:
@@ -293,18 +287,84 @@ class EDGrade:
 def get_ecoledirecte_session(data) -> EDSession | None:
     """Function connecting to Ecole Directe"""
     try:
-        login = get_response(
-            None,
-            f"{APIURL}/login.awp?v={APIVERSION}",
-            encode_body(
-                {
-                    "data": {
-                        "identifiant": data["username"],
-                        "motdepasse": data["password"],
-                    }
-                }
-            ),
+        payload = (
+            'data={"identifiant":"'
+            + urllib.parse.quote(data["username"], safe="")
+            + '", "motdepasse":"'
+            + urllib.parse.quote(data["password"], safe="")
+            + '", "isRelogin": false}'
         )
+        login = get_response(None, f"{APIURL}/login.awp?v={APIVERSION}", payload)
+
+        # Si connexion initiale
+        if login["code"] == 250:
+            with open(
+                "config/custom_components/ecole_directe/qcm.json",
+                encoding="utf-8",
+            ) as f:
+                qcm_json = json.load(f)
+
+            try_login = 5
+
+            while try_login > 0:
+                # Obtenir le qcm de vérification et les propositions de réponse
+                qcm = get_qcm_connexion(login["token"])
+                question = base64.b64decode(qcm["question"]).decode("utf-8")
+
+                if qcm_json is not None and question in qcm_json:
+                    reponse = base64.b64encode(
+                        bytes(qcm_json[question][0], "utf-8")
+                    ).decode("ascii")
+                    cn_et_cv = post_qcm_connexion(login["token"], str(reponse))
+                    # Si le quiz a été raté
+                    if not cn_et_cv:
+                        _LOGGER.warning(
+                            "qcm raté pour la question [%s], vérifier le fichier qcm.json. [%s]",
+                            question,
+                            cn_et_cv,
+                        )
+                        continue
+                    cn = cn_et_cv["cn"]
+                    cv = cn_et_cv["cv"]
+                    break
+                else:
+                    rep = []
+                    propositions = qcm["propositions"]
+                    for proposition in propositions:
+                        rep.append(base64.b64decode(proposition).decode("utf-8"))
+
+                    qcm_json[question] = rep
+
+                    with open(
+                        "config/custom_components/ecole_directe/qcm.json",
+                        "w",
+                        encoding="utf-8",
+                    ) as f:
+                        json.dump(qcm_json, f, ensure_ascii=False, indent=4)
+
+                try_login -= 1
+
+            if try_login == 0:
+                raise QCMError(
+                    "Vérifiez le fichier qcm.json, et recharchez l'intégration Ecole Directe."
+                )
+
+            _LOGGER.debug("cn: [%s] - cv: [%s]", cn, cv)
+
+            payload = (
+                'data={"identifiant":"'
+                + urllib.parse.quote(data["username"], safe="")
+                + '", "motdepasse":"'
+                + urllib.parse.quote(data["password"], safe="")
+                + '", "isRelogin": false, "fa": [{"cn": "'
+                + cn
+                + '", "cv": "'
+                + cv
+                + '"}]}'
+            )
+
+            # Renvoyer une requête de connexion avec la double-authentification réussie
+            login = get_response(None, f"{APIURL}/login.awp?v={APIVERSION}", payload)
 
         _LOGGER.info(
             "Connection OK - identifiant: [{%s}]",
@@ -314,6 +374,34 @@ def get_ecoledirecte_session(data) -> EDSession | None:
     except Exception as err:
         _LOGGER.critical(err)
         return None
+
+
+def get_qcm_connexion(token):
+    """Obtenir le QCM donné lors d'une connexion à partir d'un nouvel appareil"""
+
+    json_resp = get_response(
+        token, f"{APIURL}/connexion/doubleauth.awp?verbe=get&v={APIVERSION}", None
+    )
+
+    if "data" in json_resp:
+        return json_resp["data"]
+    _LOGGER.warning("get_qcm_connexion: [%s]", json_resp)
+    return None
+
+
+def post_qcm_connexion(token, proposition):
+    """Renvoyer la réponse du QCM donné"""
+
+    json_resp = get_response(
+        token,
+        f"{APIURL}/connexion/doubleauth.awp?verbe=post&v={APIVERSION}",
+        f'data={{"choix": "{proposition}"}}',
+    )
+
+    if "data" in json_resp:
+        return json_resp["data"]
+    _LOGGER.warning("post_qcm_connexion: [%s]", json_resp)
+    return None
 
 
 # def get_messages(session, eleve, annee_scolaire):
@@ -331,10 +419,10 @@ def get_ecoledirecte_session(data) -> EDSession | None:
 #     )
 
 
-def get_homeworks_by_date(session, eleve, date):
-    # """get homeworks by date"""
+def get_homeworks_by_date(token, eleve, date):
+    """get homeworks by date"""
     json_resp = get_response(
-        session,
+        token,
         f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte/{date}.awp?verbe=get&v={APIVERSION}",
         None,
     )
@@ -351,10 +439,10 @@ def get_homeworks_by_date(session, eleve, date):
     # return data["data"]
 
 
-def get_homeworks(session, eleve):
+def get_homeworks(token, eleve):
     """get homeworks"""
     json_resp = get_response(
-        session,
+        token,
         f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte.awp?verbe=get&v={APIVERSION}",
         None,
     )
@@ -372,12 +460,12 @@ def get_homeworks(session, eleve):
     # return data["data"]
 
 
-def get_grades(session, eleve, annee_scolaire):
+def get_grades(token, eleve, annee_scolaire):
     """get grades"""
     json_resp = get_response(
-        session,
+        token,
         f"{APIURL}/eleves/{eleve.eleve_id}/notes.awp?verbe=get&v={APIVERSION}",
-        encode_body({"data": {"anneeScolaire": annee_scolaire}}),
+        f"data={{'anneeScolaire': '{annee_scolaire}'}}",
     )
     if "data" in json_resp:
         return json_resp["data"]
@@ -407,8 +495,7 @@ def get_headers(token):
         "Sec-fetch-mode": "cors",
         "Sec-fetch-site": "same-site",
         "Sec-GPC": "1",
-        "User-agent": "EDMOBILE",
-        # "User-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:105.0) Gecko/20100101 Firefox/105.0",
+        "User-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0",
     }
     if token is not None:
         headers["X-Token"] = token

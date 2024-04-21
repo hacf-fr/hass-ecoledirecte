@@ -465,7 +465,7 @@ def get_grades(token, eleve, annee_scolaire):
     json_resp = get_response(
         token,
         f"{APIURL}/eleves/{eleve.eleve_id}/notes.awp?verbe=get&v={APIVERSION}",
-        f"data={{'anneeScolaire': {annee_scolaire}}}",
+        f"data={{'anneeScolaire': '{annee_scolaire}'}}",
     )
     if "data" in json_resp:
         return json_resp["data"]

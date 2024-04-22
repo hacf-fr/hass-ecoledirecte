@@ -7,6 +7,8 @@ import urllib
 import base64
 import requests
 
+from .const import EVENT_TYPE
+
 _LOGGER = logging.getLogger(__name__)
 
 APIURL = "https://api.ecoledirecte.com/v3"
@@ -284,7 +286,7 @@ class EDGrade:
             self.elements_programme = ""
 
 
-def get_ecoledirecte_session(data, config_path) -> EDSession | None:
+def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
     """Function connecting to Ecole Directe"""
     try:
         payload = (
@@ -344,6 +346,8 @@ def get_ecoledirecte_session(data, config_path) -> EDSession | None:
                         encoding="utf-8",
                     ) as f:
                         json.dump(qcm_json, f, ensure_ascii=False, indent=4)
+                    event_data = {"type": "new_qcm", "question": question}
+                    hass.bus.async_fire(EVENT_TYPE, event_data)
 
                 try_login -= 1
 
@@ -506,10 +510,3 @@ def get_headers(token):
         headers["X-Token"] = token
 
     return headers
-
-
-def is_login(session):
-    """Ckeck valid login"""
-    if session.token is not None and session.id is not None:
-        return True
-    return False

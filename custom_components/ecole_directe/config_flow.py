@@ -20,6 +20,7 @@ from .ecole_directe_helper import (
 from .const import (
     DOMAIN,
     DEFAULT_REFRESH_INTERVAL,
+    EVENT_TYPE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -53,6 +54,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     get_ecoledirecte_session,
                     self._user_inputs,
                     self.hass.config.config_dir,
+                    self.hass,
                 )
 
                 if session is None:

@@ -56,7 +56,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         data = self.config_entry.data
 
         session = await self.hass.async_add_executor_job(
-            get_ecoledirecte_session, data, self.hass.config.config_dir
+            get_ecoledirecte_session, data, self.hass.config.config_dir, self.hass
         )
 
         if session is None:

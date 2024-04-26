@@ -216,4 +216,4 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             "type": event_type,
             "data": event_data,
         }
-        self.hass.bus.async_fire(EVENT_TYPE, event_data)
+        self.hass.bus.fire(EVENT_TYPE, event_data)

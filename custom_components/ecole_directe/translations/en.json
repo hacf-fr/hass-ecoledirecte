@@ -8,6 +8,7 @@
         "error": {
             "cannot_connect": "Failed to connect",
             "invalid_auth": "Invalid authentication",
+            "double_auth": "Check the file qcm.json",
             "unknown": "Unexpected error"
         },
         "step": {

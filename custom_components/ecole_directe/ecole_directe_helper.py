@@ -7,6 +7,8 @@ import urllib
 import base64
 import requests
 
+from .const import EVENT_TYPE
+
 _LOGGER = logging.getLogger(__name__)
 
 APIURL = "https://api.ecoledirecte.com/v3"
@@ -284,7 +286,17 @@ class EDGrade:
             self.elements_programme = ""
 
 
-def get_ecoledirecte_session(data) -> EDSession | None:
+def check_ecoledirecte_session(data, config_path, hass) -> bool:
+    """check if credentials to Ecole Directe are ok"""
+    try:
+        session = get_ecoledirecte_session(data, config_path, hass)
+    except QCMError:
+        return True
+
+    return session is not None
+
+
+def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
     """Function connecting to Ecole Directe"""
     try:
         payload = (
@@ -299,7 +311,7 @@ def get_ecoledirecte_session(data) -> EDSession | None:
         # Si connexion initiale
         if login["code"] == 250:
             with open(
-                "config/custom_components/ecole_directe/qcm.json",
+                config_path + "/custom_components/ecole_directe/qcm.json",
                 encoding="utf-8",
             ) as f:
                 qcm_json = json.load(f)
@@ -312,6 +324,9 @@ def get_ecoledirecte_session(data) -> EDSession | None:
                 question = base64.b64decode(qcm["question"]).decode("utf-8")
 
                 if qcm_json is not None and question in qcm_json:
+                    if len(qcm_json[question]) > 1:
+                        try_login -= 1
+                        continue
                     reponse = base64.b64encode(
                         bytes(qcm_json[question][0], "utf-8")
                     ).decode("ascii")
@@ -336,17 +351,19 @@ def get_ecoledirecte_session(data) -> EDSession | None:
                     qcm_json[question] = rep
 
                     with open(
-                        "config/custom_components/ecole_directe/qcm.json",
+                        config_path + "/custom_components/ecole_directe/qcm.json",
                         "w",
                         encoding="utf-8",
                     ) as f:
                         json.dump(qcm_json, f, ensure_ascii=False, indent=4)
+                    event_data = {"type": "new_qcm", "question": question}
+                    hass.bus.async_fire(EVENT_TYPE, event_data)
 
                 try_login -= 1
 
             if try_login == 0:
                 raise QCMError(
-                    "Vérifiez le fichier qcm.json, et recharchez l'intégration Ecole Directe."
+                    "Vérifiez le fichier qcm.json, et rechargez l'intégration Ecole Directe."
                 )
 
             _LOGGER.debug("cn: [%s] - cv: [%s]", cn, cv)
@@ -371,6 +388,9 @@ def get_ecoledirecte_session(data) -> EDSession | None:
             login["data"]["accounts"][0]["identifiant"],
         )
         return EDSession(login)
+    except QCMError as err:
+        _LOGGER.warning(err)
+        raise
     except Exception as err:
         _LOGGER.critical(err)
         return None
@@ -501,10 +521,3 @@ def get_headers(token):
         headers["X-Token"] = token
 
     return headers
-
-
-def is_login(session):
-    """Ckeck valid login"""
-    if session.token is not None and session.id is not None:
-        return True
-    return False

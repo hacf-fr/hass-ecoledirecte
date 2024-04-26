@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import json
+import os.path
 import logging
 from typing import Any
-
 import voluptuous as vol
 
 from homeassistant import config_entries
@@ -13,14 +14,12 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.core import callback
 
 from .ecole_directe_helper import (
-    QCMError,
-    get_ecoledirecte_session,
+    check_ecoledirecte_session,
 )
 
 from .const import (
     DOMAIN,
     DEFAULT_REFRESH_INTERVAL,
-    EVENT_TYPE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -47,24 +46,32 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle a flow initialized by the user."""
         _LOGGER.debug("ED - Setup process initiated by user.")
         errors: dict[str, str] = {}
+
+        path = self.hass.config.config_dir + "/custom_components/ecole_directe/qcm.json"
+        if not os.path.isfile(path):
+            with open(
+                path,
+                "w",
+                encoding="utf-8",
+            ) as f:
+                json.dump({}, f, ensure_ascii=False, indent=4)
+
         if user_input is not None:
             try:
                 self._user_inputs.update(user_input)
                 session = await self.hass.async_add_executor_job(
-                    get_ecoledirecte_session,
+                    check_ecoledirecte_session,
                     self._user_inputs,
                     self.hass.config.config_dir,
                     self.hass,
                 )
 
-                if session is None:
+                if not session:
                     raise InvalidAuth
 
                 return self.async_create_entry(
-                    title=session.identifiant, data=self._user_inputs
+                    title=self._user_inputs["username"], data=self._user_inputs
                 )
-            except QCMError:
-                errors["base"] = "double_auth"
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
 

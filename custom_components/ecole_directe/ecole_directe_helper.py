@@ -286,6 +286,16 @@ class EDGrade:
             self.elements_programme = ""
 
 
+def check_ecoledirecte_session(data, config_path, hass) -> bool:
+    """check if credentials to Ecole Directe are ok"""
+    try:
+        session = get_ecoledirecte_session(data, config_path, hass)
+    except QCMError:
+        return True
+
+    return session is not None
+
+
 def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
     """Function connecting to Ecole Directe"""
     try:
@@ -353,7 +363,7 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
 
             if try_login == 0:
                 raise QCMError(
-                    "Vérifiez le fichier qcm.json, et recharchez l'intégration Ecole Directe."
+                    "Vérifiez le fichier qcm.json, et rechargez l'intégration Ecole Directe."
                 )
 
             _LOGGER.debug("cn: [%s] - cv: [%s]", cn, cv)
@@ -378,7 +388,8 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
             login["data"]["accounts"][0]["identifiant"],
         )
         return EDSession(login)
-    except QCMError:
+    except QCMError as err:
+        _LOGGER.warning(err)
         raise
     except Exception as err:
         _LOGGER.critical(err)

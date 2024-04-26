@@ -356,8 +356,12 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
                         encoding="utf-8",
                     ) as f:
                         json.dump(qcm_json, f, ensure_ascii=False, indent=4)
-                    event_data = {"type": "new_qcm", "question": question}
-                    hass.bus.async_fire(EVENT_TYPE, event_data)
+                    event_data = {
+                        "device_id": "ED - " + data["username"],
+                        "type": "new_qcm",
+                        "question": question,
+                    }
+                    hass.bus.fire(EVENT_TYPE, event_data)
 
                 try_login -= 1
 

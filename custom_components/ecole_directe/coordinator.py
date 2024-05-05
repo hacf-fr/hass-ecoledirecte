@@ -17,6 +17,7 @@ from .ecole_directe_formatter import format_grade
 from .ecole_directe_helper import (
     EDEleve,
     EDGrade,
+    EDLesson,
     get_ecoledirecte_session,
     get_homeworks,
     get_grades,

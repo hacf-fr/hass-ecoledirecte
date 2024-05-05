@@ -235,13 +235,13 @@ class EDLessonsSensor(EDGenericSensor):
 
     def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
-        super().__init__(coordinator, "grades", eleve, "len")
+        super().__init__(coordinator, "lessons", eleve, "len")
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
-        json = self.coordinator.data[f"{self._child_info.get_fullname_lower()}_grades"]
+        json = self.coordinator.data[f"{self._child_info.get_fullname_lower()}_lessons"]
         index = 0
         if json is not None and "lessons" in json:
             json["lessons"].sort(key=operator.itemgetter("date"))
@@ -250,7 +250,7 @@ class EDLessonsSensor(EDGenericSensor):
                 index += 1
                 if index == LESSONS_TO_DISPLAY:
                     break
-                lesson = EDGrade(lesson_json)
+                lesson = EDLesson(lesson_json)
                 attributes.append(format_lesson(lesson))
 
         return {

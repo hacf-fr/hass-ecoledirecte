@@ -245,7 +245,6 @@ class EDLessonsSensor(EDGenericSensor):
         index = 0
         if json is not None and "lessons" in json:
             json["lessons"].sort(key=operator.itemgetter("date"))
-            json["lessons"].reverse()
             for lesson_json in json["lessons"]:
                 index += 1
                 if index == LESSONS_TO_DISPLAY:

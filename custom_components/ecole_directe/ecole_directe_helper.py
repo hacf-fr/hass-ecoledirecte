@@ -628,9 +628,7 @@ def get_lessons(token, eleve, date_debut, date_fin):
     json_resp = get_response(
         token,
         f"{APIURL}/eleves/{eleve.eleve_id}/emploidutemps.awp?verbe=get&v={APIVERSION}",
-        f"data={{'dateDebut': '{date_debut}'},
-                {'dateFin': '{date_fin}'},
-                {'avecTrous': 'False'}}",
+        f"data={{'dateDebut': '{date_debut}','dateFin': '{date_fin}','avecTrous': 'False'}}",
     )
     if "data" in json_resp:
         return json_resp["data"]

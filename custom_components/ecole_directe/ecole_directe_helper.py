@@ -313,10 +313,14 @@ class EDLesson:
             self.typeCours = data["typeCours"]
         else:
             self.typeCours = ""
-        
-        self.start_date = self.parse_date(data.get("start_date", ""))
-        self.end_date = self.parse_date(data.get("end_date", ""))
-        
+        if "start_date" in data:
+            self.start_date = data["start_date"]
+        else:
+            self.start_date = ""
+        if "end_date" in data:
+            self.end_date = data["end_date"]
+        else:
+            self.tend_date = ""    
         if "color" in data:
             self.color = data["color"]
         else:

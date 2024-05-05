@@ -18,6 +18,7 @@ from homeassistant.helpers.update_coordinator import (
 from .ecole_directe_formatter import (
     format_grade,
     format_homework,
+    format_lesson
 )
 
 from .ecole_directe_helper import EDEleve, EDHomework, EDGrade
@@ -228,3 +229,32 @@ class EDGradesSensor(EDGenericSensor):
             "updated_at": self.coordinator.last_update_success_time,
             "grades": attributes,
         }
+
+class EDLessonsSensor(EDGenericSensor):
+    """Representation of a ED sensor."""
+
+    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
+        """Initialize the ED sensor."""
+        super().__init__(coordinator, "grades", eleve, "len")
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = []
+        json = self.coordinator.data[f"{self._child_info.get_fullname_lower()}_grades"]
+        index = 0
+        if json is not None and "lessons" in json:
+            json["lessons"].sort(key=operator.itemgetter("date"))
+            json["lessons"].reverse()
+            for lesson_json in json["lessons"]:
+                index += 1
+                if index == LESSONS_TO_DISPLAY:
+                    break
+                lesson = EDGrade(lesson_json)
+                attributes.append(format_lesson(lesson))
+
+        return {
+            "updated_at": self.coordinator.last_update_success_time,
+            "lessons": attributes,
+        }
+

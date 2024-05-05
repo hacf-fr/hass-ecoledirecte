@@ -21,6 +21,7 @@ from .ecole_directe_helper import (
     get_homeworks,
     get_grades,
     get_homeworks_by_date,
+    get_lessons
 )
 
 from .const import (

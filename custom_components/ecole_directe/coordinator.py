@@ -74,9 +74,9 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         else:
             year_data = f"{str(current_year)}-{str(current_year + 1)}"
 
-        #EDT 
-        edt_date_start = "2024-05-1"
-        edt_date_end = "2024-06-1"
+        #EDT BODY
+        edt_date_start = "2024-05-02"
+        edt_date_end = "2024-05-03"
 
         # if session._account_type == "1":  # famille
         #     if "MESSAGERIE" in session.modules:
@@ -141,16 +141,16 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     ] = await self.hass.async_add_executor_job(
                         get_lessons, session.token, eleve, edt_date_start, edt_date_end 
                     )
-                    self.compare_data(
-                        previous_data,
-                        f"{eleve.get_fullname_lower()}_lessons",
-                        ["date", "subject", "lesson_out_of"],
-                        "new_lessons",
-                        eleve,
-                        format_grade,
-                    )
+                    #self.compare_data(
+                    #    previous_data,
+                    #    f"{eleve.get_fullname_lower()}_lessons",
+                    #    ["date", "subject", "lesson_out_of"],
+                    #    "new_lessons",
+                    #    eleve,
+                    #    format_grade,
+                    #)
                 except Exception as ex:
-                    _LOGGER.warning("Error getting grades from ecole directe: %s", ex)
+                    _LOGGER.warning("Error getting Lessons  from ecole directe: %s", ex)
             
             # if "MESSAGERIE" in eleve.modules:
             #     try:

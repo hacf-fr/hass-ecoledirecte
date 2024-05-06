@@ -624,16 +624,17 @@ def get_grades(token, eleve, annee_scolaire):
     # return data["data"]
 
 def get_lessons(token, eleve, date_debut, date_fin):
-    """get grades"""
+    """get lessons"""
     json_resp = get_response(
         token,
         f"{APIURL}/eleves/{eleve.eleve_id}/emploidutemps.awp?verbe=get&v={APIVERSION}",
-        f"data={{'dateDebut': '{date_debut}','dateFin': '{date_fin}','avecTrous': 'False'}}",
+        f"data={{'dateDebut': '{date_debut}','dateFin': '{date_fin}','avecTrous': False}}",
     )
     if "data" in json_resp:
         return json_resp["data"]
     _LOGGER.warning("get_lessons: [%s]", json_resp)
     return None
+    
     # f = open("config/custom_components/ecole_directe/test_lessons.json")
 
     # # returns JSON object as

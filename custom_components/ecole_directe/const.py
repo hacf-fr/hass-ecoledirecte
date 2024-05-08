@@ -4,6 +4,7 @@ from homeassistant.const import Platform
 
 DOMAIN = "ecole_directe"
 EVENT_TYPE = DOMAIN + "_event"
+FILENAME_QCM = "ecoledirecte_qcm.json"
 INTEGRATION_PATH = "/custom_components/" + DOMAIN + "/"
 PLATFORMS = [Platform.SENSOR]
 

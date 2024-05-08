@@ -323,7 +323,7 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
         # Si connexion initiale
         if login["code"] == 250:
             with open(
-                config_path + INTEGRATION_PATH + "qcm/qcm.json",
+                config_path + "/" + data["qcm_filename"],
                 encoding="utf-8",
             ) as f:
                 qcm_json = json.load(f)
@@ -348,8 +348,9 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
                     # Si le quiz a été raté
                     if not cn_et_cv:
                         _LOGGER.warning(
-                            "qcm raté pour la question [%s], vérifier le fichier qcm.json. [%s]",
+                            "qcm raté pour la question [%s], vérifier le fichier %s. [%s]",
                             question,
+                            data["qcm_filename"],
                             cn_et_cv,
                         )
                         continue
@@ -365,7 +366,7 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
                     qcm_json[question] = rep
 
                     with open(
-                        config_path + "/custom_components/ecole_directe/qcm/qcm.json",
+                        config_path + "/" + data["qcm_filename"],
                         "w",
                         encoding="utf-8",
                     ) as f:
@@ -487,7 +488,7 @@ def get_homeworks_by_date(token, eleve, date, config_path):
     _LOGGER.warning("get_homeworks_by_date: [%s]", json_resp)
     return None
     # Opening JSON file
-    # f = open("config/custom_components/ecole_directe/test_homeworks2.json")
+    # f = open("config_path + INTEGRATION_PATH + "test_homeworks2.json")
 
     # # returns JSON object as
     # # a dictionary
@@ -509,7 +510,7 @@ def get_homeworks(token, eleve, config_path):
     return None
 
     # # Opening JSON file
-    # f = open("config/custom_components/ecole_directe/test_homeworks.json")
+    # f = open(config_path + INTEGRATION_PATH + "test_homeworks.json")
 
     # # returns JSON object as
     # # a dictionary
@@ -529,7 +530,7 @@ def get_grades(token, eleve, annee_scolaire, config_path):
         return json_resp["data"]
     _LOGGER.warning("get_grades: [%s]", json_resp)
     return None
-    # f = open("config/custom_components/ecole_directe/test_grades.json")
+    # f = open(config_path + INTEGRATION_PATH + "test_grades.json")
 
     # # returns JSON object as
     # # a dictionary

@@ -47,7 +47,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         _LOGGER.debug("ED - Setup process initiated by user.")
         errors: dict[str, str] = {}
 
-        path = self.hass.config.config_dir + "/custom_components/ecole_directe/qcm.json"
+        path = (
+            self.hass.config.config_dir
+            + "/custom_components/ecole_directe/qcm/qcm.json"
+        )
         if not os.path.isfile(path):
             with open(
                 path,

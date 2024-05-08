@@ -7,7 +7,7 @@ import urllib
 import base64
 import requests
 
-from .const import EVENT_TYPE
+from .const import EVENT_TYPE, INTEGRATION_PATH
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ APIURL = "https://api.ecoledirecte.com/v3"
 APIVERSION = "4.55.0"
 
 
-def get_response(token, url, payload):
+def get_response(token, url, payload, file_path):
     """send a request to API and return a json if possible or raise an error"""
 
     if payload is None:
@@ -26,6 +26,13 @@ def get_response(token, url, payload):
 
     try:
         resp_json = response.json()
+        with open(
+            file_path,
+            "w",
+            encoding="utf-8",
+        ) as f:
+            json.dump(resp_json, f, ensure_ascii=False, indent=4)
+
     except Exception as ex:
         raise RequestError(f"Error with URL:[{url}]: {response.content}") from ex
 
@@ -306,12 +313,17 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
             + urllib.parse.quote(data["password"], safe="")
             + '", "isRelogin": false}'
         )
-        login = get_response(None, f"{APIURL}/login.awp?v={APIVERSION}", payload)
+        login = get_response(
+            None,
+            f"{APIURL}/login.awp?v={APIVERSION}",
+            payload,
+            config_path + INTEGRATION_PATH + "get_ecoledirecte_session.json",
+        )
 
         # Si connexion initiale
         if login["code"] == 250:
             with open(
-                config_path + "/custom_components/ecole_directe/qcm.json",
+                config_path + INTEGRATION_PATH + "qcm/qcm.json",
                 encoding="utf-8",
             ) as f:
                 qcm_json = json.load(f)
@@ -320,7 +332,7 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
 
             while try_login > 0:
                 # Obtenir le qcm de vérification et les propositions de réponse
-                qcm = get_qcm_connexion(login["token"])
+                qcm = get_qcm_connexion(login["token"], config_path)
                 question = base64.b64decode(qcm["question"]).decode("utf-8")
 
                 if qcm_json is not None and question in qcm_json:
@@ -330,7 +342,9 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
                     reponse = base64.b64encode(
                         bytes(qcm_json[question][0], "utf-8")
                     ).decode("ascii")
-                    cn_et_cv = post_qcm_connexion(login["token"], str(reponse))
+                    cn_et_cv = post_qcm_connexion(
+                        login["token"], str(reponse), config_path
+                    )
                     # Si le quiz a été raté
                     if not cn_et_cv:
                         _LOGGER.warning(
@@ -351,7 +365,7 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
                     qcm_json[question] = rep
 
                     with open(
-                        config_path + "/custom_components/ecole_directe/qcm.json",
+                        config_path + "/custom_components/ecole_directe/qcm/qcm.json",
                         "w",
                         encoding="utf-8",
                     ) as f:
@@ -362,7 +376,10 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
                         "question": question,
                     }
                     hass.bus.fire(EVENT_TYPE, event_data)
-
+                    hass.components.persistent_notification.async_create(
+                        "Vérifiez le fichier qcm.json, et rechargez l'intégration Ecole Directe.",
+                        title="Ecole Directe",
+                    )
                 try_login -= 1
 
             if try_login == 0:
@@ -385,7 +402,12 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
             )
 
             # Renvoyer une requête de connexion avec la double-authentification réussie
-            login = get_response(None, f"{APIURL}/login.awp?v={APIVERSION}", payload)
+            login = get_response(
+                None,
+                f"{APIURL}/login.awp?v={APIVERSION}",
+                payload,
+                config_path + INTEGRATION_PATH + "get_ecoledirecte_session2.json",
+            )
 
         _LOGGER.info(
             "Connection OK - identifiant: [{%s}]",
@@ -400,11 +422,14 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
         return None
 
 
-def get_qcm_connexion(token):
+def get_qcm_connexion(token, config_path):
     """Obtenir le QCM donné lors d'une connexion à partir d'un nouvel appareil"""
 
     json_resp = get_response(
-        token, f"{APIURL}/connexion/doubleauth.awp?verbe=get&v={APIVERSION}", None
+        token,
+        f"{APIURL}/connexion/doubleauth.awp?verbe=get&v={APIVERSION}",
+        None,
+        config_path + INTEGRATION_PATH + "get_qcm_connexion.json",
     )
 
     if "data" in json_resp:
@@ -413,13 +438,14 @@ def get_qcm_connexion(token):
     return None
 
 
-def post_qcm_connexion(token, proposition):
+def post_qcm_connexion(token, proposition, config_path):
     """Renvoyer la réponse du QCM donné"""
 
     json_resp = get_response(
         token,
         f"{APIURL}/connexion/doubleauth.awp?verbe=post&v={APIVERSION}",
         f'data={{"choix": "{proposition}"}}',
+        config_path + INTEGRATION_PATH + "post_qcm_connexion.json",
     )
 
     if "data" in json_resp:
@@ -428,27 +454,33 @@ def post_qcm_connexion(token, proposition):
     return None
 
 
-# def get_messages(session, eleve, annee_scolaire):
-#     """Get messages from Ecole Directe"""
-#     if eleve is None:
-#         return get_response(
-#             session,
-#             f"{APIURL}/familles/{session.id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
-#             encode_body({"data": {"anneeMessages": annee_scolaire}}),
-#         )
-#     return get_response(
-#         session,
-#         f"{APIURL}/eleves/{eleve.eleve_id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
-#         encode_body({"data": {"anneeMessages": annee_scolaire}}),
-#     )
+def get_messages(session, eleve, annee_scolaire, config_path):
+    """Get messages from Ecole Directe"""
+    payload = (
+        'data={"anneeMessages":"' + urllib.parse.quote(annee_scolaire, safe="") + '"}'
+    )
+    if eleve is None:
+        return get_response(
+            session,
+            f"{APIURL}/familles/{session.id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
+            payload,
+            config_path + INTEGRATION_PATH + "get_messages_famille.json",
+        )
+    return get_response(
+        session,
+        f"{APIURL}/eleves/{eleve.eleve_id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
+        payload,
+        config_path + INTEGRATION_PATH + "get_messages_eleve.json",
+    )
 
 
-def get_homeworks_by_date(token, eleve, date):
+def get_homeworks_by_date(token, eleve, date, config_path):
     """get homeworks by date"""
     json_resp = get_response(
         token,
         f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte/{date}.awp?verbe=get&v={APIVERSION}",
         None,
+        config_path + INTEGRATION_PATH + "get_homeworks_by_date.json",
     )
     if "data" in json_resp:
         return json_resp["data"]
@@ -463,12 +495,13 @@ def get_homeworks_by_date(token, eleve, date):
     # return data["data"]
 
 
-def get_homeworks(token, eleve):
+def get_homeworks(token, eleve, config_path):
     """get homeworks"""
     json_resp = get_response(
         token,
         f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte.awp?verbe=get&v={APIVERSION}",
         None,
+        config_path + INTEGRATION_PATH + "get_homeworks.json",
     )
     if "data" in json_resp:
         return json_resp["data"]
@@ -484,12 +517,13 @@ def get_homeworks(token, eleve):
     # return data["data"]
 
 
-def get_grades(token, eleve, annee_scolaire):
+def get_grades(token, eleve, annee_scolaire, config_path):
     """get grades"""
     json_resp = get_response(
         token,
         f"{APIURL}/eleves/{eleve.eleve_id}/notes.awp?verbe=get&v={APIVERSION}",
         f"data={{'anneeScolaire': '{annee_scolaire}'}}",
+        config_path + INTEGRATION_PATH + "get_grades.json",
     )
     if "data" in json_resp:
         return json_resp["data"]

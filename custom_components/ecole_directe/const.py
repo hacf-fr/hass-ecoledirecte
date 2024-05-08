@@ -3,7 +3,8 @@
 from homeassistant.const import Platform
 
 DOMAIN = "ecole_directe"
-EVENT_TYPE = "ecole_directe_event"
+EVENT_TYPE = DOMAIN + "_event"
+INTEGRATION_PATH = "/custom_components/" + DOMAIN + "/"
 PLATFORMS = [Platform.SENSOR]
 
 # default values for options

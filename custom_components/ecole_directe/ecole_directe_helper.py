@@ -377,10 +377,14 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
                         "question": question,
                     }
                     hass.bus.fire(EVENT_TYPE, event_data)
-                    hass.components.persistent_notification.async_create(
-                        "Vérifiez le fichier qcm.json, et rechargez l'intégration Ecole Directe.",
-                        title="Ecole Directe",
-                    )
+
+                    if data["qcm_filename"]:
+                        hass.components.persistent_notification.async_create(
+                            "Vérifiez le fichier "
+                            + data["qcm_filename"]
+                            + ", et rechargez l'intégration Ecole Directe.",
+                            title="Ecole Directe",
+                        )
                 try_login -= 1
 
             if try_login == 0:

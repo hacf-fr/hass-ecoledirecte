@@ -9,12 +9,14 @@
         "data": {
           "username": "[%key:common::config_flow::data::username%]",
           "password": "[%key:common::config_flow::data::password%]",
-          "qcm_filename": "[%key:common::config_flow::data::qcm_filename%]"
+          "qcm_filename": "[%key:common::config_flow::data::qcm_filename%]",
+          "allow_notification": "[%key:common::config_flow::data::allow_notification%]"
         },
         "data_description": {
           "username": "user name",
           "password": "Password",
-          "qcm_filename": "File name of qcm"
+          "qcm_filename": "File name of qcm",
+          "allow_notification": "Allow notifications"
         }
       }
     },

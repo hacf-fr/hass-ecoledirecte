@@ -18,6 +18,7 @@ from .ecole_directe_helper import (
 )
 
 from .const import (
+    DEFAULT_ALLOW_NOTIFICATION,
     DOMAIN,
     DEFAULT_REFRESH_INTERVAL,
     FILENAME_QCM,
@@ -30,6 +31,10 @@ STEP_USER_DATA_SCHEMA_UP = vol.Schema(
         vol.Required("username"): str,
         vol.Required("password"): str,
         vol.Optional("qcm_filename", default=FILENAME_QCM): str,
+        vol.Optional(
+            "allow_notification",
+            default=DEFAULT_ALLOW_NOTIFICATION,
+        ): bool,
     }
 )
 
@@ -50,8 +55,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # if "qcm_filename" not in self._user_inputs:
-            #     self._user_inputs["qcm_filename"] = FILENAME_QCM
             try:
                 self._user_inputs.update(user_input)
                 path = (

@@ -40,6 +40,28 @@ Utiliser votre identifiant et mot de passe password :
 
 ![Ecole directe config flow](doc/config_flow_username_password.png)
 
+Le fichier qcm permet de sauvegarder les questions et respectives réponses pour la double authentification requise par Ecole Directe. Ce fichier doit se trouver dans le répertoire Config de Home Assistant.
+L'option "Envoi de notifications" permet d'envoyer une notification lorsqu'il y a une nouvelle question dans le fichier qcm. Il est aussi possible de créer une automatisation à partir de l'événement "ecole_directe_event" de type "new_qcm.
+Exemple:
+```
+alias: Ecole Directe - notification nouvelle question QCM
+description: Notification en cas de nouvelle question QCM dans le fichier qcm
+trigger:
+  - platform: event
+    event_type: ecole_directe_event
+    event_data:
+      type: new_qcm
+action:
+  - service: notify.persistent_notification
+    data:
+      message: >
+        Nouvelle question : {{ trigger.event.data.question }} Il faut vérifier
+        le fichier qcm
+      title: Nouvelle question qcm Ecole Directe
+mode: queued
+max: 10
+```
+
 ## Utilisation
 
 Cette intégration fournit plusieurs entités, toujours prefixées avec `ecole_directe_PRENOM_NOM` (où `PRENOM` et `NOM` sont remplacé).

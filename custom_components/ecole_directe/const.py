@@ -3,10 +3,13 @@
 from homeassistant.const import Platform
 
 DOMAIN = "ecole_directe"
-EVENT_TYPE = "ecole_directe_event"
+EVENT_TYPE = DOMAIN + "_event"
+FILENAME_QCM = "ecoledirecte_qcm.json"
+INTEGRATION_PATH = "/custom_components/" + DOMAIN + "/"
 PLATFORMS = [Platform.SENSOR]
 
 # default values for options
 DEFAULT_REFRESH_INTERVAL = 30
 GRADES_TO_DISPLAY = 15
 HOMEWORK_DESC_MAX_LENGTH = 125
+DEFAULT_ALLOW_NOTIFICATION = False

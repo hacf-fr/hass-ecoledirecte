@@ -15,17 +15,10 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
 
-from .ecole_directe_formatter import (
-    format_grade,
-    format_homework,
-)
-
-from .ecole_directe_helper import EDEleve, EDHomework, EDGrade
+from .ecole_directe_formatter import format_grade, format_homework
+from .ecole_directe_helper import EDEleve
 from .coordinator import EDDataUpdateCoordinator
-from .const import (
-    DOMAIN,
-    GRADES_TO_DISPLAY,
-)
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -176,17 +169,15 @@ class EDHomeworksSensor(EDGenericSensor):
         attributes = []
         todo_counter = 0
         if f"{self._child_info.get_fullname_lower()}_homework" in self.coordinator.data:
-            json = self.coordinator.data[
+            homeworks = self.coordinator.data[
                 f"{self._child_info.get_fullname_lower()}_homework"
             ]
-            for key in json.keys():
-                for homework_json in json[key]:
-                    homework = EDHomework(homework_json, key)
-                    if not homework.effectue:
-                        todo_counter += 1
-                        attributes.append(format_homework(homework))
+            for homework in homeworks:
+                if not homework.effectue:
+                    todo_counter += 1
+                    attributes.append(format_homework(homework))
             if attributes is not None:
-                attributes.sort(key=operator.itemgetter("pourLe"))
+                attributes.sort(key=operator.itemgetter("date"))
         else:
             attributes.append(
                 {
@@ -212,17 +203,11 @@ class EDGradesSensor(EDGenericSensor):
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
-        json = self.coordinator.data[f"{self._child_info.get_fullname_lower()}_grades"]
-        index = 0
-        if json is not None and "notes" in json:
-            json["notes"].sort(key=operator.itemgetter("date"))
-            json["notes"].reverse()
-            for grade_json in json["notes"]:
-                index += 1
-                if index == GRADES_TO_DISPLAY:
-                    break
-                grade = EDGrade(grade_json)
-                attributes.append(format_grade(grade))
+        grades = self.coordinator.data[
+            f"{self._child_info.get_fullname_lower()}_grades"
+        ]
+        for grade in grades:
+            attributes.append(format_grade(grade))
 
         return {
             "updated_at": self.coordinator.last_update_success_time,

@@ -15,7 +15,9 @@
             "user": {
                 "data": {
                     "password": "Password",
-                    "username": "Username"
+                    "username": "Username",
+                    "qcm_filename": "File name of qcm",
+                    "allow_notification": "Allow notifications"
                 }
             }
         }

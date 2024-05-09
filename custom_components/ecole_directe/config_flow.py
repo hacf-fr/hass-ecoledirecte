@@ -18,8 +18,10 @@ from .ecole_directe_helper import (
 )
 
 from .const import (
+    DEFAULT_ALLOW_NOTIFICATION,
     DOMAIN,
     DEFAULT_REFRESH_INTERVAL,
+    FILENAME_QCM,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -28,6 +30,11 @@ STEP_USER_DATA_SCHEMA_UP = vol.Schema(
     {
         vol.Required("username"): str,
         vol.Required("password"): str,
+        vol.Optional("qcm_filename", default=FILENAME_QCM): str,
+        vol.Optional(
+            "allow_notification",
+            default=DEFAULT_ALLOW_NOTIFICATION,
+        ): bool,
     }
 )
 
@@ -47,18 +54,21 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         _LOGGER.debug("ED - Setup process initiated by user.")
         errors: dict[str, str] = {}
 
-        path = self.hass.config.config_dir + "/custom_components/ecole_directe/qcm.json"
-        if not os.path.isfile(path):
-            with open(
-                path,
-                "w",
-                encoding="utf-8",
-            ) as f:
-                json.dump({}, f, ensure_ascii=False, indent=4)
-
         if user_input is not None:
             try:
                 self._user_inputs.update(user_input)
+                path = (
+                    self.hass.config.config_dir
+                    + "/"
+                    + self._user_inputs["qcm_filename"]
+                )
+                if not os.path.isfile(path):
+                    with open(
+                        path,
+                        "w",
+                        encoding="utf-8",
+                    ) as f:
+                        json.dump({}, f, ensure_ascii=False, indent=4)
                 session = await self.hass.async_add_executor_job(
                     check_ecoledirecte_session,
                     self._user_inputs,

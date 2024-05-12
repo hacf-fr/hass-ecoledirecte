@@ -694,7 +694,7 @@ def get_grades(token, eleve, annee_scolaire, config_path):
             grades.append(grade)
     return grades
 
-def get_lessons(token, eleve, date_debut, date_fin):
+def get_lessons(token, eleve, date_debut, date_fin, config_path):
     """get lessons"""
     json_resp = get_response(
         token,

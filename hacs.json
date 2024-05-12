@@ -1,5 +1,6 @@
 {
-  "name": "Ecole Directe for Home Assistant",
+  "name": "Ecole Directe",
   "country": "FR",
-  "render_readme": true
+  "render_readme": true,
+  "homeassistant": "2024.2.0"
 }

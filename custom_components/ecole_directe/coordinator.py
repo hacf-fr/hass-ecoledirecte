@@ -92,26 +92,11 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         for eleve in session.eleves:
             if "CAHIER_DE_TEXTES" in eleve.modules:
                 try:
-                    homeworks_json = await self.hass.async_add_executor_job(
-                        get_homeworks, session.token, eleve
+                    self.data[
+                        f"{eleve.get_fullname_lower()}_homework"
+                    ] = await self.hass.async_add_executor_job(
+                        get_homeworks, session.token, eleve, self.hass.config.config_dir
                     )
-                    for key in homeworks_json.keys():
-                        homeworks_by_date_json = await self.hass.async_add_executor_job(
-                            get_homeworks_by_date, session.token, eleve, key
-                        )
-                        _LOGGER.debug(
-                            "homeworks_by_date_json:%s", homeworks_by_date_json
-                        )
-                        for matiere in homeworks_by_date_json["matieres"]:
-                            for homework in homeworks_json[key]:
-                                if matiere["id"] == homework["idDevoir"]:
-                                    homework["nbJourMaxRenduDevoir"] = matiere[
-                                        "nbJourMaxRenduDevoir"
-                                    ]
-                                    homework["contenu"] = matiere["aFaire"]["contenu"]
-
-                        _LOGGER.debug("homeworks_json:%s", homeworks_json)
-                    self.data[f"{eleve.get_fullname_lower()}_homework"] = homeworks_json
                 except Exception as ex:
                     _LOGGER.warning(
                         "Error getting homeworks from ecole directe: %s", ex
@@ -121,7 +106,11 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     self.data[
                         f"{eleve.get_fullname_lower()}_grades"
                     ] = await self.hass.async_add_executor_job(
-                        get_grades, session.token, eleve, year_data
+                        get_grades,
+                        session.token,
+                        eleve,
+                        year_data,
+                        self.hass.config.config_dir,
                     )
                     self.compare_data(
                         previous_data,

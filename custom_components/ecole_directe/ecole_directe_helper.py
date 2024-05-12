@@ -1,13 +1,14 @@
 """Module to help communication with Ecole Directe API"""
 
 import json
+import operator
 import re
 import logging
 import urllib
 import base64
 import requests
 
-from .const import EVENT_TYPE
+from .const import EVENT_TYPE, GRADES_TO_DISPLAY, INTEGRATION_PATH
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ APIURL = "https://api.ecoledirecte.com/v3"
 APIVERSION = "4.55.0"
 
 
-def get_response(token, url, payload):
+def get_response(token, url, payload, file_path):
     """send a request to API and return a json if possible or raise an error"""
 
     if payload is None:
@@ -26,6 +27,13 @@ def get_response(token, url, payload):
 
     try:
         resp_json = response.json()
+        with open(
+            file_path,
+            "w",
+            encoding="utf-8",
+        ) as f:
+            json.dump(resp_json, f, ensure_ascii=False, indent=4)
+
     except Exception as ex:
         raise RequestError(f"Error with URL:[{url}]: {response.content}") from ex
 
@@ -149,97 +157,100 @@ class EDHomework:
             self.matiere = data["matiere"]
         else:
             self.matiere = ""
-        if "codeMatiere" in data:
-            self.code_matiere = data["codeMatiere"]
-        else:
-            self.code_matiere = ""
-        if "aFaire" in data:
-            self.a_faire = data["aFaire"]
-        else:
-            self.a_faire = ""
-        if "idDevoir" in data:
-            self.id_devoir = data["idDevoir"]
-        else:
-            self.id_devoir = ""
-        if "documentsAFaire" in data:
-            self.documents_a_faire = data["documentsAFaire"]
-        else:
-            self.documents_a_faire = ""
-        if "donneLe" in data:
-            self.donne_le = data["donneLe"]
-        else:
-            self.donne_le = ""
+        # if "codeMatiere" in data:
+        #     self.code_matiere = data["codeMatiere"]
+        # else:
+        #     self.code_matiere = ""
+        # if "aFaire" in data:
+        #     self.a_faire = data["aFaire"]
+        # else:
+        #     self.a_faire = ""
+        # if "idDevoir" in data:
+        #     self.id_devoir = data["idDevoir"]
+        # else:
+        #     self.id_devoir = ""
+        # if "documentsAFaire" in data:
+        #     self.documents_a_faire = data["documentsAFaire"]
+        # else:
+        #     self.documents_a_faire = ""
+        # if "donneLe" in data:
+        #     self.donne_le = data["donneLe"]
+        # else:
+        #     self.donne_le = ""
         self.pour_le = pour_le
         if "effectue" in data:
             self.effectue = data["effectue"]
         else:
             self.effectue = ""
-        if "interrogation" in data:
-            self.interrogation = data["interrogation"]
-        else:
-            self.interrogation = ""
-        if "rendreEnLigne" in data:
-            self.rendre_en_ligne = data["rendreEnLigne"]
-        else:
-            self.rendre_en_ligne = ""
-        if "nbJourMaxRenduDevoir" in data:
-            self.nb_jour_max_rendu_devoir = data["nbJourMaxRenduDevoir"]
-        else:
-            self.nb_jour_max_rendu_devoir = ""
+        # if "interrogation" in data:
+        #     self.interrogation = data["interrogation"]
+        # else:
+        #     self.interrogation = ""
+        # if "rendreEnLigne" in data:
+        #     self.rendre_en_ligne = data["rendreEnLigne"]
+        # else:
+        #     self.rendre_en_ligne = ""
+        # if "nbJourMaxRenduDevoir" in data:
+        #     self.nb_jour_max_rendu_devoir = data["nbJourMaxRenduDevoir"]
+        # else:
+        #     self.nb_jour_max_rendu_devoir = ""
         if "contenu" in data:
             self.contenu = data["contenu"]
         else:
             self.contenu = ""
+
+    def __getitem__(self, key):
+        return self
 
 
 class EDGrade:
     """Grade information"""
 
     def __init__(self, data):
-        if "id" in data:
-            self.id = data["id"]
-        else:
-            self.id = ""
+        # if "id" in data:
+        #     self.id = data["id"]
+        # else:
+        #     self.id = ""
         if "devoir" in data:
             self.devoir = data["devoir"]
         else:
             self.devoir = ""
-        if "codePeriode" in data:
-            self.code_periode = data["codePeriode"]
-        else:
-            self.code_periode = ""
-        if "codeMatiere" in data:
-            self.code_matiere = data["codeMatiere"]
-        else:
-            self.code_matiere = ""
+        # if "codePeriode" in data:
+        #     self.code_periode = data["codePeriode"]
+        # else:
+        #     self.code_periode = ""
+        # if "codeMatiere" in data:
+        #     self.code_matiere = data["codeMatiere"]
+        # else:
+        #     self.code_matiere = ""
         if "libelleMatiere" in data:
             self.libelle_matiere = data["libelleMatiere"]
         else:
             self.libelle_matiere = ""
-        if "codeSousMatiere" in data:
-            self.code_sous_matiere = data["codeSousMatiere"]
-        else:
-            self.code_sous_matiere = ""
-        if "typeDevoir" in data:
-            self.type_devoir = data["typeDevoir"]
-        else:
-            self.type_devoir = ""
-        if "enLettre" in data:
-            self.en_lettre = data["enLettre"]
-        else:
-            self.en_lettre = ""
-        if "commentaire" in data:
-            self.commentaire = data["commentaire"]
-        else:
-            self.commentaire = ""
-        if "uncSujet" in data:
-            self.unc_sujet = data["uncSujet"]
-        else:
-            self.unc_sujet = ""
-        if "uncCorrige" in data:
-            self.unc_corrige = data["uncCorrige"]
-        else:
-            self.unc_corrige = ""
+        # if "codeSousMatiere" in data:
+        #     self.code_sous_matiere = data["codeSousMatiere"]
+        # else:
+        #     self.code_sous_matiere = ""
+        # if "typeDevoir" in data:
+        #     self.type_devoir = data["typeDevoir"]
+        # else:
+        #     self.type_devoir = ""
+        # if "enLettre" in data:
+        #     self.en_lettre = data["enLettre"]
+        # else:
+        #     self.en_lettre = ""
+        # if "commentaire" in data:
+        #     self.commentaire = data["commentaire"]
+        # else:
+        #     self.commentaire = ""
+        # if "uncSujet" in data:
+        #     self.unc_sujet = data["uncSujet"]
+        # else:
+        #     self.unc_sujet = ""
+        # if "uncCorrige" in data:
+        #     self.unc_corrige = data["uncCorrige"]
+        # else:
+        #     self.unc_corrige = ""
         if "coef" in data:
             self.coef = data["coef"]
         else:
@@ -252,22 +263,22 @@ class EDGrade:
             self.valeur = data["valeur"]
         else:
             self.valeur = ""
-        if "nonSignificatif" in data:
-            self.non_significatif = data["nonSignificatif"]
-        else:
-            self.non_significatif = ""
+        # if "nonSignificatif" in data:
+        #     self.non_significatif = data["nonSignificatif"]
+        # else:
+        #     self.non_significatif = ""
         if "date" in data:
             self.date = data["date"]
         else:
             self.date = ""
-        if "dateSaisie" in data:
-            self.date_saisie = data["dateSaisie"]
-        else:
-            self.date_saisie = ""
-        if "valeurisee" in data:
-            self.valeurisee = data["valeurisee"]
-        else:
-            self.valeurisee = ""
+        # if "dateSaisie" in data:
+        #     self.date_saisie = data["dateSaisie"]
+        # else:
+        #     self.date_saisie = ""
+        # if "valeurisee" in data:
+        #     self.valeurisee = data["valeurisee"]
+        # else:
+        #     self.valeurisee = ""
         if "moyenneClasse" in data:
             self.moyenne_classe = data["moyenneClasse"]
         else:
@@ -280,10 +291,10 @@ class EDGrade:
             self.max_classe = data["maxClasse"]
         else:
             self.max_classe = ""
-        if "elementsProgramme" in data:
-            self.elements_programme = data["elementsProgramme"]
-        else:
-            self.elements_programme = ""
+        # if "elementsProgramme" in data:
+        #     self.elements_programme = data["elementsProgramme"]
+        # else:
+        #     self.elements_programme = ""
 
 class EDLesson:
     """Lesson information"""
@@ -427,12 +438,17 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
             + urllib.parse.quote(data["password"], safe="")
             + '", "isRelogin": false}'
         )
-        login = get_response(None, f"{APIURL}/login.awp?v={APIVERSION}", payload)
+        login = get_response(
+            None,
+            f"{APIURL}/login.awp?v={APIVERSION}",
+            payload,
+            config_path + INTEGRATION_PATH + "get_ecoledirecte_session.json",
+        )
 
         # Si connexion initiale
         if login["code"] == 250:
             with open(
-                config_path + "/custom_components/ecole_directe/qcm.json",
+                config_path + "/" + data["qcm_filename"],
                 encoding="utf-8",
             ) as f:
                 qcm_json = json.load(f)
@@ -441,7 +457,7 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
 
             while try_login > 0:
                 # Obtenir le qcm de vérification et les propositions de réponse
-                qcm = get_qcm_connexion(login["token"])
+                qcm = get_qcm_connexion(login["token"], config_path)
                 question = base64.b64decode(qcm["question"]).decode("utf-8")
 
                 if qcm_json is not None and question in qcm_json:
@@ -451,12 +467,15 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
                     reponse = base64.b64encode(
                         bytes(qcm_json[question][0], "utf-8")
                     ).decode("ascii")
-                    cn_et_cv = post_qcm_connexion(login["token"], str(reponse))
+                    cn_et_cv = post_qcm_connexion(
+                        login["token"], str(reponse), config_path
+                    )
                     # Si le quiz a été raté
                     if not cn_et_cv:
                         _LOGGER.warning(
-                            "qcm raté pour la question [%s], vérifier le fichier qcm.json. [%s]",
+                            "qcm raté pour la question [%s], vérifier le fichier %s. [%s]",
                             question,
+                            data["qcm_filename"],
                             cn_et_cv,
                         )
                         continue
@@ -472,7 +491,7 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
                     qcm_json[question] = rep
 
                     with open(
-                        config_path + "/custom_components/ecole_directe/qcm.json",
+                        config_path + "/" + data["qcm_filename"],
                         "w",
                         encoding="utf-8",
                     ) as f:
@@ -484,6 +503,13 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
                     }
                     hass.bus.fire(EVENT_TYPE, event_data)
 
+                    if data["qcm_filename"]:
+                        hass.components.persistent_notification.async_create(
+                            "Vérifiez le fichier "
+                            + data["qcm_filename"]
+                            + ", et rechargez l'intégration Ecole Directe.",
+                            title="Ecole Directe",
+                        )
                 try_login -= 1
 
             if try_login == 0:
@@ -506,7 +532,12 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
             )
 
             # Renvoyer une requête de connexion avec la double-authentification réussie
-            login = get_response(None, f"{APIURL}/login.awp?v={APIVERSION}", payload)
+            login = get_response(
+                None,
+                f"{APIURL}/login.awp?v={APIVERSION}",
+                payload,
+                config_path + INTEGRATION_PATH + "get_ecoledirecte_session2.json",
+            )
 
         _LOGGER.info(
             "Connection OK - identifiant: [{%s}]",
@@ -521,11 +552,14 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
         return None
 
 
-def get_qcm_connexion(token):
+def get_qcm_connexion(token, config_path):
     """Obtenir le QCM donné lors d'une connexion à partir d'un nouvel appareil"""
 
     json_resp = get_response(
-        token, f"{APIURL}/connexion/doubleauth.awp?verbe=get&v={APIVERSION}", None
+        token,
+        f"{APIURL}/connexion/doubleauth.awp?verbe=get&v={APIVERSION}",
+        None,
+        config_path + INTEGRATION_PATH + "get_qcm_connexion.json",
     )
 
     if "data" in json_resp:
@@ -534,13 +568,14 @@ def get_qcm_connexion(token):
     return None
 
 
-def post_qcm_connexion(token, proposition):
+def post_qcm_connexion(token, proposition, config_path):
     """Renvoyer la réponse du QCM donné"""
 
     json_resp = get_response(
         token,
         f"{APIURL}/connexion/doubleauth.awp?verbe=post&v={APIVERSION}",
         f'data={{"choix": "{proposition}"}}',
+        config_path + INTEGRATION_PATH + "post_qcm_connexion.json",
     )
 
     if "data" in json_resp:
@@ -549,79 +584,115 @@ def post_qcm_connexion(token, proposition):
     return None
 
 
-# def get_messages(session, eleve, annee_scolaire):
-#     """Get messages from Ecole Directe"""
-#     if eleve is None:
-#         return get_response(
-#             session,
-#             f"{APIURL}/familles/{session.id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
-#             encode_body({"data": {"anneeMessages": annee_scolaire}}),
-#         )
-#     return get_response(
-#         session,
-#         f"{APIURL}/eleves/{eleve.eleve_id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
-#         encode_body({"data": {"anneeMessages": annee_scolaire}}),
-#     )
+def get_messages(session, eleve, annee_scolaire, config_path):
+    """Get messages from Ecole Directe"""
+    payload = (
+        'data={"anneeMessages":"' + urllib.parse.quote(annee_scolaire, safe="") + '"}'
+    )
+    if eleve is None:
+        return get_response(
+            session,
+            f"{APIURL}/familles/{session.id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
+            payload,
+            config_path + INTEGRATION_PATH + "get_messages_famille.json",
+        )
+    return get_response(
+        session,
+        f"{APIURL}/eleves/{eleve.eleve_id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
+        payload,
+        config_path + INTEGRATION_PATH + "get_messages_eleve.json",
+    )
 
 
-def get_homeworks_by_date(token, eleve, date):
+def get_homeworks_by_date(token, eleve, date, config_path):
     """get homeworks by date"""
     json_resp = get_response(
         token,
         f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte/{date}.awp?verbe=get&v={APIVERSION}",
         None,
+        config_path + INTEGRATION_PATH + "get_homeworks_by_date.json",
     )
     if "data" in json_resp:
         return json_resp["data"]
     _LOGGER.warning("get_homeworks_by_date: [%s]", json_resp)
     return None
     # Opening JSON file
-    # f = open("config/custom_components/ecole_directe/test_homeworks2.json")
-
-    # # returns JSON object as
-    # # a dictionary
+    # f = open(config_path + INTEGRATION_PATH + "test_homeworks2.json")
     # data = json.load(f)
     # return data["data"]
 
 
-def get_homeworks(token, eleve):
+def get_homeworks(token, eleve, config_path):
     """get homeworks"""
     json_resp = get_response(
         token,
         f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte.awp?verbe=get&v={APIVERSION}",
         None,
+        config_path + INTEGRATION_PATH + "get_homeworks.json",
     )
-    if "data" in json_resp:
-        return json_resp["data"]
-    _LOGGER.warning("get_homeworks: [%s]", json_resp)
-    return None
+    if "data" not in json_resp:
+        _LOGGER.warning("get_homeworks: [%s]", json_resp)
+        return None
+    # Opening JSON file
+    # f = open(config_path + INTEGRATION_PATH + "test_homeworks.json")
+    # json_resp = json.load(f)
 
-    # # Opening JSON file
-    # f = open("config/custom_components/ecole_directe/test_homeworks.json")
+    data = json_resp["data"]
+    homeworks = []
+    for key in data.keys():
+        for homework_json in data[key]:
+            homeworks_by_date_json = get_homeworks_by_date(
+                token, eleve, key, config_path
+            )
+            _LOGGER.debug("homeworks_by_date_json:%s", homeworks_by_date_json)
+            for matiere in homeworks_by_date_json["matieres"]:
+                for homework in data[key]:
+                    if matiere["id"] == homework["idDevoir"]:
+                        homework["nbJourMaxRenduDevoir"] = matiere[
+                            "nbJourMaxRenduDevoir"
+                        ]
+                        homework["contenu"] = matiere["aFaire"]["contenu"]
 
-    # # returns JSON object as
-    # # a dictionary
-    # data = json.load(f)
-    # return data["data"]
+            _LOGGER.debug("homework_json:%s", homework_json)
+            hw = EDHomework(homework_json, key)
+            _LOGGER.debug("hw:%s", hw)
+            if not hw.effectue:
+                homeworks.append(hw)
+    if homeworks is not None:
+        homeworks.sort(key=operator.itemgetter("pourLe"))
+
+    return homeworks
 
 
-def get_grades(token, eleve, annee_scolaire):
+def get_grades(token, eleve, annee_scolaire, config_path):
     """get grades"""
     json_resp = get_response(
         token,
         f"{APIURL}/eleves/{eleve.eleve_id}/notes.awp?verbe=get&v={APIVERSION}",
         f"data={{'anneeScolaire': '{annee_scolaire}'}}",
+        config_path + INTEGRATION_PATH + "get_grades.json",
     )
-    if "data" in json_resp:
-        return json_resp["data"]
-    _LOGGER.warning("get_grades: [%s]", json_resp)
-    return None
-    # f = open("config/custom_components/ecole_directe/test_grades.json")
+    if "data" not in json_resp:
+        _LOGGER.warning("get_grades: [%s]", json_resp)
+        return None
 
-    # # returns JSON object as
-    # # a dictionary
-    # data = json.load(f)
-    # return data["data"]
+    # Opening JSON file
+    # f = open(config_path + INTEGRATION_PATH + "test_grades.json")
+    # json_resp = json.load(f)
+
+    grades = []
+    data = json_resp["data"]
+    index = 0
+    if "notes" in data:
+        data["notes"].sort(key=operator.itemgetter("date"))
+        data["notes"].reverse()
+        for grade_json in data["notes"]:
+            index += 1
+            if index > GRADES_TO_DISPLAY:
+                break
+            grade = EDGrade(grade_json)
+            grades.append(grade)
+    return grades
 
 def get_lessons(token, eleve, date_debut, date_fin):
     """get lessons"""

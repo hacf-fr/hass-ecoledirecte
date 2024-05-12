@@ -15,7 +15,7 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
 
-from .ecole_directe_formatter import format_grade, format_homework
+from .ecole_directe_formatter import format_grade, format_homework, format_lesson
 from .ecole_directe_helper import EDEleve
 from .coordinator import EDDataUpdateCoordinator
 from .const import DOMAIN

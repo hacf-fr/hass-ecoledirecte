@@ -72,7 +72,7 @@ def format_grade(grade) -> dict:
             # "noteSur": grade.note_sur,
             # "valeur": grade.valeur,
             # "nonSignificatif": grade.non_significatif,
-            # "dateSaisie": grade.date_saisie,
+            "date_saisie": grade.date_saisie,
             # "valeurisee": grade.valeurisee,
             # "moyenneClasse": grade.moyenne_classe,
             # "minClasse": grade.min_classe,

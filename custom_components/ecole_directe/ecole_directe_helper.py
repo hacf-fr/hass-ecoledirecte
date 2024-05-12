@@ -281,10 +281,10 @@ class EDGrade:
             self.date = data["date"]
         else:
             self.date = ""
-        # if "dateSaisie" in data:
-        #     self.date_saisie = data["dateSaisie"]
-        # else:
-        #     self.date_saisie = ""
+        if "dateSaisie" in data:
+            self.date_saisie = data["dateSaisie"]
+        else:
+            self.date_saisie = ""
         # if "valeurisee" in data:
         #     self.valeurisee = data["valeurisee"]
         # else:

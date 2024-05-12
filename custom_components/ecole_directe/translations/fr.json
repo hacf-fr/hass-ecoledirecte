@@ -17,7 +17,7 @@
                     "password": "Mot de passe",
                     "username": "Identifiant",
                     "qcm_filename": "Nom du fichier qcm",
-                    "allow_notification": "Envoie de notifications"
+                    "allow_notification": "Envoi de notifications"
                 }
             }
         }

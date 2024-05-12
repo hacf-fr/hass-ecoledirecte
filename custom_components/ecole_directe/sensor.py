@@ -261,7 +261,6 @@ class EDLessonsSensor(EDGenericSensor):
                 }
             )
 
-
         return {
             "updated_at": self.coordinator.last_update_success_time,
             "lessons": attributes,

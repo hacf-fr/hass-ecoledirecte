@@ -141,14 +141,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     ] = await self.hass.async_add_executor_job(
                         get_lessons, session.token, eleve, edt_date_start, edt_date_end 
                     )
-                    #self.compare_data(
-                    #    previous_data,
-                    #    f"{eleve.get_fullname_lower()}_lessons",
-                    #    ["date", "subject", "lesson_out_of"],
-                    #    "new_lessons",
-                    #    eleve,
-                    #    format_grade,
-                    #)
+                    
                 except Exception as ex:
                     _LOGGER.warning("Error getting Lessons  from ecole directe: %s", ex)
             

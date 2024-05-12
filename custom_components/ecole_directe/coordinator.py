@@ -128,7 +128,12 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     self.data[
                         f"{eleve.get_fullname_lower()}_lessons"
                     ] = await self.hass.async_add_executor_job(
-                        get_lessons, session.token, eleve, edt_date_start, edt_date_end 
+                        get_lessons, 
+                        session.token, 
+                        eleve, 
+                        edt_date_start, 
+                        edt_date_end,
+                        self.hass.config.config_dir, 
                     )
                     
                 except Exception as ex:

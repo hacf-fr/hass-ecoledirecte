@@ -202,6 +202,16 @@ class EDHomework:
     def __getitem__(self, key):
         return self
 
+    def __lt__(self, other):
+        return self.pour_le < other
+
+    def __gt__(self, other):
+        return self.pour_le > other
+
+    def __repr__(self):
+        """Allow seeing value instead of object description"""
+        return str(self.pour_le + " - " + self.matiere)
+
 
 class EDGrade:
     """Grade information"""
@@ -523,7 +533,6 @@ def get_homeworks(token, eleve, config_path):
             homeworks_by_date_json = get_homeworks_by_date(
                 token, eleve, key, config_path
             )
-            _LOGGER.debug("homeworks_by_date_json:%s", homeworks_by_date_json)
             for matiere in homeworks_by_date_json["matieres"]:
                 for homework in data[key]:
                     if matiere["id"] == homework["idDevoir"]:
@@ -531,8 +540,8 @@ def get_homeworks(token, eleve, config_path):
                             "nbJourMaxRenduDevoir"
                         ]
                         homework["contenu"] = matiere["aFaire"]["contenu"]
+                        _LOGGER.debug("homework:%s", homework)
 
-            _LOGGER.debug("homework_json:%s", homework_json)
             hw = EDHomework(homework_json, key)
             _LOGGER.debug("hw:%s", hw)
             if not hw.effectue:

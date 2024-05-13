@@ -182,10 +182,10 @@ class EDHomework:
             self.effectue = data["effectue"]
         else:
             self.effectue = ""
-        # if "interrogation" in data:
-        #     self.interrogation = data["interrogation"]
-        # else:
-        #     self.interrogation = ""
+        if "interrogation" in data:
+            self.interrogation = data["interrogation"]
+        else:
+            self.interrogation = ""
         # if "rendreEnLigne" in data:
         #     self.rendre_en_ligne = data["rendreEnLigne"]
         # else:

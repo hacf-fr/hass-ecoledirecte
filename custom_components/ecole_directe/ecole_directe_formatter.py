@@ -30,7 +30,7 @@ def format_homework(homework):
             # "donneLe": homework.donne_le,
             # "pourLe": homework.pour_le,
             # "effectue": homework.effectue,
-            # "interrogation": homework.interrogation,
+            "interrogation": homework.interrogation,
             # "rendreEnLigne": homework.rendre_en_ligne,
             # "nbJourMaxRenduDevoir": homework.nb_jour_max_rendu_devoir,
         }

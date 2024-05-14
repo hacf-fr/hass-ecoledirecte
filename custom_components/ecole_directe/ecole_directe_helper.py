@@ -306,6 +306,127 @@ class EDGrade:
         # else:
         #     self.elements_programme = ""
 
+class EDLesson:
+    """Lesson information"""
+
+    def __init__(self, data):
+        if "id" in data:
+            self.id = data["id"]
+        else:
+            self.id = ""
+        
+        if "text" in data:
+            self.text = data["text"]
+        else:
+            self.text = ""
+        
+        if "matiere" in data:
+            self.matiere = data["matiere"]
+        else:
+            self.matiere = ""
+        
+        if "codeMatiere" in data:
+            self.codeMatiere = data["codeMatiere"]
+        else:
+            self.codeMatiere = ""
+        
+        if "typeCours" in data:
+            self.typeCours = data["typeCours"]
+        else:
+            self.typeCours = ""
+        if "start_date" in data:
+            self.start_date = data["start_date"]
+        else:
+            self.start_date = ""
+        if "end_date" in data:
+            self.end_date = data["end_date"]
+        else:
+            self.tend_date = ""    
+        if "color" in data:
+            self.color = data["color"]
+        else:
+            self.color = ""
+        
+        if "dispensable" in data:
+            self.dispensable = data["dispensable"]
+        else:
+            self.dispensable = False
+        
+        if "dispense" in data:
+            self.dispense = data["dispense"]
+        else:
+            self.dispense = ""
+        
+        if "prof" in data:
+            self.prof = data["prof"]
+        else:
+            self.prof = ""
+        
+        if "salle" in data:
+            self.salle = data["salle"]
+        else:
+            self.salle = ""
+        
+        if "classe" in data:
+            self.classe = data["classe"]
+        else:
+            self.classe = ""
+        
+        if "classeId" in data:
+            self.classeId = data["classeId"]
+        else:
+            self.classeId = ""
+        
+        if "classeCode" in data:
+            self.classeCode = data["classeCode"]
+        else:
+            self.classeCode = ""
+        
+        if "groupe" in data:
+            self.groupe = data["groupe"]
+        else:
+            self.groupe = ""
+        
+        if "groupeCode" in data:
+            self.groupeCode = data["groupeCode"]
+        else:
+            self.groupeCode = ""
+        
+        if "groupeId" in data:
+            self.groupeId = data["groupeId"]
+        else:
+            self.groupeId = ""
+        
+        if "icone" in data:
+            self.icone = data["icone"]
+        else:
+            self.icone = ""
+        
+        if "isFlexible" in data:
+            self.isFlexible = data["isFlexible"]
+        else:
+            self.isFlexible = False
+        
+        if "isModifie" in data:
+            self.isModifie = data["isModifie"]
+        else:
+            self.isModifie = False
+        
+        if "contenuDeSeance" in data:
+            self.contenuDeSeance = data["contenuDeSeance"]
+        else:
+            self.contenuDeSeance = False
+        
+        if "devoirAFaire" in data:
+            self.devoirAFaire = data["devoirAFaire"]
+        else:
+            self.devoirAFaire = False
+        
+        if "isAnnule" in data:
+            self.isAnnule = data["isAnnule"]
+        else:
+            self.isAnnule = False
+        
 
 def check_ecoledirecte_session(data, config_path, hass) -> bool:
     """check if credentials to Ecole Directe are ok"""
@@ -582,6 +703,24 @@ def get_grades(token, eleve, annee_scolaire, config_path):
             grades.append(grade)
     return grades
 
+def get_lessons(token, eleve, date_debut, date_fin, config_path):
+    """get lessons"""
+    json_resp = get_response(
+        token,
+        f"{APIURL}/E/{eleve.eleve_id}/emploidutemps.awp?verbe=get&v={APIVERSION}",
+        f"data={{'dateDebut': '{date_debut}','dateFin': '{date_fin}','avecTrous': false}}",
+    )
+    if "data" in json_resp:
+        return json_resp["data"]
+    _LOGGER.warning("get_lessons: [%s]", json_resp)
+    return None
+    
+    # f = open("config/custom_components/ecole_directe/test_lessons.json")
+
+    # # returns JSON object as
+    # # a dictionary
+    # data = json.load(f)
+    # return data["data"]
 
 def get_headers(token):
     """return headers needed from Ecole Directe API"""

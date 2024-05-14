@@ -82,3 +82,37 @@ def format_grade(grade) -> dict:
     except Exception as ex:
         _LOGGER.warning("Error: %s - format_grade: %s", ex, grade)
         return {}
+
+
+def format_lesson(lesson) -> dict:
+    """lesson format"""
+    try:
+        return {
+            "id": lesson.get("id", ""),
+            "lesson_name": lesson.get("text", ""),
+            "subject": lesson.get("matiere", ""),
+            "subject_code": lesson.get("codeMatiere", ""),
+            "course_type": lesson.get("typeCours", ""),
+            "start_time": lesson.get("start_date", ""),
+            "end_time": lesson.get("end_date", ""),
+            "background_color": lesson.get("color", ""),
+            "is_mandatory": not lesson.get("dispensable", False),
+            "exemption": lesson.get("dispense", 0),
+            "teacher_name": lesson.get("prof", ""),
+            "classroom": lesson.get("salle", ""),
+            "class": lesson.get("classe", ""),
+            "class_id": lesson.get("classeId", 0),
+            "class_code": lesson.get("classeCode", ""),
+            "group": lesson.get("groupe", ""),
+            "group_code": lesson.get("groupeCode", ""),
+            "is_flexible": lesson.get("isFlexible", False),
+            "group_id": lesson.get("groupeId", 0),
+            "icon": lesson.get("icone", ""),
+            "is_modified": lesson.get("isModifie", False),
+            "session_content_available": lesson.get("contenuDeSeance", False),
+            "homework_due": lesson.get("devoirAFaire", False),
+            "canceled": lesson.get("isAnnule", False)
+        }   
+    except Exception as ex:
+        _LOGGER.warning("Error: %s - format_lesson: %s", ex, lesson)
+        return {}

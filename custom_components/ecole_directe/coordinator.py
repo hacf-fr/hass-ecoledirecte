@@ -16,9 +16,13 @@ from .ecole_directe_formatter import format_grade
 
 from .ecole_directe_helper import (
     EDEleve,
+    EDGrade,
+    EDLesson,
     get_ecoledirecte_session,
     get_homeworks,
     get_grades,
+    get_homeworks_by_date,
+    get_lessons
 )
 
 from .const import (
@@ -70,6 +74,10 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         else:
             year_data = f"{str(current_year)}-{str(current_year + 1)}"
 
+        #EDT BODY
+        edt_date_start = "2024-05-02"
+        edt_date_end = "2024-05-03"
+
         # if session._account_type == "1":  # famille
         #     if "MESSAGERIE" in session.modules:
         #         try:
@@ -114,6 +122,23 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     )
                 except Exception as ex:
                     _LOGGER.warning("Error getting grades from ecole directe: %s", ex)
+            
+            if "EDT" in eleve.modules:
+                try:
+                    self.data[
+                        f"{eleve.get_fullname_lower()}_lessons"
+                    ] = await self.hass.async_add_executor_job(
+                        get_lessons, 
+                        session.token, 
+                        eleve, 
+                        edt_date_start, 
+                        edt_date_end,
+                        self.hass.config.config_dir, 
+                    )
+                    
+                except Exception as ex:
+                    _LOGGER.warning("Error getting Lessons  from ecole directe: %s", ex)
+            
             # if "MESSAGERIE" in eleve.modules:
             #     try:
             #         self.data[

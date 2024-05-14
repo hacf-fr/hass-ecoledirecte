@@ -72,6 +72,7 @@ Cette intégration fournit plusieurs entités, toujours prefixées avec `ecole_d
 | `sensor.ecole_directe_PRENOM_NOM` | informations basique de l'enfant |
 | `[...]_homework` | devoirs |
 | `[...]_grades` | notes |
+| `[...]_lessons` | emploi du temps  (in progress)|
 
 Les entités sont mises à jour toutes les 30 minutes.
 

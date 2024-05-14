@@ -23,7 +23,9 @@ from .ecole_directe_formatter import (
     format_delay,
     format_punishment,
     format_vie_scolaire,
+    format_lesson,
 )
+
 from .ecole_directe_helper import EDEleve
 from .coordinator import EDDataUpdateCoordinator
 from .const import DOMAIN
@@ -226,6 +228,43 @@ class EDGradesSensor(EDGenericSensor):
         return {
             "updated_at": self.coordinator.last_update_success_time,
             "grades": attributes,
+        }
+
+class EDLessonsSensor(EDGenericSensor):
+    """Representation of a ED sensor."""
+
+    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
+        """Initialize the ED sensor."""
+        super().__init__(coordinator, "lessons", eleve, "len")
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = []
+        lesson_counter = 0
+        if f"{self._child_info.get_fullname_lower()}_lessons" in self.coordinator.data:
+            json = self.coordinator.data[
+                f"{self._child_info.get_fullname_lower()}_lessons"
+            ]
+            for key in json.keys():
+                for lesson_json in key:
+                    lesson = EDLesson(lesson_json)
+                    if not lesson.isAnnule:
+                        lesson_counter += 1
+                        attributes.append(format_lesson(lesson))
+            if attributes is not None:
+                attributes.sort(key=operator.itemgetter("start_date"))
+        else:
+            attributes.append(
+                {
+                    "Erreur": f"{self._child_info.get_fullname_lower()}_lessons n'existe pas."
+                }
+            )
+
+        return {
+            "updated_at": self.coordinator.last_update_success_time,
+            "lessons": attributes,
+            "total_lessons": lesson_counter,
         }
 
 

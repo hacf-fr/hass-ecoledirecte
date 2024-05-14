@@ -40,7 +40,7 @@ def format_homework(homework):
 
 
 def format_grade(grade) -> dict:
-    """grade fromat"""
+    """grade format"""
     try:
         return {
             "date": grade.date,
@@ -82,3 +82,92 @@ def format_grade(grade) -> dict:
     except Exception as ex:
         _LOGGER.warning("Error: %s - format_grade: %s", ex, grade)
         return {}
+
+
+def format_evaluation(evaluation) -> dict:
+    """evaluation format"""
+    return {
+        "name": evaluation.libelle_matiere,
+        "domain": None,
+        "date": evaluation.date,
+        "subject": evaluation.devoir,
+        "description": None,
+        "coefficient": None,
+        "paliers": None,
+        "teacher": None,
+        "acquisitions": [
+            {
+                "order": None,
+                "name": acquisition.libelle_competence,
+                "abbreviation": None,
+                "level": acquisition.valeur,
+                "domain": acquisition.descriptif,
+                "pillar": None,
+                "pillar_prefix": None,
+            }
+            for acquisition in evaluation.elements_programme
+        ],
+    }
+
+
+def format_vie_scolaire(viescolaire) -> dict:
+    """vie scolaire format"""
+    try:
+        return {
+            "date": viescolaire.date,
+            "type": viescolaire.type_element,
+            "display_date": viescolaire.display_date,
+            "justified": viescolaire.justifie,
+        }
+    except Exception as ex:
+        _LOGGER.warning("Error: %s - format_viescolaire: %s", ex, viescolaire)
+        return {}
+
+
+def format_absence(absence) -> dict:
+    """absence format"""
+    return {
+        "from": absence.from_date,
+        "to": absence.to_date,
+        "justified": absence.justified,
+        "hours": absence.hours,
+        "days": absence.days,
+        "reason": str(absence.reasons)[2:-2],
+    }
+
+
+def format_delay(delay) -> dict:
+    """delay format"""
+    return {
+        "date": delay.date,
+        "minutes": delay.minutes,
+        "justified": delay.justified,
+        "justification": delay.justification,
+        "reasons": str(delay.reasons)[2:-2],
+    }
+
+
+def format_punishment(punishment) -> dict:
+    """punishment format"""
+    return {
+        "date": punishment.given.strftime("%Y-%m-%d"),
+        "subject": punishment.during_lesson,
+        "reasons": punishment.reasons,
+        "circumstances": punishment.circumstances,
+        "nature": punishment.nature,
+        "duration": str(punishment.duration),
+        "homework": punishment.homework,
+        "exclusion": punishment.exclusion,
+        "during_lesson": punishment.during_lesson,
+        "homework_documents": None,
+        "circumstance_documents": None,
+        "giver": punishment.giver,
+        "schedule": [
+            {
+                "start": schedule.start,
+                "duration": str(schedule.duration),
+            }
+            for schedule in punishment.schedule
+        ],
+        "schedulable": punishment.schedulable,
+    }

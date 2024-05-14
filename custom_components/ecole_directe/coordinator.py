@@ -12,7 +12,14 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordinator
 
-from .ecole_directe_formatter import format_grade
+from .ecole_directe_formatter import (
+    format_evaluation,
+    format_grade,
+    format_absence,
+    format_delay,
+    format_punishment,
+    format_vie_scolaire,
+)
 
 from .ecole_directe_helper import (
     EDEleve,
@@ -20,9 +27,9 @@ from .ecole_directe_helper import (
     EDLesson,
     get_ecoledirecte_session,
     get_homeworks,
-    get_grades,
-    get_homeworks_by_date,
     get_lessons
+    get_grades_evaluations,
+    get_vie_scolaire,
 )
 
 from .const import (
@@ -103,22 +110,36 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     )
             if "NOTES" in eleve.modules:
                 try:
-                    self.data[
-                        f"{eleve.get_fullname_lower()}_grades"
-                    ] = await self.hass.async_add_executor_job(
-                        get_grades,
+                    grades_evaluations = await self.hass.async_add_executor_job(
+                        get_grades_evaluations,
                         session.token,
                         eleve,
                         year_data,
                         self.hass.config.config_dir,
                     )
+
+                    self.data[f"{eleve.get_fullname_lower()}_grades"] = (
+                        grades_evaluations["grades"]
+                    )
                     self.compare_data(
                         previous_data,
                         f"{eleve.get_fullname_lower()}_grades",
-                        ["date", "subject", "grade_out_of"],
+                        ["date", "libelle_matiere", "devoir"],
                         "new_grade",
                         eleve,
                         format_grade,
+                    )
+
+                    self.data[f"{eleve.get_fullname_lower()}_evaluations"] = (
+                        grades_evaluations["evaluations"]
+                    )
+                    self.compare_data(
+                        previous_data,
+                        f"{eleve.get_fullname_lower()}_evaluations",
+                        ["date", "libelle_matiere", "devoir"],
+                        "new__evaluations",
+                        eleve,
+                        format_evaluation,
                     )
                 except Exception as ex:
                     _LOGGER.warning("Error getting grades from ecole directe: %s", ex)
@@ -139,6 +160,67 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 except Exception as ex:
                     _LOGGER.warning("Error getting Lessons  from ecole directe: %s", ex)
             
+            if "VIE_SCOLAIRE" in eleve.modules:
+                try:
+                    vie_scolaire = await self.hass.async_add_executor_job(
+                        get_vie_scolaire,
+                        session.token,
+                        eleve,
+                        self.hass.config.config_dir,
+                    )
+                    if "absences" in vie_scolaire:
+                        self.data[f"{eleve.get_fullname_lower()}_absences"] = (
+                            vie_scolaire["absences"]
+                        )
+
+                        self.compare_data(
+                            previous_data,
+                            f"{eleve.get_fullname_lower()}_absences",
+                            ["date", "type_element", "display_date"],
+                            "new_absence",
+                            eleve,
+                            format_absence,
+                        )
+                    if "retards" in vie_scolaire:
+                        self.data[f"{eleve.get_fullname_lower()}_retards"] = (
+                            vie_scolaire["retards"]
+                        )
+                        self.compare_data(
+                            previous_data,
+                            f"{eleve.get_fullname_lower()}_retards",
+                            ["date", "type_element", "display_date"],
+                            "new_retard",
+                            eleve,
+                            format_delay,
+                        )
+                    if "sanctions" in vie_scolaire:
+                        self.data[f"{eleve.get_fullname_lower()}_punishments"] = (
+                            vie_scolaire["sanctions"]
+                        )
+                        self.compare_data(
+                            previous_data,
+                            f"{eleve.get_fullname_lower()}_punishments",
+                            ["date", "type_element", "display_date"],
+                            "new_punishment",
+                            eleve,
+                            format_punishment,
+                        )
+                    if "encouragements" in vie_scolaire:
+                        self.data[f"{eleve.get_fullname_lower()}_encouragements"] = (
+                            vie_scolaire["encouragements"]
+                        )
+                        self.compare_data(
+                            previous_data,
+                            f"{eleve.get_fullname_lower()}_encouragements",
+                            ["date", "type_element", "display_date"],
+                            "new_encouragement",
+                            eleve,
+                            format_vie_scolaire,
+                        )
+                except Exception as ex:
+                    _LOGGER.warning(
+                        "Error getting vie scolaire from ecole directe: %s", ex
+                    )
             # if "MESSAGERIE" in eleve.modules:
             #     try:
             #         self.data[

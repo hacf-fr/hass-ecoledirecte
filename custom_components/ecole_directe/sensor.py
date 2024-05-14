@@ -15,7 +15,17 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
 
-from .ecole_directe_formatter import format_grade, format_homework, format_lesson
+from .ecole_directe_formatter import (
+    format_evaluation,
+    format_grade,
+    format_homework,
+    format_absence,
+    format_delay,
+    format_punishment,
+    format_vie_scolaire,
+    format_lesson,
+)
+
 from .ecole_directe_helper import EDEleve
 from .coordinator import EDDataUpdateCoordinator
 from .const import DOMAIN
@@ -46,6 +56,12 @@ async def async_setup_entry(
                 sensors.append(EDHomeworksSensor(coordinator, eleve))
             if "NOTES" in eleve.modules:
                 sensors.append(EDGradesSensor(coordinator, eleve))
+                sensors.append(EDEvaluationsSensor(coordinator, eleve))
+            if "VIE_SCOLAIRE" in eleve.modules:
+                sensors.append(EDAbsencesSensor(coordinator, eleve))
+                sensors.append(EDRetardsSensor(coordinator, eleve))
+                sensors.append(EDEncouragementsSensor(coordinator, eleve))
+                sensors.append(EDSanctionsSensor(coordinator, eleve))
 
         async_add_entities(sensors, False)
 
@@ -251,3 +267,117 @@ class EDLessonsSensor(EDGenericSensor):
             "total_lessons": lesson_counter,
         }
 
+
+class EDEvaluationsSensor(EDGenericSensor):
+    """Representation of a ED sensor."""
+
+    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
+        """Initialize the ED sensor."""
+        super().__init__(coordinator, "evaluations", eleve, "len")
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = []
+        evaluations = self.coordinator.data[
+            f"{self._child_info.get_fullname_lower()}_evaluations"
+        ]
+        for evaluation in evaluations:
+            attributes.append(format_evaluation(evaluation))
+
+        return {
+            "updated_at": self.coordinator.last_update_success_time,
+            "evaluations": attributes,
+        }
+
+
+class EDAbsencesSensor(EDGenericSensor):
+    """Representation of a ED sensor."""
+
+    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
+        """Initialize the ED sensor."""
+        super().__init__(coordinator, "absences", eleve, "len")
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = []
+        absences = self.coordinator.data[
+            f"{self._child_info.get_fullname_lower()}_absences"
+        ]
+        for absence in absences:
+            attributes.append(format_absence(absence))
+
+        return {
+            "updated_at": self.coordinator.last_update_success_time,
+            "absences": attributes,
+        }
+
+
+class EDRetardsSensor(EDGenericSensor):
+    """Representation of a ED sensor."""
+
+    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
+        """Initialize the ED sensor."""
+        super().__init__(coordinator, "retards", eleve, "len")
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = []
+        retards = self.coordinator.data[
+            f"{self._child_info.get_fullname_lower()}_retards"
+        ]
+        for retard in retards:
+            attributes.append(format_delay(retard))
+
+        return {
+            "updated_at": self.coordinator.last_update_success_time,
+            "delays": attributes,
+        }
+
+
+class EDSanctionsSensor(EDGenericSensor):
+    """Representation of a ED sensor."""
+
+    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
+        """Initialize the ED sensor."""
+        super().__init__(coordinator, "sanctions", eleve, "len")
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = []
+        sanctions = self.coordinator.data[
+            f"{self._child_info.get_fullname_lower()}_sanctions"
+        ]
+        for sanction in sanctions:
+            attributes.append(format_punishment(sanction))
+
+        return {
+            "updated_at": self.coordinator.last_update_success_time,
+            "sanctions": attributes,
+        }
+
+
+class EDEncouragementsSensor(EDGenericSensor):
+    """Representation of a ED sensor."""
+
+    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
+        """Initialize the ED sensor."""
+        super().__init__(coordinator, "encouragements", eleve, "len")
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = []
+        encouragements = self.coordinator.data[
+            f"{self._child_info.get_fullname_lower()}_encouragements"
+        ]
+        for encouragement in encouragements:
+            attributes.append(format_vie_scolaire(encouragement))
+
+        return {
+            "updated_at": self.coordinator.last_update_success_time,
+            "sanctions": attributes,
+        }

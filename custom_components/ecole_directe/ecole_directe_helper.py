@@ -8,7 +8,12 @@ import urllib
 import base64
 import requests
 
-from .const import EVENT_TYPE, GRADES_TO_DISPLAY, INTEGRATION_PATH
+from .const import (
+    VIE_SCOLAIRE_TO_DISPLAY,
+    EVENT_TYPE,
+    GRADES_TO_DISPLAY,
+    INTEGRATION_PATH,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -182,10 +187,10 @@ class EDHomework:
             self.effectue = data["effectue"]
         else:
             self.effectue = ""
-        # if "interrogation" in data:
-        #     self.interrogation = data["interrogation"]
-        # else:
-        #     self.interrogation = ""
+        if "interrogation" in data:
+            self.interrogation = data["interrogation"]
+        else:
+            self.interrogation = ""
         # if "rendreEnLigne" in data:
         #     self.rendre_en_ligne = data["rendreEnLigne"]
         # else:
@@ -281,10 +286,10 @@ class EDGrade:
             self.date = data["date"]
         else:
             self.date = ""
-        # if "dateSaisie" in data:
-        #     self.date_saisie = data["dateSaisie"]
-        # else:
-        #     self.date_saisie = ""
+        if "dateSaisie" in data:
+            self.date_saisie = data["dateSaisie"]
+        else:
+            self.date_saisie = ""
         # if "valeurisee" in data:
         #     self.valeurisee = data["valeurisee"]
         # else:
@@ -301,10 +306,54 @@ class EDGrade:
             self.max_classe = data["maxClasse"]
         else:
             self.max_classe = ""
-        # if "elementsProgramme" in data:
-        #     self.elements_programme = data["elementsProgramme"]
+        self.elements_programme = []
+        if "elementsProgramme" in data:
+            for element in data["elementsProgramme"]:
+                self.elements_programme.append(EDCompetence(element))
+
+
+class EDCompetence:
+    """Evaluation information"""
+
+    def __init__(self, data):
+        if "descriptif" in data:
+            self.descriptif = data["descriptif"]
+        else:
+            self.descriptif = ""
+        if "libelleCompetence" in data:
+            self.libelle_competence = data["libelleCompetence"]
+        else:
+            self.libelle_competence = ""
+        if "valeur" in data:
+            self.valeur = data["valeur"]
+        else:
+            self.valeur = ""
+
+
+class EDVieScolaire:
+    """Vie scolaire information"""
+
+    def __init__(self, data):
+        if "typeElement" in data:
+            self.type_element = data["typeElement"]
+        else:
+            self.type_element = ""
+        if "date" in data:
+            self.date = data["date"]
+        else:
+            self.date = ""
+        if "displayDate" in data:
+            self.display_date = data["displayDate"]
+        else:
+            self.display_date = ""
+        # if "libelle" in libelle:
+        #     self.libelle = data["libelle"]
         # else:
-        #     self.elements_programme = ""
+        #     self.libelle = ""
+        if "justifie" in data:
+            self.justifie = data["justifie"]
+        else:
+            self.justifie = ""
 
 class EDLesson:
     """Lesson information"""
@@ -673,35 +722,109 @@ def get_homeworks(token, eleve, config_path):
     return homeworks
 
 
-def get_grades(token, eleve, annee_scolaire, config_path):
+def get_grades_evaluations(token, eleve, annee_scolaire, config_path):
     """get grades"""
     json_resp = get_response(
         token,
         f"{APIURL}/eleves/{eleve.eleve_id}/notes.awp?verbe=get&v={APIVERSION}",
         f"data={{'anneeScolaire': '{annee_scolaire}'}}",
-        config_path + INTEGRATION_PATH + "get_grades.json",
+        config_path + INTEGRATION_PATH + "get_grades_evaluations.json",
     )
     if "data" not in json_resp:
-        _LOGGER.warning("get_grades: [%s]", json_resp)
+        _LOGGER.warning("get_grades_evaluations: [%s]", json_resp)
         return None
 
     # Opening JSON file
     # f = open(config_path + INTEGRATION_PATH + "test_grades.json")
     # json_resp = json.load(f)
 
-    grades = []
+    response = {}
+    response["grades"] = []
+    response["evaluations"] = []
     data = json_resp["data"]
-    index = 0
+    index1 = 0
+    index2 = 0
     if "notes" in data:
         data["notes"].sort(key=operator.itemgetter("date"))
         data["notes"].reverse()
         for grade_json in data["notes"]:
-            index += 1
-            if index > GRADES_TO_DISPLAY:
-                break
-            grade = EDGrade(grade_json)
-            grades.append(grade)
-    return grades
+            if grade_json["noteSur"] == "0":
+                index1 += 1
+                if index1 > GRADES_TO_DISPLAY:
+                    continue
+                evaluation = EDGrade(grade_json)
+                response["evaluations"].append(evaluation)
+            else:
+                index2 += 1
+                if index2 > GRADES_TO_DISPLAY:
+                    continue
+                grade = EDGrade(grade_json)
+                response["grades"].append(grade)
+    return response
+
+
+def get_vie_scolaire(token, eleve, config_path):
+    """get vie scolaire (absences, retards, etc.)"""
+    json_resp = get_response(
+        token,
+        f"{APIURL}/eleves/{eleve.eleve_id}/viescolaire.awp?verbe=get&v={APIVERSION}",
+        "data={}",
+        config_path + INTEGRATION_PATH + "get_vie_scolaire.json",
+    )
+    if "data" not in json_resp:
+        _LOGGER.warning("get_vie_scolaire: [%s]", json_resp)
+        return None
+    # Opening JSON file
+    # f = open(config_path + INTEGRATION_PATH + "test_viescolaire.json")
+    # json_resp = json.load(f)
+
+    response = {}
+    response["absences"] = []
+    response["retards"] = []
+    response["sanctions"] = []
+    response["encouragements"] = []
+    data = json_resp["data"]
+    index1 = 0
+    index2 = 0
+    if "absencesRetards" in data:
+        data["absencesRetards"].sort(key=operator.itemgetter("date"))
+        data["absencesRetards"].reverse()
+        for data_json in data["absencesRetards"]:
+            if data_json.type_element == "Absence":
+                index1 += 1
+                if index1 > VIE_SCOLAIRE_TO_DISPLAY:
+                    continue
+                absence = EDVieScolaire(data_json)
+                if absence.justifie:
+                    response["absences"].append(absence)
+            else:
+                index2 += 1
+                if index2 > VIE_SCOLAIRE_TO_DISPLAY:
+                    continue
+                retard = EDVieScolaire(data_json)
+                if retard.justifie:
+                    response["retards"].append(retard)
+
+    index1 = 0
+    index2 = 0
+    if "sanctionsEncouragements" in data:
+        data["sanctionsEncouragements"].sort(key=operator.itemgetter("date"))
+        data["sanctionsEncouragements"].reverse()
+        for data_json in data["sanctionsEncouragements"]:
+            if data_json.type_element == "Punition":
+                index1 += 1
+                if index1 > VIE_SCOLAIRE_TO_DISPLAY:
+                    continue
+                sanction = EDVieScolaire(data_json)
+                response["sanctions"].append(sanction)
+            else:
+                index2 += 1
+                if index2 > VIE_SCOLAIRE_TO_DISPLAY:
+                    continue
+                encouragement = EDVieScolaire(data_json)
+                response["encouragements"].append(encouragement)
+
+    return response
 
 def get_lessons(token, eleve, date_debut, date_fin, config_path):
     """get lessons"""

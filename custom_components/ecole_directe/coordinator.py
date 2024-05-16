@@ -15,19 +15,14 @@ from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordina
 from .ecole_directe_formatter import (
     format_evaluation,
     format_grade,
-    format_absence,
-    format_delay,
-    format_punishment,
     format_vie_scolaire,
 )
 
 from .ecole_directe_helper import (
     EDEleve,
-    EDGrade,
-    EDLesson,
     get_ecoledirecte_session,
     get_homeworks,
-    get_lessons
+    get_lessons,
     get_grades_evaluations,
     get_vie_scolaire,
 )
@@ -81,9 +76,12 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         else:
             year_data = f"{str(current_year)}-{str(current_year + 1)}"
 
-        #EDT BODY
-        edt_date_start = "2024-05-02"
-        edt_date_end = "2024-05-03"
+        # EDT BODY
+        today = datetime.datetime.today().strftime("%Y-%m-%d")
+        tomorrow = (datetime.datetime.today() + timedelta(days=1)).strftime("%Y-%m-%d")
+        today_plus_15 = (datetime.datetime.today() + timedelta(days=15)).strftime(
+            "%Y-%m-%d"
+        )
 
         # if session._account_type == "1":  # famille
         #     if "MESSAGERIE" in session.modules:
@@ -143,23 +141,39 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     )
                 except Exception as ex:
                     _LOGGER.warning("Error getting grades from ecole directe: %s", ex)
-            
+
             if "EDT" in eleve.modules:
                 try:
-                    self.data[
-                        f"{eleve.get_fullname_lower()}_lessons"
-                    ] = await self.hass.async_add_executor_job(
-                        get_lessons, 
-                        session.token, 
-                        eleve, 
-                        edt_date_start, 
-                        edt_date_end,
-                        self.hass.config.config_dir, 
+                    lessons = await self.hass.async_add_executor_job(
+                        get_lessons,
+                        session.token,
+                        eleve,
+                        today,
+                        today_plus_15,
+                        self.hass.config.config_dir,
                     )
-                    
+
+                    self.data[f"{eleve.get_fullname_lower()}_timetable_today"] = list(
+                        filter(lambda lesson: lesson.start_date == today, lessons)
+                    )
+
+                    lessons_tomorrow = list(
+                        filter(lambda lesson: lesson.start_date == tomorrow, lessons)
+                    )
+                    self.data[f"{eleve.get_fullname_lower()}_timetable_tomorrow"] = (
+                        lessons_tomorrow
+                    )
+
+                    # self.data[f"{eleve.get_fullname_lower()}_timetable_next_day"] = (
+                    #     lessons
+                    # )
+                    self.data[f"{eleve.get_fullname_lower()}_timetable_period"] = (
+                        lessons
+                    )
+
                 except Exception as ex:
                     _LOGGER.warning("Error getting Lessons  from ecole directe: %s", ex)
-            
+
             if "VIE_SCOLAIRE" in eleve.modules:
                 try:
                     vie_scolaire = await self.hass.async_add_executor_job(
@@ -179,7 +193,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             ["date", "type_element", "display_date"],
                             "new_absence",
                             eleve,
-                            format_absence,
+                            format_vie_scolaire,
                         )
                     if "retards" in vie_scolaire:
                         self.data[f"{eleve.get_fullname_lower()}_retards"] = (
@@ -191,7 +205,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             ["date", "type_element", "display_date"],
                             "new_retard",
                             eleve,
-                            format_delay,
+                            format_vie_scolaire,
                         )
                     if "sanctions" in vie_scolaire:
                         self.data[f"{eleve.get_fullname_lower()}_punishments"] = (
@@ -203,7 +217,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             ["date", "type_element", "display_date"],
                             "new_punishment",
                             eleve,
-                            format_punishment,
+                            format_vie_scolaire,
                         )
                     if "encouragements" in vie_scolaire:
                         self.data[f"{eleve.get_fullname_lower()}_encouragements"] = (

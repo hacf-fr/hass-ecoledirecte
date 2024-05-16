@@ -3,6 +3,7 @@
 import logging
 import operator
 
+from datetime import datetime
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -19,16 +20,13 @@ from .ecole_directe_formatter import (
     format_evaluation,
     format_grade,
     format_homework,
-    format_absence,
-    format_delay,
-    format_punishment,
     format_vie_scolaire,
     format_lesson,
 )
 
 from .ecole_directe_helper import EDEleve
 from .coordinator import EDDataUpdateCoordinator
-from .const import DOMAIN
+from .const import DEFAULT_LUNCH_BREAK_TIME, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -54,6 +52,11 @@ async def async_setup_entry(
             sensors.append(EDChildSensor(coordinator, eleve))
             if "CAHIER_DE_TEXTES" in eleve.modules:
                 sensors.append(EDHomeworksSensor(coordinator, eleve))
+            if "EDT" in eleve.modules:
+                sensors.append(EDLessonsSensor(coordinator, eleve, "today"))
+                sensors.append(EDLessonsSensor(coordinator, eleve, "tomorrow"))
+                # sensors.append(EDLessonsSensor(coordinator, eleve, "next_day"))
+                sensors.append(EDLessonsSensor(coordinator, eleve, "period"))
             if "NOTES" in eleve.modules:
                 sensors.append(EDGradesSensor(coordinator, eleve))
                 sensors.append(EDEvaluationsSensor(coordinator, eleve))
@@ -230,30 +233,42 @@ class EDGradesSensor(EDGenericSensor):
             "grades": attributes,
         }
 
+
 class EDLessonsSensor(EDGenericSensor):
     """Representation of a ED sensor."""
 
-    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
+    def __init__(
+        self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve, suffix: str
+    ) -> None:
         """Initialize the ED sensor."""
-        super().__init__(coordinator, "lessons", eleve, "len")
+        super().__init__(coordinator, "timetable_" + suffix, eleve, "len")
+        self._suffix = suffix
+        self._lessons = []
+        self._start_at = None
+        self._end_at = None
+        self._lunch_break_start_at = None
+        self._lunch_break_end_at = None
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
-        lesson_counter = 0
-        if f"{self._child_info.get_fullname_lower()}_lessons" in self.coordinator.data:
-            json = self.coordinator.data[
-                f"{self._child_info.get_fullname_lower()}_lessons"
+        canceled_counter = None
+        single_day = self._suffix in ["today", "tomorrow", "next_day"]
+        lunch_break_time = datetime.strptime(
+            self.coordinator.config_entry.options.get(
+                "lunch_break_time", DEFAULT_LUNCH_BREAK_TIME
+            ),
+            "%H:%M",
+        ).time()
+
+        if (
+            f"{self._child_info.get_fullname_lower()}_timetable_" + self._suffix
+        ) in self.coordinator.data:
+            self._lessons = self.coordinator.data[
+                f"{self._child_info.get_fullname_lower()}_timetable_" + self._suffix
             ]
-            for key in json.keys():
-                for lesson_json in key:
-                    lesson = EDLesson(lesson_json)
-                    if not lesson.isAnnule:
-                        lesson_counter += 1
-                        attributes.append(format_lesson(lesson))
-            if attributes is not None:
-                attributes.sort(key=operator.itemgetter("start_date"))
+            attributes.append(self._lessons)
         else:
             attributes.append(
                 {
@@ -261,11 +276,47 @@ class EDLessonsSensor(EDGenericSensor):
                 }
             )
 
-        return {
+        if self._lessons is not None:
+            self._start_at = None
+            self._end_at = None
+            self._lunch_break_start_at = None
+            self._lunch_break_end_at = None
+            canceled_counter = 0
+            for lesson in self._lessons:
+                index = self._lessons.index(lesson)
+                if not (
+                    lesson.start == self._lessons[index - 1].start
+                    and lesson.canceled is True
+                ):
+                    attributes.append(format_lesson(lesson, lunch_break_time))
+                if lesson.canceled is False and self._start_at is None:
+                    self._start_at = lesson.start
+                if lesson.canceled is True:
+                    canceled_counter += 1
+                if single_day is True and lesson.canceled is False:
+                    self._end_at = lesson.end
+                    if lesson.end.time() < lunch_break_time:
+                        self._lunch_break_start_at = lesson.end
+                    if (
+                        self._lunch_break_end_at is None
+                        and lesson.start.time() >= lunch_break_time
+                    ):
+                        self._lunch_break_end_at = lesson.start
+            self._lessons = []
+
+        result = {
             "updated_at": self.coordinator.last_update_success_time,
             "lessons": attributes,
-            "total_lessons": lesson_counter,
+            "canceled_lessons_counter": canceled_counter,
+            "day_start_at": self._start_at,
+            "day_end_at": self._end_at,
         }
+
+        if single_day is True:
+            result["lunch_break_start_at"] = self._lunch_break_start_at
+            result["lunch_break_end_at"] = self._lunch_break_end_at
+
+        return result
 
 
 class EDEvaluationsSensor(EDGenericSensor):
@@ -306,7 +357,7 @@ class EDAbsencesSensor(EDGenericSensor):
             f"{self._child_info.get_fullname_lower()}_absences"
         ]
         for absence in absences:
-            attributes.append(format_absence(absence))
+            attributes.append(format_vie_scolaire(absence))
 
         return {
             "updated_at": self.coordinator.last_update_success_time,
@@ -329,7 +380,7 @@ class EDRetardsSensor(EDGenericSensor):
             f"{self._child_info.get_fullname_lower()}_retards"
         ]
         for retard in retards:
-            attributes.append(format_delay(retard))
+            attributes.append(format_vie_scolaire(retard))
 
         return {
             "updated_at": self.coordinator.last_update_success_time,
@@ -352,7 +403,7 @@ class EDSanctionsSensor(EDGenericSensor):
             f"{self._child_info.get_fullname_lower()}_sanctions"
         ]
         for sanction in sanctions:
-            attributes.append(format_punishment(sanction))
+            attributes.append(format_vie_scolaire(sanction))
 
         return {
             "updated_at": self.coordinator.last_update_success_time,

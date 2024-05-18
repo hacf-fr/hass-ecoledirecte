@@ -1,5 +1,6 @@
 """Module to help communication with Ecole Directe API"""
 
+from datetime import datetime
 import json
 import operator
 import re
@@ -18,7 +19,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 APIURL = "https://api.ecoledirecte.com/v3"
-APIVERSION = "4.55.0"
+APIVERSION = "4.56.0"
 
 
 def get_response(token, url, payload, file_path):
@@ -158,51 +159,11 @@ class EDHomework:
     """Homework information"""
 
     def __init__(self, data, pour_le):
-        if "matiere" in data:
-            self.matiere = data["matiere"]
-        else:
-            self.matiere = ""
-        # if "codeMatiere" in data:
-        #     self.code_matiere = data["codeMatiere"]
-        # else:
-        #     self.code_matiere = ""
-        # if "aFaire" in data:
-        #     self.a_faire = data["aFaire"]
-        # else:
-        #     self.a_faire = ""
-        # if "idDevoir" in data:
-        #     self.id_devoir = data["idDevoir"]
-        # else:
-        #     self.id_devoir = ""
-        # if "documentsAFaire" in data:
-        #     self.documents_a_faire = data["documentsAFaire"]
-        # else:
-        #     self.documents_a_faire = ""
-        # if "donneLe" in data:
-        #     self.donne_le = data["donneLe"]
-        # else:
-        #     self.donne_le = ""
+        self.matiere = data.get("matiere")
         self.pour_le = pour_le
-        if "effectue" in data:
-            self.effectue = data["effectue"]
-        else:
-            self.effectue = ""
-        if "interrogation" in data:
-            self.interrogation = data["interrogation"]
-        else:
-            self.interrogation = ""
-        # if "rendreEnLigne" in data:
-        #     self.rendre_en_ligne = data["rendreEnLigne"]
-        # else:
-        #     self.rendre_en_ligne = ""
-        # if "nbJourMaxRenduDevoir" in data:
-        #     self.nb_jour_max_rendu_devoir = data["nbJourMaxRenduDevoir"]
-        # else:
-        #     self.nb_jour_max_rendu_devoir = ""
-        if "contenu" in data:
-            self.contenu = data["contenu"]
-        else:
-            self.contenu = ""
+        self.effectue = data.get("effectue")
+        self.interrogation = data.get("interrogation")
+        self.contenu = data.get("contenu")
 
     def __getitem__(self, key):
         return self
@@ -222,90 +183,16 @@ class EDGrade:
     """Grade information"""
 
     def __init__(self, data):
-        # if "id" in data:
-        #     self.id = data["id"]
-        # else:
-        #     self.id = ""
-        if "devoir" in data:
-            self.devoir = data["devoir"]
-        else:
-            self.devoir = ""
-        # if "codePeriode" in data:
-        #     self.code_periode = data["codePeriode"]
-        # else:
-        #     self.code_periode = ""
-        # if "codeMatiere" in data:
-        #     self.code_matiere = data["codeMatiere"]
-        # else:
-        #     self.code_matiere = ""
-        if "libelleMatiere" in data:
-            self.libelle_matiere = data["libelleMatiere"]
-        else:
-            self.libelle_matiere = ""
-        # if "codeSousMatiere" in data:
-        #     self.code_sous_matiere = data["codeSousMatiere"]
-        # else:
-        #     self.code_sous_matiere = ""
-        # if "typeDevoir" in data:
-        #     self.type_devoir = data["typeDevoir"]
-        # else:
-        #     self.type_devoir = ""
-        # if "enLettre" in data:
-        #     self.en_lettre = data["enLettre"]
-        # else:
-        #     self.en_lettre = ""
-        # if "commentaire" in data:
-        #     self.commentaire = data["commentaire"]
-        # else:
-        #     self.commentaire = ""
-        # if "uncSujet" in data:
-        #     self.unc_sujet = data["uncSujet"]
-        # else:
-        #     self.unc_sujet = ""
-        # if "uncCorrige" in data:
-        #     self.unc_corrige = data["uncCorrige"]
-        # else:
-        #     self.unc_corrige = ""
-        if "coef" in data:
-            self.coef = data["coef"]
-        else:
-            self.coef = ""
-        if "noteSur" in data:
-            self.note_sur = data["noteSur"]
-        else:
-            self.note_sur = ""
-        if "valeur" in data:
-            self.valeur = data["valeur"]
-        else:
-            self.valeur = ""
-        # if "nonSignificatif" in data:
-        #     self.non_significatif = data["nonSignificatif"]
-        # else:
-        #     self.non_significatif = ""
-        if "date" in data:
-            self.date = data["date"]
-        else:
-            self.date = ""
-        if "dateSaisie" in data:
-            self.date_saisie = data["dateSaisie"]
-        else:
-            self.date_saisie = ""
-        # if "valeurisee" in data:
-        #     self.valeurisee = data["valeurisee"]
-        # else:
-        #     self.valeurisee = ""
-        if "moyenneClasse" in data:
-            self.moyenne_classe = data["moyenneClasse"]
-        else:
-            self.moyenne_classe = ""
-        if "minClasse" in data:
-            self.min_classe = data["minClasse"]
-        else:
-            self.min_classe = ""
-        if "maxClasse" in data:
-            self.max_classe = data["maxClasse"]
-        else:
-            self.max_classe = ""
+        self.devoir = data.get("devoir")
+        self.libelle_matiere = data.get("libelleMatiere")
+        self.coef = data.get("coef")
+        self.note_sur = data.get("noteSur")
+        self.valeur = data.get("valeur")
+        self.date = data.get("date")
+        self.date_saisie = data.get("dateSaisie")
+        self.moyenne_classe = data.get("moyenneClasse")
+        self.min_classe = data.get("minClasse")
+        self.max_classe = data.get("maxClasse")
         self.elements_programme = []
         if "elementsProgramme" in data:
             for element in data["elementsProgramme"]:
@@ -316,166 +203,52 @@ class EDCompetence:
     """Evaluation information"""
 
     def __init__(self, data):
-        if "descriptif" in data:
-            self.descriptif = data["descriptif"]
-        else:
-            self.descriptif = ""
-        if "libelleCompetence" in data:
-            self.libelle_competence = data["libelleCompetence"]
-        else:
-            self.libelle_competence = ""
-        if "valeur" in data:
-            self.valeur = data["valeur"]
-        else:
-            self.valeur = ""
+        self.descriptif = data.get("descriptif")
+        self.libelle_competence = data.get("libelleCompetence")
+        self.valeur = data.get("valeur")
 
 
 class EDVieScolaire:
     """Vie scolaire information"""
 
     def __init__(self, data):
-        if "typeElement" in data:
-            self.type_element = data["typeElement"]
-        else:
-            self.type_element = ""
-        if "date" in data:
-            self.date = data["date"]
-        else:
-            self.date = ""
-        if "displayDate" in data:
-            self.display_date = data["displayDate"]
-        else:
-            self.display_date = ""
-        # if "libelle" in libelle:
-        #     self.libelle = data["libelle"]
-        # else:
-        #     self.libelle = ""
-        if "justifie" in data:
-            self.justifie = data["justifie"]
-        else:
-            self.justifie = ""
+        self.type_element = data.get("typeElement")
+        self.date = data.get("date")
+        self.display_date = data.get("displayDate")
+        self.justifie = data.get("justifie")
+        self.libelle = data.get("libelle")
+        self.motif = data.get("motif")
+
 
 class EDLesson:
     """Lesson information"""
 
     def __init__(self, data):
-        if "id" in data:
-            self.id = data["id"]
-        else:
-            self.id = ""
-        
-        if "text" in data:
-            self.text = data["text"]
-        else:
-            self.text = ""
-        
-        if "matiere" in data:
-            self.matiere = data["matiere"]
-        else:
-            self.matiere = ""
-        
-        if "codeMatiere" in data:
-            self.codeMatiere = data["codeMatiere"]
-        else:
-            self.codeMatiere = ""
-        
-        if "typeCours" in data:
-            self.typeCours = data["typeCours"]
-        else:
-            self.typeCours = ""
-        if "start_date" in data:
-            self.start_date = data["start_date"]
-        else:
-            self.start_date = ""
-        if "end_date" in data:
-            self.end_date = data["end_date"]
-        else:
-            self.tend_date = ""    
-        if "color" in data:
-            self.color = data["color"]
-        else:
-            self.color = ""
-        
-        if "dispensable" in data:
-            self.dispensable = data["dispensable"]
-        else:
-            self.dispensable = False
-        
-        if "dispense" in data:
-            self.dispense = data["dispense"]
-        else:
-            self.dispense = ""
-        
-        if "prof" in data:
-            self.prof = data["prof"]
-        else:
-            self.prof = ""
-        
-        if "salle" in data:
-            self.salle = data["salle"]
-        else:
-            self.salle = ""
-        
-        if "classe" in data:
-            self.classe = data["classe"]
-        else:
-            self.classe = ""
-        
-        if "classeId" in data:
-            self.classeId = data["classeId"]
-        else:
-            self.classeId = ""
-        
-        if "classeCode" in data:
-            self.classeCode = data["classeCode"]
-        else:
-            self.classeCode = ""
-        
-        if "groupe" in data:
-            self.groupe = data["groupe"]
-        else:
-            self.groupe = ""
-        
-        if "groupeCode" in data:
-            self.groupeCode = data["groupeCode"]
-        else:
-            self.groupeCode = ""
-        
-        if "groupeId" in data:
-            self.groupeId = data["groupeId"]
-        else:
-            self.groupeId = ""
-        
-        if "icone" in data:
-            self.icone = data["icone"]
-        else:
-            self.icone = ""
-        
-        if "isFlexible" in data:
-            self.isFlexible = data["isFlexible"]
-        else:
-            self.isFlexible = False
-        
-        if "isModifie" in data:
-            self.isModifie = data["isModifie"]
-        else:
-            self.isModifie = False
-        
-        if "contenuDeSeance" in data:
-            self.contenuDeSeance = data["contenuDeSeance"]
-        else:
-            self.contenuDeSeance = False
-        
-        if "devoirAFaire" in data:
-            self.devoirAFaire = data["devoirAFaire"]
-        else:
-            self.devoirAFaire = False
-        
-        if "isAnnule" in data:
-            self.isAnnule = data["isAnnule"]
-        else:
-            self.isAnnule = False
-        
+        self.id = data.get("id")
+        self.text = data.get("text")
+        self.matiere = data.get("matiere")
+        self.code_matiere = data.get("codeMatiere")
+        self.type_cours = data["typeCours"]
+        self.start_date = datetime.strptime(data["start_date"], "%Y-%m-%d %H:%M")
+        self.end_date = datetime.strptime(data["end_date"], "%Y-%m-%d %H:%M")
+        self.color = data["color"]
+        self.dispensable = data.get("dispensable", False)
+        self.dispense = data["dispense"]
+        self.prof = data["prof"]
+        self.salle = data["salle"]
+        self.classe = data["classe"]
+        self.classe_id = data["classeId"]
+        self.classe_code = data["classeCode"]
+        self.groupe = data["groupe"]
+        self.groupe_code = data["groupeCode"]
+        self.groupe_id = data["groupeId"]
+        self.icone = data["icone"]
+        self.is_flexible = data.get("isFlexible", False)
+        self.is_modifie = data.get("isModifie", False)
+        self.contenu_de_seance = data.get("contenuDeSeance", False)
+        self.devoir_a_faire = data.get("devoirAFaire", False)
+        self.is_annule = data.get("isAnnule", False)
+
 
 def check_ecoledirecte_session(data, config_path, hass) -> bool:
     """check if credentials to Ecole Directe are ok"""
@@ -710,10 +483,8 @@ def get_homeworks(token, eleve, config_path):
                             "nbJourMaxRenduDevoir"
                         ]
                         homework["contenu"] = matiere["aFaire"]["contenu"]
-                        _LOGGER.debug("homework:%s", homework)
 
             hw = EDHomework(homework_json, key)
-            _LOGGER.debug("hw:%s", hw)
             if not hw.effectue:
                 homeworks.append(hw)
     if homeworks is not None:
@@ -775,7 +546,7 @@ def get_vie_scolaire(token, eleve, config_path):
         _LOGGER.warning("get_vie_scolaire: [%s]", json_resp)
         return None
     # Opening JSON file
-    # f = open(config_path + INTEGRATION_PATH + "test_viescolaire.json")
+    # f = open(config_path + INTEGRATION_PATH + "test_vie_scolaire.json")
     # json_resp = json.load(f)
 
     response = {}
@@ -790,20 +561,18 @@ def get_vie_scolaire(token, eleve, config_path):
         data["absencesRetards"].sort(key=operator.itemgetter("date"))
         data["absencesRetards"].reverse()
         for data_json in data["absencesRetards"]:
-            if data_json.type_element == "Absence":
+            if data_json["typeElement"] == "Absence":
                 index1 += 1
                 if index1 > VIE_SCOLAIRE_TO_DISPLAY:
                     continue
                 absence = EDVieScolaire(data_json)
-                if absence.justifie:
-                    response["absences"].append(absence)
+                response["absences"].append(absence)
             else:
                 index2 += 1
                 if index2 > VIE_SCOLAIRE_TO_DISPLAY:
                     continue
                 retard = EDVieScolaire(data_json)
-                if retard.justifie:
-                    response["retards"].append(retard)
+                response["retards"].append(retard)
 
     index1 = 0
     index2 = 0
@@ -811,7 +580,7 @@ def get_vie_scolaire(token, eleve, config_path):
         data["sanctionsEncouragements"].sort(key=operator.itemgetter("date"))
         data["sanctionsEncouragements"].reverse()
         for data_json in data["sanctionsEncouragements"]:
-            if data_json.type_element == "Punition":
+            if data_json["typeElement"] == "Punition":
                 index1 += 1
                 if index1 > VIE_SCOLAIRE_TO_DISPLAY:
                     continue
@@ -826,24 +595,33 @@ def get_vie_scolaire(token, eleve, config_path):
 
     return response
 
+
 def get_lessons(token, eleve, date_debut, date_fin, config_path):
     """get lessons"""
     json_resp = get_response(
         token,
         f"{APIURL}/E/{eleve.eleve_id}/emploidutemps.awp?verbe=get&v={APIVERSION}",
         f"data={{'dateDebut': '{date_debut}','dateFin': '{date_fin}','avecTrous': false}}",
+        config_path + INTEGRATION_PATH + "get_lessons.json",
     )
-    if "data" in json_resp:
-        return json_resp["data"]
-    _LOGGER.warning("get_lessons: [%s]", json_resp)
-    return None
-    
-    # f = open("config/custom_components/ecole_directe/test_lessons.json")
+    if "data" not in json_resp:
+        _LOGGER.warning("get_lessons: [%s]", json_resp)
+        return None
+    # Opening JSON file
+    # f = open(config_path + INTEGRATION_PATH + "test_lessons.json")
+    # json_resp = json.load(f)
 
-    # # returns JSON object as
-    # # a dictionary
-    # data = json.load(f)
-    # return data["data"]
+    response = []
+    data = json_resp["data"]
+    for lesson_json in data:
+        lesson = EDLesson(lesson_json)
+        if not lesson.is_annule:
+            response.append(lesson)
+    if response is not None:
+        response.sort(key=operator.itemgetter("start_date"))
+
+    return response
+
 
 def get_headers(token):
     """return headers needed from Ecole Directe API"""

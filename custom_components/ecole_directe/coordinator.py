@@ -135,7 +135,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         previous_data,
                         f"{eleve.get_fullname_lower()}_evaluations",
                         ["date", "libelle_matiere", "devoir"],
-                        "new__evaluations",
+                        "new_evaluations",
                         eleve,
                         format_evaluation,
                     )
@@ -152,27 +152,40 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         today_plus_15,
                         self.hass.config.config_dir,
                     )
-
-                    self.data[f"{eleve.get_fullname_lower()}_timetable_today"] = list(
-                        filter(lambda lesson: lesson.start_date == today, lessons)
+                    lessons_today = list(
+                        filter(
+                            lambda lesson: lesson.start_date.strftime("%Y-%m-%d")
+                            == today,
+                            lessons,
+                        )
                     )
-
+                    self.data[f"{eleve.get_fullname_lower()}_timetable_today"] = (
+                        lessons_today
+                    )
                     lessons_tomorrow = list(
-                        filter(lambda lesson: lesson.start_date == tomorrow, lessons)
+                        filter(
+                            lambda lesson: lesson.start_date.strftime("%Y-%m-%d")
+                            == tomorrow,
+                            lessons,
+                        )
                     )
                     self.data[f"{eleve.get_fullname_lower()}_timetable_tomorrow"] = (
                         lessons_tomorrow
                     )
-
-                    # self.data[f"{eleve.get_fullname_lower()}_timetable_next_day"] = (
-                    #     lessons
-                    # )
+                    lessons_next_day = get_next_day_lessons(
+                        lessons,
+                        lessons_tomorrow,
+                        datetime.datetime.strptime(tomorrow, "%Y-%m-%d"),
+                    )
+                    self.data[f"{eleve.get_fullname_lower()}_timetable_next_day"] = (
+                        lessons_next_day
+                    )
                     self.data[f"{eleve.get_fullname_lower()}_timetable_period"] = (
                         lessons
                     )
 
                 except Exception as ex:
-                    _LOGGER.warning("Error getting Lessons  from ecole directe: %s", ex)
+                    _LOGGER.warning("Error getting Lessons from ecole directe: %s", ex)
 
             if "VIE_SCOLAIRE" in eleve.modules:
                 try:
@@ -208,12 +221,12 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             format_vie_scolaire,
                         )
                     if "sanctions" in vie_scolaire:
-                        self.data[f"{eleve.get_fullname_lower()}_punishments"] = (
+                        self.data[f"{eleve.get_fullname_lower()}_sanctions"] = (
                             vie_scolaire["sanctions"]
                         )
                         self.compare_data(
                             previous_data,
-                            f"{eleve.get_fullname_lower()}_punishments",
+                            f"{eleve.get_fullname_lower()}_sanctions",
                             ["date", "type_element", "display_date"],
                             "new_punishment",
                             eleve,
@@ -325,3 +338,22 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             "data": event_data,
         }
         self.hass.bus.fire(EVENT_TYPE, event_data)
+
+
+def get_next_day_lessons(lessons, lessons_next_day, next_day):
+    """get next day lessons"""
+    if len(lessons) == 0:
+        return None
+    if lessons[-1].start_date < next_day:
+        return None
+    if len(lessons_next_day) == 0:
+        next_day = next_day + timedelta(days=1)
+        lessons_next_day = list(
+            filter(
+                lambda lesson: lesson.start_date.strftime("%Y-%m-%d")
+                == next_day.strftime("%Y-%m-%d"),
+                lessons,
+            )
+        )
+        return get_next_day_lessons(lessons, lessons_next_day, next_day)
+    return lessons_next_day

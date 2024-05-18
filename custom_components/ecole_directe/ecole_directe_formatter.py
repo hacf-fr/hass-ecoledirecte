@@ -59,45 +59,18 @@ def format_lesson(lesson, lunch_break_time) -> dict:
     """lesson format"""
     try:
         return {
-            "start_at": lesson.start_date,
-            "end_at": lesson.end_date,
+            "start_at": lesson.start_date.strftime("%Y-%m-%d"),
+            "end_at": lesson.end_date.strftime("%Y-%m-%d"),
             "start_time": lesson.start_date.strftime("%H:%M"),
             "end_time": lesson.end_date.strftime("%H:%M"),
             "lesson": lesson.text,
-            "classroom": lesson.get("salle", ""),
-            "canceled": lesson.get("isAnnule", False),
-            "status": None,
-            "background_color": lesson.get("color", ""),
-            "teacher_name": lesson.get("prof", ""),
-            "teacher_names": None,
-            "classrooms": None,
-            "outing": None,
-            "memo": None,
-            "group_name": None,
-            "group_names": None,
+            "classroom": lesson.salle,
+            "canceled": lesson.is_annule,
+            "background_color": lesson.color,
+            "teacher_name": lesson.prof,
             "exempted": lesson.dispense,
-            "virtual_classrooms": None,
-            "num": lesson.color,
-            "detention": None,
-            "test": None,
-            "is_morning": lesson.start.time() < lunch_break_time,
-            "is_afternoon": lesson.start.time() >= lunch_break_time,
-            "subject": lesson.get("matiere", ""),
-            "subject_code": lesson.get("codeMatiere", ""),
-            "course_type": lesson.get("typeCours", ""),
-            "is_mandatory": not lesson.get("dispensable", False),
-            "exemption": lesson.get("dispense", 0),
-            "class": lesson.get("classe", ""),
-            "class_id": lesson.get("classeId", 0),
-            "class_code": lesson.get("classeCode", ""),
-            "group": lesson.get("groupe", ""),
-            "group_code": lesson.get("groupeCode", ""),
-            "is_flexible": lesson.get("isFlexible", False),
-            "group_id": lesson.get("groupeId", 0),
-            "icon": lesson.get("icone", ""),
-            "is_modified": lesson.get("isModifie", False),
-            "session_content_available": lesson.get("contenuDeSeance", False),
-            "homework_due": lesson.get("devoirAFaire", False),
+            "is_morning": lesson.start_date.time() < lunch_break_time,
+            "is_afternoon": lesson.start_date.time() >= lunch_break_time,
         }
     except Exception as ex:
         _LOGGER.warning("Error: %s - format_lesson: %s", ex, lesson)
@@ -108,22 +81,14 @@ def format_evaluation(evaluation) -> dict:
     """evaluation format"""
     return {
         "name": evaluation.libelle_matiere,
-        "domain": None,
         "date": evaluation.date,
         "subject": evaluation.devoir,
-        "description": None,
-        "coefficient": None,
-        "paliers": None,
-        "teacher": None,
         "acquisitions": [
             {
-                "order": None,
                 "name": acquisition.libelle_competence,
-                "abbreviation": None,
+                "abbreviation": "",
                 "level": acquisition.valeur,
                 "domain": acquisition.descriptif,
-                "pillar": None,
-                "pillar_prefix": None,
             }
             for acquisition in evaluation.elements_programme
         ],
@@ -135,7 +100,7 @@ def format_vie_scolaire(viescolaire) -> dict:
     try:
         return {
             "date": viescolaire.date,
-            "type": viescolaire.type_element,
+            "type_element": viescolaire.type_element,
             "display_date": viescolaire.display_date,
             "justified": viescolaire.justifie,
         }

@@ -11,7 +11,9 @@ from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.components.sensor import (
     SensorEntity,
 )
-
+from homeassistant.helpers.json import (
+    json_bytes,
+)
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
@@ -26,7 +28,7 @@ from .ecole_directe_formatter import (
 
 from .ecole_directe_helper import EDEleve
 from .coordinator import EDDataUpdateCoordinator
-from .const import DEFAULT_LUNCH_BREAK_TIME, DOMAIN
+from .const import DEFAULT_LUNCH_BREAK_TIME, DOMAIN, MAX_STATE_ATTRS_BYTES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -55,7 +57,7 @@ async def async_setup_entry(
             if "EDT" in eleve.modules:
                 sensors.append(EDLessonsSensor(coordinator, eleve, "today"))
                 sensors.append(EDLessonsSensor(coordinator, eleve, "tomorrow"))
-                # sensors.append(EDLessonsSensor(coordinator, eleve, "next_day"))
+                sensors.append(EDLessonsSensor(coordinator, eleve, "next_day"))
                 sensors.append(EDLessonsSensor(coordinator, eleve, "period"))
             if "NOTES" in eleve.modules:
                 sensors.append(EDGradesSensor(coordinator, eleve))
@@ -204,6 +206,10 @@ class EDHomeworksSensor(EDGenericSensor):
                 }
             )
 
+        if is_too_big(attributes):
+            attributes = []
+            _LOGGER.warning("[%s] attributes are too big! %s", self._name, attributes)
+
         return {
             "updated_at": self.coordinator.last_update_success_time,
             "homework": attributes,
@@ -243,7 +249,6 @@ class EDLessonsSensor(EDGenericSensor):
         """Initialize the ED sensor."""
         super().__init__(coordinator, "timetable_" + suffix, eleve, "len")
         self._suffix = suffix
-        self._lessons = []
         self._start_at = None
         self._end_at = None
         self._lunch_break_start_at = None
@@ -253,57 +258,44 @@ class EDLessonsSensor(EDGenericSensor):
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
+        lessons = self.coordinator.data[self._name]
         canceled_counter = None
         single_day = self._suffix in ["today", "tomorrow", "next_day"]
         lunch_break_time = datetime.strptime(
-            self.coordinator.config_entry.options.get(
-                "lunch_break_time", DEFAULT_LUNCH_BREAK_TIME
-            ),
+            DEFAULT_LUNCH_BREAK_TIME,
             "%H:%M",
         ).time()
 
-        if (
-            f"{self._child_info.get_fullname_lower()}_timetable_" + self._suffix
-        ) in self.coordinator.data:
-            self._lessons = self.coordinator.data[
-                f"{self._child_info.get_fullname_lower()}_timetable_" + self._suffix
-            ]
-            attributes.append(self._lessons)
-        else:
-            attributes.append(
-                {
-                    "Erreur": f"{self._child_info.get_fullname_lower()}_lessons n'existe pas."
-                }
-            )
-
-        if self._lessons is not None:
+        if lessons is not None:
             self._start_at = None
             self._end_at = None
             self._lunch_break_start_at = None
             self._lunch_break_end_at = None
             canceled_counter = 0
-            for lesson in self._lessons:
-                index = self._lessons.index(lesson)
+            for lesson in lessons:
+                index = lessons.index(lesson)
+
                 if not (
-                    lesson.start == self._lessons[index - 1].start
-                    and lesson.canceled is True
+                    lesson.start_date == lessons[index - 1].start_date
+                    and lesson.is_annule
                 ):
                     attributes.append(format_lesson(lesson, lunch_break_time))
-                if lesson.canceled is False and self._start_at is None:
-                    self._start_at = lesson.start
-                if lesson.canceled is True:
+                if lesson.is_annule is False and self._start_at is None:
+                    self._start_at = lesson.start_date
+                if lesson.is_annule:
                     canceled_counter += 1
-                if single_day is True and lesson.canceled is False:
-                    self._end_at = lesson.end
-                    if lesson.end.time() < lunch_break_time:
-                        self._lunch_break_start_at = lesson.end
+                if single_day and not lesson.is_annule:
+                    self._end_at = lesson.end_date
+                    if lesson.end_date.time() < lunch_break_time:
+                        self._lunch_break_start_at = lesson.end_date
                     if (
                         self._lunch_break_end_at is None
-                        and lesson.start.time() >= lunch_break_time
+                        and lesson.start_date.time() >= lunch_break_time
                     ):
-                        self._lunch_break_end_at = lesson.start
-            self._lessons = []
-
+                        self._lunch_break_end_at = lesson.start_date
+        if is_too_big(attributes):
+            _LOGGER.warning("[%s] attributes are too big! %s", self._name, attributes)
+            attributes = []
         result = {
             "updated_at": self.coordinator.last_update_success_time,
             "lessons": attributes,
@@ -312,7 +304,7 @@ class EDLessonsSensor(EDGenericSensor):
             "day_end_at": self._end_at,
         }
 
-        if single_day is True:
+        if single_day:
             result["lunch_break_start_at"] = self._lunch_break_start_at
             result["lunch_break_end_at"] = self._lunch_break_end_at
 
@@ -432,3 +424,9 @@ class EDEncouragementsSensor(EDGenericSensor):
             "updated_at": self.coordinator.last_update_success_time,
             "sanctions": attributes,
         }
+
+
+def is_too_big(obj):
+    """calculte is_too_big"""
+    bytes_result = json_bytes(obj)
+    return len(bytes_result) > MAX_STATE_ATTRS_BYTES

@@ -1,5 +1,6 @@
 """Module to help communication with Ecole Directe API"""
 
+from datetime import datetime
 import json
 import operator
 import re
@@ -228,8 +229,8 @@ class EDLesson:
         self.matiere = data.get("matiere")
         self.code_matiere = data.get("codeMatiere")
         self.type_cours = data["typeCours"]
-        self.start_date = data["start_date"]
-        self.end_date = data["end_date"]
+        self.start_date = datetime.strptime(data["start_date"], "%Y-%m-%d %H:%M")
+        self.end_date = datetime.strptime(data["end_date"], "%Y-%m-%d %H:%M")
         self.color = data["color"]
         self.dispensable = data.get("dispensable", False)
         self.dispense = data["dispense"]
@@ -482,10 +483,8 @@ def get_homeworks(token, eleve, config_path):
                             "nbJourMaxRenduDevoir"
                         ]
                         homework["contenu"] = matiere["aFaire"]["contenu"]
-                        _LOGGER.debug("homework:%s", homework)
 
             hw = EDHomework(homework_json, key)
-            _LOGGER.debug("hw:%s", hw)
             if not hw.effectue:
                 homeworks.append(hw)
     if homeworks is not None:
@@ -547,7 +546,7 @@ def get_vie_scolaire(token, eleve, config_path):
         _LOGGER.warning("get_vie_scolaire: [%s]", json_resp)
         return None
     # Opening JSON file
-    # f = open(config_path + INTEGRATION_PATH + "test_viescolaire.json")
+    # f = open(config_path + INTEGRATION_PATH + "test_vie_scolaire.json")
     # json_resp = json.load(f)
 
     response = {}
@@ -562,20 +561,18 @@ def get_vie_scolaire(token, eleve, config_path):
         data["absencesRetards"].sort(key=operator.itemgetter("date"))
         data["absencesRetards"].reverse()
         for data_json in data["absencesRetards"]:
-            if data_json.type_element == "Absence":
+            if data_json["typeElement"] == "Absence":
                 index1 += 1
                 if index1 > VIE_SCOLAIRE_TO_DISPLAY:
                     continue
                 absence = EDVieScolaire(data_json)
-                if absence.justifie:
-                    response["absences"].append(absence)
+                response["absences"].append(absence)
             else:
                 index2 += 1
                 if index2 > VIE_SCOLAIRE_TO_DISPLAY:
                     continue
                 retard = EDVieScolaire(data_json)
-                if retard.justifie:
-                    response["retards"].append(retard)
+                response["retards"].append(retard)
 
     index1 = 0
     index2 = 0
@@ -583,7 +580,7 @@ def get_vie_scolaire(token, eleve, config_path):
         data["sanctionsEncouragements"].sort(key=operator.itemgetter("date"))
         data["sanctionsEncouragements"].reverse()
         for data_json in data["sanctionsEncouragements"]:
-            if data_json.type_element == "Punition":
+            if data_json["typeElement"] == "Punition":
                 index1 += 1
                 if index1 > VIE_SCOLAIRE_TO_DISPLAY:
                     continue

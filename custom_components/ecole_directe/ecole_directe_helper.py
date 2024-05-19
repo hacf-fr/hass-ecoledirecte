@@ -218,6 +218,7 @@ class EDVieScolaire:
         self.justifie = data.get("justifie")
         self.libelle = data.get("libelle")
         self.motif = data.get("motif")
+        self.commentaire = data.get("commentaire")
 
 
 class EDLesson:
@@ -248,6 +249,19 @@ class EDLesson:
         self.contenu_de_seance = data.get("contenuDeSeance", False)
         self.devoir_a_faire = data.get("devoirAFaire", False)
         self.is_annule = data.get("isAnnule", False)
+
+    def __getitem__(self, key):
+        return self
+
+    def __lt__(self, other):
+        return self.start_date < other
+
+    def __gt__(self, other):
+        return self.start_date > other
+
+    def __repr__(self):
+        """Allow seeing value instead of object description"""
+        return str(self.start_date.strftime("%Y-%m-%d %H:%M") + " - " + self.matiere)
 
 
 def check_ecoledirecte_session(data, config_path, hass) -> bool:

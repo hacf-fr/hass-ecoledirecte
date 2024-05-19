@@ -103,6 +103,8 @@ def format_vie_scolaire(viescolaire) -> dict:
             "type_element": viescolaire.type_element,
             "display_date": viescolaire.display_date,
             "justified": viescolaire.justifie,
+            "motif": viescolaire.motif,
+            "commentaire": viescolaire.commentaire,
         }
     except Exception as ex:
         _LOGGER.warning("Error: %s - format_viescolaire: %s", ex, viescolaire)

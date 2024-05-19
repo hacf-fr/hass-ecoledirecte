@@ -228,7 +228,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             previous_data,
                             f"{eleve.get_fullname_lower()}_sanctions",
                             ["date", "type_element", "display_date"],
-                            "new_punishment",
+                            "new_sanction",
                             eleve,
                             format_vie_scolaire,
                         )

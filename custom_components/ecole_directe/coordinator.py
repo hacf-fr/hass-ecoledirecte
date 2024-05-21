@@ -193,9 +193,9 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     self.data[f"{eleve.get_fullname_lower()}_timetable_period"] = list(
                         filter(
                             lambda lesson: lesson.start_date.strftime("%Y-%m-%d")
-                            >= current_week_begin
+                            >= current_week_begin.strftime("%Y-%m-%d")
                             and lesson.start_date.strftime("%Y-%m-%d")
-                            <= current_week_end,
+                            <= current_week_end.strftime("%Y-%m-%d"),
                             lessons,
                         )
                     )
@@ -203,9 +203,9 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         list(
                             filter(
                                 lambda lesson: lesson.start_date.strftime("%Y-%m-%d")
-                                >= next_week_begin
+                                >= next_week_begin.strftime("%Y-%m-%d")
                                 and lesson.start_date.strftime("%Y-%m-%d")
-                                <= next_week_end,
+                                <= next_week_end.strftime("%Y-%m-%d"),
                                 lessons,
                             )
                         )
@@ -214,7 +214,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         list(
                             filter(
                                 lambda lesson: lesson.start_date.strftime("%Y-%m-%d")
-                                >= after_next_week_begin,
+                                >= after_next_week_begin.strftime("%Y-%m-%d"),
                                 lessons,
                             )
                         )

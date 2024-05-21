@@ -80,15 +80,14 @@ def format_lesson(lesson, lunch_break_time) -> dict:
 def format_evaluation(evaluation) -> dict:
     """evaluation format"""
     return {
-        "name": evaluation.libelle_matiere,
+        "name": evaluation.devoir,
         "date": evaluation.date,
-        "subject": evaluation.devoir,
+        "subject": evaluation.libelle_matiere,
         "acquisitions": [
             {
                 "name": acquisition.libelle_competence,
-                "abbreviation": "",
-                "level": acquisition.valeur,
-                "domain": acquisition.descriptif,
+                "abbreviation": acquisition.valeur,
+                "level": acquisition.level,
             }
             for acquisition in evaluation.elements_programme
         ],

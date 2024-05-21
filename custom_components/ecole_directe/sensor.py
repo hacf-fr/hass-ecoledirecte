@@ -59,6 +59,8 @@ async def async_setup_entry(
                 sensors.append(EDLessonsSensor(coordinator, eleve, "tomorrow"))
                 sensors.append(EDLessonsSensor(coordinator, eleve, "next_day"))
                 sensors.append(EDLessonsSensor(coordinator, eleve, "period"))
+                sensors.append(EDLessonsSensor(coordinator, eleve, "period_1"))
+                sensors.append(EDLessonsSensor(coordinator, eleve, "period_2"))
             if "NOTES" in eleve.modules:
                 sensors.append(EDGradesSensor(coordinator, eleve))
                 sensors.append(EDEvaluationsSensor(coordinator, eleve))
@@ -422,7 +424,7 @@ class EDEncouragementsSensor(EDGenericSensor):
 
         return {
             "updated_at": self.coordinator.last_update_success_time,
-            "sanctions": attributes,
+            "encouragements": attributes,
         }
 
 

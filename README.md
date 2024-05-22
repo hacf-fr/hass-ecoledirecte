@@ -1,6 +1,6 @@
 # Integration Ecole directe pour Home Assistant
 
-![Version](https://img.shields.io/github/v/release/hacf-fr/hass-ecoledirecte?label=version) [![HACS: Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
+![Version](https://img.shields.io/github/v/release/hacf-fr/hass-ecoledirecte?label=version) [![HACS: Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs) <a href="https://www.buymeacoffee.com/giga77" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="30" width="120"></a>
 
 - [Installation](#Installation)
   - [Installation via l'interface utilisateur via HACS](#Installation-via-linterface-utilisateur-via-hacs)

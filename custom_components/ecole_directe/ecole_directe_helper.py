@@ -206,6 +206,17 @@ class EDCompetence:
         self.descriptif = data.get("descriptif")
         self.libelle_competence = data.get("libelleCompetence")
         self.valeur = data.get("valeur")
+        match self.valeur:
+            case "1":
+                self.level = "Maîtrise insuffisante"
+            case "2":
+                self.level = "Maîtrise fragile"
+            case "3":
+                self.level = "Maîtrise satisfaisante"
+            case "4":
+                self.level = "Très bonne maîtrise"
+            case _:
+                self.level = "Unknown"
 
 
 class EDVieScolaire:

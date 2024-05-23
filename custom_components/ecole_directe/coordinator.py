@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import datetime
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -70,18 +69,26 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         self.data = {}
         self.data["session"] = session
 
-        current_year = datetime.datetime.now().year
+        current_year = datetime.now().year
         if (current_year % 2) == 0:
             year_data = f"{str(current_year-1)}-{str(current_year)}"
         else:
             year_data = f"{str(current_year)}-{str(current_year + 1)}"
 
         # EDT BODY
-        today = datetime.datetime.today().strftime("%Y-%m-%d")
-        tomorrow = (datetime.datetime.today() + timedelta(days=1)).strftime("%Y-%m-%d")
-        today_plus_15 = (datetime.datetime.today() + timedelta(days=15)).strftime(
-            "%Y-%m-%d"
+        today = datetime.today().strftime("%Y-%m-%d")
+        tomorrow = (datetime.today() + timedelta(days=1)).strftime("%Y-%m-%d")
+        # today_plus_15 = (datetime.today() + timedelta(days=15)).strftime("%Y-%m-%d")
+
+        current_week_begin = datetime.today() - timedelta(
+            days=datetime.today().weekday()
         )
+        current_week_plus_21 = current_week_begin + timedelta(days=21)
+        current_week_end = current_week_begin + timedelta(days=6)
+        next_week_begin = current_week_end + timedelta(days=1)
+        next_week_end = next_week_begin + timedelta(days=6)
+        after_next_week_begin = next_week_end + timedelta(days=1)
+        # after_next_week_end = after_next_week_begin + timedelta(days=6)
 
         # if session._account_type == "1":  # famille
         #     if "MESSAGERIE" in session.modules:
@@ -148,19 +155,16 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         get_lessons,
                         session.token,
                         eleve,
-                        today,
-                        today_plus_15,
+                        current_week_begin.strftime("%Y-%m-%d"),
+                        current_week_plus_21.strftime("%Y-%m-%d"),
                         self.hass.config.config_dir,
                     )
-                    lessons_today = list(
+                    self.data[f"{eleve.get_fullname_lower()}_timetable_today"] = list(
                         filter(
                             lambda lesson: lesson.start_date.strftime("%Y-%m-%d")
                             == today,
                             lessons,
                         )
-                    )
-                    self.data[f"{eleve.get_fullname_lower()}_timetable_today"] = (
-                        lessons_today
                     )
                     lessons_tomorrow = list(
                         filter(
@@ -170,18 +174,50 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         )
                     )
                     self.data[f"{eleve.get_fullname_lower()}_timetable_tomorrow"] = (
-                        lessons_tomorrow
-                    )
-                    lessons_next_day = get_next_day_lessons(
-                        lessons,
-                        lessons_tomorrow,
-                        datetime.datetime.strptime(tomorrow, "%Y-%m-%d"),
+                        list(
+                            filter(
+                                lambda lesson: lesson.start_date.strftime("%Y-%m-%d")
+                                == tomorrow,
+                                lessons,
+                            )
+                        )
                     )
                     self.data[f"{eleve.get_fullname_lower()}_timetable_next_day"] = (
-                        lessons_next_day
+                        get_next_day_lessons(
+                            lessons,
+                            lessons_tomorrow,
+                            datetime.strptime(tomorrow, "%Y-%m-%d"),
+                        )
                     )
-                    self.data[f"{eleve.get_fullname_lower()}_timetable_period"] = (
-                        lessons
+
+                    self.data[f"{eleve.get_fullname_lower()}_timetable_period"] = list(
+                        filter(
+                            lambda lesson: lesson.start_date.strftime("%Y-%m-%d")
+                            >= current_week_begin.strftime("%Y-%m-%d")
+                            and lesson.start_date.strftime("%Y-%m-%d")
+                            <= current_week_end.strftime("%Y-%m-%d"),
+                            lessons,
+                        )
+                    )
+                    self.data[f"{eleve.get_fullname_lower()}_timetable_period_1"] = (
+                        list(
+                            filter(
+                                lambda lesson: lesson.start_date.strftime("%Y-%m-%d")
+                                >= next_week_begin.strftime("%Y-%m-%d")
+                                and lesson.start_date.strftime("%Y-%m-%d")
+                                <= next_week_end.strftime("%Y-%m-%d"),
+                                lessons,
+                            )
+                        )
+                    )
+                    self.data[f"{eleve.get_fullname_lower()}_timetable_period_2"] = (
+                        list(
+                            filter(
+                                lambda lesson: lesson.start_date.strftime("%Y-%m-%d")
+                                >= after_next_week_begin.strftime("%Y-%m-%d"),
+                                lessons,
+                            )
+                        )
                     )
 
                 except Exception as ex:

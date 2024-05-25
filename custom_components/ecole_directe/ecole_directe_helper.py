@@ -461,26 +461,31 @@ def get_messages(session, eleve, annee_scolaire, config_path):
     )
 
 
-def get_homeworks_by_date(token, eleve, date, config_path):
+def get_homeworks_by_date(token, eleve, date, config_path, idx):
     """get homeworks by date"""
+
     json_resp = get_response(
         token,
         f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte/{date}.awp?verbe=get&v={APIVERSION}",
         None,
-        config_path + INTEGRATION_PATH + "get_homeworks_by_date.json",
+        config_path + INTEGRATION_PATH + "get_homeworks_by_date_" + str(idx) + ".json",
     )
     if "data" in json_resp:
         return json_resp["data"]
     _LOGGER.warning("get_homeworks_by_date: [%s]", json_resp)
     return None
+
     # Opening JSON file
-    # f = open(config_path + INTEGRATION_PATH + "test_homeworks2.json")
+    # f = open(
+    #     config_path + INTEGRATION_PATH + "test/test_homeworks_" + str(idx) + ".json"
+    # )
     # data = json.load(f)
     # return data["data"]
 
 
 def get_homeworks(token, eleve, config_path):
     """get homeworks"""
+
     json_resp = get_response(
         token,
         f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte.awp?verbe=get&v={APIVERSION}",
@@ -490,16 +495,17 @@ def get_homeworks(token, eleve, config_path):
     if "data" not in json_resp:
         _LOGGER.warning("get_homeworks: [%s]", json_resp)
         return None
+
     # Opening JSON file
-    # f = open(config_path + INTEGRATION_PATH + "test_homeworks.json")
+    # f = open(config_path + INTEGRATION_PATH + "test/test_homeworks.json")
     # json_resp = json.load(f)
 
     data = json_resp["data"]
     homeworks = []
     for key in data.keys():
-        for homework_json in data[key]:
+        for idx, homework_json in enumerate(data[key]):
             homeworks_by_date_json = get_homeworks_by_date(
-                token, eleve, key, config_path
+                token, eleve, key, config_path, idx
             )
             for matiere in homeworks_by_date_json["matieres"]:
                 for homework in data[key]:
@@ -531,7 +537,7 @@ def get_grades_evaluations(token, eleve, annee_scolaire, config_path):
         return None
 
     # Opening JSON file
-    # f = open(config_path + INTEGRATION_PATH + "test_grades.json")
+    # f = open(config_path + INTEGRATION_PATH + "test/test_grades.json")
     # json_resp = json.load(f)
 
     response = {}
@@ -571,7 +577,7 @@ def get_vie_scolaire(token, eleve, config_path):
         _LOGGER.warning("get_vie_scolaire: [%s]", json_resp)
         return None
     # Opening JSON file
-    # f = open(config_path + INTEGRATION_PATH + "test_vie_scolaire.json")
+    # f = open(config_path + INTEGRATION_PATH + "test/test_vie_scolaire.json")
     # json_resp = json.load(f)
 
     response = {}
@@ -633,7 +639,7 @@ def get_lessons(token, eleve, date_debut, date_fin, config_path):
         _LOGGER.warning("get_lessons: [%s]", json_resp)
         return None
     # Opening JSON file
-    # f = open(config_path + INTEGRATION_PATH + "test_lessons.json")
+    # f = open(config_path + INTEGRATION_PATH + "test/test_lessons.json")
     # json_resp = json.load(f)
 
     response = []

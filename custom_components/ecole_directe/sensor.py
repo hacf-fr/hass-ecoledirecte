@@ -198,7 +198,14 @@ class EDHomeworksSensor(EDGenericSensor):
             for homework in homeworks:
                 if not homework.effectue:
                     todo_counter += 1
-                    attributes.append(format_homework(homework))
+                    attributes.append(
+                        format_homework(
+                            homework,
+                            self.coordinator.config_entry.options.get(
+                                "decode_html", False
+                            ),
+                        )
+                    )
             if attributes is not None:
                 attributes.sort(key=operator.itemgetter("date"))
         else:

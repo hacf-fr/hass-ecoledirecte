@@ -2,19 +2,26 @@
 
 import base64
 import logging
+import re
+
+# as per recommendation from @freylis, compile once only
+CLEANR = re.compile("<.*?>")
 
 from .const import HOMEWORK_DESC_MAX_LENGTH
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def format_homework(homework):
+def format_homework(homework, clean_content):
     """format homework"""
     try:
         if homework.contenu is not None:
             contenu = base64.b64decode(homework.contenu).decode("utf-8")
         else:
             contenu = ""
+        if clean_content:
+            contenu = clean_html(contenu)
+        _LOGGER.debug("contenu: %s", contenu)
         return {
             "date": homework.pour_le,
             "subject": homework.matiere,
@@ -28,6 +35,12 @@ def format_homework(homework):
     except Exception as ex:
         _LOGGER.warning("Error: %s - format_homework: %s", ex, homework)
         return {}
+
+
+def clean_html(raw_html):
+    """clean html"""
+    cleantext = re.sub(CLEANR, "", raw_html)
+    return cleantext
 
 
 def format_grade(grade) -> dict:

@@ -130,6 +130,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                             "refresh_interval", DEFAULT_REFRESH_INTERVAL
                         ),
                     ): int,
+                    vol.Optional(
+                        "decode_html",
+                        default=self.config_entry.options.get("decode_html", False),
+                    ): bool,
                 }
             ),
         )

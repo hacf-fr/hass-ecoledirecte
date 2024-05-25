@@ -27,7 +27,8 @@
             "init": {
                 "description": "Personnalisez le fonctionnement de l'intégration",
                 "data": {
-                    "refresh_interval": "Intervale de mise à jour des données (en minutes)"
+                    "refresh_interval": "Intervale de mise à jour des données (en minutes)",
+                    "decode_html": "Decode HTML pour les devoirs - Attention cela va supprimer tout le HTML (style, liens, iFrame, etc.)"
                 }
             }
         }

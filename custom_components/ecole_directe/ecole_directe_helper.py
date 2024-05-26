@@ -161,9 +161,9 @@ class EDHomework:
     def __init__(self, data, pour_le):
         self.matiere = data.get("matiere")
         self.pour_le = pour_le
-        self.effectue = data.get("effectue")
-        self.interrogation = data.get("interrogation")
-        self.contenu = data.get("contenu")
+        self.effectue = data["aFaire"].get("effectue")
+        self.interrogation = data["aFaire"].get("interrogation")
+        self.contenu = data["aFaire"].get("contenu")
 
     def __getitem__(self, key):
         return self
@@ -476,9 +476,7 @@ def get_homeworks_by_date(token, eleve, date, config_path, idx):
     return None
 
     # Opening JSON file
-    # f = open(
-    #     config_path + INTEGRATION_PATH + "test/test_homeworks_" + str(idx) + ".json"
-    # )
+    # f = open(config_path + INTEGRATION_PATH + "test/test_homeworks_" + date + ".json")
     # data = json.load(f)
     # return data["data"]
 
@@ -508,16 +506,10 @@ def get_homeworks(token, eleve, config_path):
                 token, eleve, key, config_path, idx
             )
             for matiere in homeworks_by_date_json["matieres"]:
-                for homework in data[key]:
-                    if matiere["id"] == homework["idDevoir"]:
-                        homework["nbJourMaxRenduDevoir"] = matiere[
-                            "nbJourMaxRenduDevoir"
-                        ]
-                        homework["contenu"] = matiere["aFaire"]["contenu"]
-
-            hw = EDHomework(homework_json, key)
-            if not hw.effectue:
-                homeworks.append(hw)
+                if matiere["aFaire"]["effectue"] is False:
+                    if matiere["id"] == homework_json["idDevoir"]:
+                        hw = EDHomework(matiere, key)
+                        homeworks.append(hw)
     if homeworks is not None:
         homeworks.sort(key=operator.itemgetter("pourLe"))
 

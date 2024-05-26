@@ -21,7 +21,6 @@ def format_homework(homework, clean_content):
             contenu = ""
         if clean_content:
             contenu = clean_html(contenu)
-        _LOGGER.debug("contenu: %s", contenu)
         return {
             "date": homework.pour_le,
             "subject": homework.matiere,

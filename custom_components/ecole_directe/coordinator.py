@@ -11,12 +11,6 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordinator
 
-from .ecole_directe_formatter import (
-    format_evaluation,
-    format_grade,
-    format_vie_scolaire,
-)
-
 from .ecole_directe_helper import (
     EDEleve,
     get_ecoledirecte_session,
@@ -78,8 +72,6 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         # EDT BODY
         today = datetime.today().strftime("%Y-%m-%d")
         tomorrow = (datetime.today() + timedelta(days=1)).strftime("%Y-%m-%d")
-        # today_plus_15 = (datetime.today() + timedelta(days=15)).strftime("%Y-%m-%d")
-
         current_week_begin = datetime.today() - timedelta(
             days=datetime.today().weekday()
         )
@@ -88,7 +80,6 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         next_week_begin = current_week_end + timedelta(days=1)
         next_week_end = next_week_begin + timedelta(days=6)
         after_next_week_begin = next_week_end + timedelta(days=1)
-        # after_next_week_end = after_next_week_begin + timedelta(days=6)
 
         # if session._account_type == "1":  # famille
         #     if "MESSAGERIE" in session.modules:
@@ -107,7 +98,11 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     self.data[
                         f"{eleve.get_fullname_lower()}_homework"
                     ] = await self.hass.async_add_executor_job(
-                        get_homeworks, session.token, eleve, self.hass.config.config_dir
+                        get_homeworks,
+                        session.token,
+                        eleve,
+                        self.hass.config.config_dir,
+                        self.config_entry.options.get("decode_html", False),
                     )
                 except Exception as ex:
                     _LOGGER.warning(
@@ -123,16 +118,17 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         self.hass.config.config_dir,
                     )
 
+                    _LOGGER.debug("grades_evaluations: %s", grades_evaluations)
+
                     self.data[f"{eleve.get_fullname_lower()}_grades"] = (
                         grades_evaluations["grades"]
                     )
                     self.compare_data(
                         previous_data,
                         f"{eleve.get_fullname_lower()}_grades",
-                        ["date", "libelle_matiere", "devoir"],
+                        ["date", "subject", "comment"],
                         "new_grade",
                         eleve,
-                        format_grade,
                     )
 
                     self.data[f"{eleve.get_fullname_lower()}_evaluations"] = (
@@ -141,10 +137,9 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     self.compare_data(
                         previous_data,
                         f"{eleve.get_fullname_lower()}_evaluations",
-                        ["date", "libelle_matiere", "devoir"],
+                        ["date", "subject", "comment"],
                         "new_evaluations",
                         eleve,
-                        format_evaluation,
                     )
                 except Exception as ex:
                     _LOGGER.warning("Error getting grades from ecole directe: %s", ex)
@@ -161,23 +156,20 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     )
                     self.data[f"{eleve.get_fullname_lower()}_timetable_today"] = list(
                         filter(
-                            lambda lesson: lesson.start_date.strftime("%Y-%m-%d")
-                            == today,
+                            lambda lesson: lesson["start_at"] == today,
                             lessons,
                         )
                     )
                     lessons_tomorrow = list(
                         filter(
-                            lambda lesson: lesson.start_date.strftime("%Y-%m-%d")
-                            == tomorrow,
+                            lambda lesson: lesson["start_at"] == tomorrow,
                             lessons,
                         )
                     )
                     self.data[f"{eleve.get_fullname_lower()}_timetable_tomorrow"] = (
                         list(
                             filter(
-                                lambda lesson: lesson.start_date.strftime("%Y-%m-%d")
-                                == tomorrow,
+                                lambda lesson: lesson["start_at"] == tomorrow,
                                 lessons,
                             )
                         )
@@ -189,23 +181,26 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             datetime.strptime(tomorrow, "%Y-%m-%d"),
                         )
                     )
-
                     self.data[f"{eleve.get_fullname_lower()}_timetable_period"] = list(
                         filter(
-                            lambda lesson: lesson.start_date.strftime("%Y-%m-%d")
-                            >= current_week_begin.strftime("%Y-%m-%d")
-                            and lesson.start_date.strftime("%Y-%m-%d")
-                            <= current_week_end.strftime("%Y-%m-%d"),
+                            lambda lesson: datetime.strptime(
+                                lesson["start_at"], "%Y-%m-%d"
+                            )
+                            >= current_week_begin
+                            and datetime.strptime(lesson["start_at"], "%Y-%m-%d")
+                            <= current_week_end,
                             lessons,
                         )
                     )
                     self.data[f"{eleve.get_fullname_lower()}_timetable_period_1"] = (
                         list(
                             filter(
-                                lambda lesson: lesson.start_date.strftime("%Y-%m-%d")
-                                >= next_week_begin.strftime("%Y-%m-%d")
-                                and lesson.start_date.strftime("%Y-%m-%d")
-                                <= next_week_end.strftime("%Y-%m-%d"),
+                                lambda lesson: datetime.strptime(
+                                    lesson["start_at"], "%Y-%m-%d"
+                                )
+                                >= next_week_begin
+                                and datetime.strptime(lesson["start_at"], "%Y-%m-%d")
+                                <= next_week_end,
                                 lessons,
                             )
                         )
@@ -213,8 +208,10 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     self.data[f"{eleve.get_fullname_lower()}_timetable_period_2"] = (
                         list(
                             filter(
-                                lambda lesson: lesson.start_date.strftime("%Y-%m-%d")
-                                >= after_next_week_begin.strftime("%Y-%m-%d"),
+                                lambda lesson: datetime.strptime(
+                                    lesson["start_at"], "%Y-%m-%d"
+                                )
+                                >= after_next_week_begin,
                                 lessons,
                             )
                         )
@@ -242,7 +239,6 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             ["date", "type_element", "display_date"],
                             "new_absence",
                             eleve,
-                            format_vie_scolaire,
                         )
                     if "retards" in vie_scolaire:
                         self.data[f"{eleve.get_fullname_lower()}_retards"] = (
@@ -254,7 +250,6 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             ["date", "type_element", "display_date"],
                             "new_retard",
                             eleve,
-                            format_vie_scolaire,
                         )
                     if "sanctions" in vie_scolaire:
                         self.data[f"{eleve.get_fullname_lower()}_sanctions"] = (
@@ -266,7 +261,6 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             ["date", "type_element", "display_date"],
                             "new_sanction",
                             eleve,
-                            format_vie_scolaire,
                         )
                     if "encouragements" in vie_scolaire:
                         self.data[f"{eleve.get_fullname_lower()}_encouragements"] = (
@@ -278,7 +272,6 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             ["date", "type_element", "display_date"],
                             "new_encouragement",
                             eleve,
-                            format_vie_scolaire,
                         )
                 except Exception as ex:
                     _LOGGER.warning(
@@ -294,36 +287,6 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             #     except Exception as ex:
             #         _LOGGER.warning("Error getting messages from ecole directe: %s", ex)
 
-            # fake event new_grade
-            # grade = EDGrade(
-            #     data={
-            #         "codeMatiere": "FRANC",
-            #         "codePeriode": "A001",
-            #         "codeSousMatiere": "",
-            #         "coef": "1",
-            #         "commentaire": "",
-            #         "date": "2023-09-23",
-            #         "dateSaisie": "2023-10-04",
-            #         "devoir": "Rédaction : randonnée de début d'année",
-            #         "enLettre": False,
-            #         "id": 8388851,
-            #         "libelleMatiere": "FRANCAIS",
-            #         "moyenneClasse": "12.61",
-            #         "nonSignificatif": False,
-            #         "noteSur": "20",
-            #         "typeDevoir": "ECRIT",
-            #         "uncCorrige": "",
-            #         "uncSujet": "",
-            #         "valeur": "14,5",
-            #         "valeurisee": False,
-            #     }
-            # )
-            # self.trigger_event(
-            #     "new_grade",
-            #     eleve,
-            #     format_grade(grade),
-            # )
-
         return self.data
 
     def compare_data(
@@ -333,7 +296,6 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         compare_keys,
         event_type,
         eleve: EDEleve,
-        format_func,
     ):
         """Compare data from previous session"""
 
@@ -347,15 +309,15 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 for item in self.data[data_key]:
                     found = False
                     for previous_item in previous_data[data_key]:
-                        if {
-                            key: format_func(previous_item)[key] for key in compare_keys
-                        } == {key: format_func(item)[key] for key in compare_keys}:
+                        if {key: previous_item[key] for key in compare_keys} == {
+                            key: item[key] for key in compare_keys
+                        }:
                             found = True
                             break
                     if found is False:
                         not_found_items.append(item)
                 for not_found_item in not_found_items:
-                    self.trigger_event(event_type, eleve, format_func(not_found_item))
+                    self.trigger_event(event_type, eleve, not_found_item)
         except Exception as ex:
             _LOGGER.warning(
                 "Error comparing data: self[%s] previous_data[%s] data_key[%s] ex[%s]",
@@ -380,14 +342,13 @@ def get_next_day_lessons(lessons, lessons_next_day, next_day):
     """get next day lessons"""
     if len(lessons) == 0:
         return None
-    if lessons[-1].start_date < next_day:
+    if datetime.strptime(lessons[-1]["start_at"], "%Y-%m-%d") < next_day:
         return None
     if len(lessons_next_day) == 0:
         next_day = next_day + timedelta(days=1)
         lessons_next_day = list(
             filter(
-                lambda lesson: lesson.start_date.strftime("%Y-%m-%d")
-                == next_day.strftime("%Y-%m-%d"),
+                lambda lesson: lesson["start_at"] == next_day.strftime("%Y-%m-%d"),
                 lessons,
             )
         )

@@ -18,14 +18,6 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
 
-from .ecole_directe_formatter import (
-    format_evaluation,
-    format_grade,
-    format_homework,
-    format_vie_scolaire,
-    format_lesson,
-)
-
 from .ecole_directe_helper import EDEleve
 from .coordinator import EDDataUpdateCoordinator
 from .const import DEFAULT_LUNCH_BREAK_TIME, DOMAIN, MAX_STATE_ATTRS_BYTES
@@ -196,16 +188,9 @@ class EDHomeworksSensor(EDGenericSensor):
                 f"{self._child_info.get_fullname_lower()}_homework"
             ]
             for homework in homeworks:
-                if not homework.effectue:
+                if not homework["done"]:
                     todo_counter += 1
-                    attributes.append(
-                        format_homework(
-                            homework,
-                            self.coordinator.config_entry.options.get(
-                                "decode_html", False
-                            ),
-                        )
-                    )
+                    attributes.append(homework)
             if attributes is not None:
                 attributes.sort(key=operator.itemgetter("date"))
         else:
@@ -241,7 +226,7 @@ class EDGradesSensor(EDGenericSensor):
             f"{self._child_info.get_fullname_lower()}_grades"
         ]
         for grade in grades:
-            attributes.append(format_grade(grade))
+            attributes.append(grade)
 
         return {
             "updated_at": self.coordinator.last_update_success_time,
@@ -285,23 +270,27 @@ class EDLessonsSensor(EDGenericSensor):
                 index = lessons.index(lesson)
 
                 if not (
-                    lesson.start_date == lessons[index - 1].start_date
-                    and lesson.is_annule
+                    lesson["start_at"] == lessons[index - 1]["start_at"]
+                    and lesson["canceled"]
                 ):
-                    attributes.append(format_lesson(lesson, lunch_break_time))
-                if lesson.is_annule is False and self._start_at is None:
-                    self._start_at = lesson.start_date
-                if lesson.is_annule:
+                    attributes.append(lesson)
+                if lesson["canceled"] is False and self._start_at is None:
+                    self._start_at = lesson["start_at"]
+                if lesson["canceled"]:
                     canceled_counter += 1
-                if single_day and not lesson.is_annule:
-                    self._end_at = lesson.end_date
-                    if lesson.end_date.time() < lunch_break_time:
-                        self._lunch_break_start_at = lesson.end_date
+                if single_day and not lesson["canceled"]:
+                    self._end_at = lesson["end_at"]
+                    if (
+                        datetime.strptime(lesson["end_time"], "%H:%M").time()
+                        < lunch_break_time
+                    ):
+                        self._lunch_break_start_at = lesson["end_at"]
                     if (
                         self._lunch_break_end_at is None
-                        and lesson.start_date.time() >= lunch_break_time
+                        and datetime.strptime(lesson["start_time"], "%H:%M").time()
+                        >= lunch_break_time
                     ):
-                        self._lunch_break_end_at = lesson.start_date
+                        self._lunch_break_end_at = lesson["start_at"]
         if is_too_big(attributes):
             _LOGGER.warning("[%s] attributes are too big! %s", self._name, attributes)
             attributes = []
@@ -335,7 +324,7 @@ class EDEvaluationsSensor(EDGenericSensor):
             f"{self._child_info.get_fullname_lower()}_evaluations"
         ]
         for evaluation in evaluations:
-            attributes.append(format_evaluation(evaluation))
+            attributes.append(evaluation)
 
         return {
             "updated_at": self.coordinator.last_update_success_time,
@@ -358,7 +347,7 @@ class EDAbsencesSensor(EDGenericSensor):
             f"{self._child_info.get_fullname_lower()}_absences"
         ]
         for absence in absences:
-            attributes.append(format_vie_scolaire(absence))
+            attributes.append(absence)
 
         return {
             "updated_at": self.coordinator.last_update_success_time,
@@ -381,7 +370,7 @@ class EDRetardsSensor(EDGenericSensor):
             f"{self._child_info.get_fullname_lower()}_retards"
         ]
         for retard in retards:
-            attributes.append(format_vie_scolaire(retard))
+            attributes.append(retard)
 
         return {
             "updated_at": self.coordinator.last_update_success_time,
@@ -404,7 +393,7 @@ class EDSanctionsSensor(EDGenericSensor):
             f"{self._child_info.get_fullname_lower()}_sanctions"
         ]
         for sanction in sanctions:
-            attributes.append(format_vie_scolaire(sanction))
+            attributes.append(sanction)
 
         return {
             "updated_at": self.coordinator.last_update_success_time,
@@ -427,7 +416,7 @@ class EDEncouragementsSensor(EDGenericSensor):
             f"{self._child_info.get_fullname_lower()}_encouragements"
         ]
         for encouragement in encouragements:
-            attributes.append(format_vie_scolaire(encouragement))
+            attributes.append(encouragement)
 
         return {
             "updated_at": self.coordinator.last_update_success_time,

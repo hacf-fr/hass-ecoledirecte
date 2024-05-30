@@ -118,8 +118,6 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         self.hass.config.config_dir,
                     )
 
-                    _LOGGER.debug("grades_evaluations: %s", grades_evaluations)
-
                     self.data[f"{eleve.get_fullname_lower()}_grades"] = (
                         grades_evaluations["grades"]
                     )
@@ -137,7 +135,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     self.compare_data(
                         previous_data,
                         f"{eleve.get_fullname_lower()}_evaluations",
-                        ["date", "subject", "comment"],
+                        ["date", "subject", "name"],
                         "new_evaluations",
                         eleve,
                     )

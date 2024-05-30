@@ -403,10 +403,9 @@ def get_homeworks(token, eleve, config_path, decode_html):
 
 def get_homework(data, pour_le, clean_content):
     """get homework information"""
-    if "aFaire" not in data:
-        raise ValueError()
-    if "contenu" in data:
-        contenu = base64.b64decode(data["contenu"]).decode("utf-8")
+
+    if "contenu" in data["aFaire"]:
+        contenu = base64.b64decode(data["aFaire"]["contenu"]).decode("utf-8")
     else:
         contenu = ""
     if clean_content:

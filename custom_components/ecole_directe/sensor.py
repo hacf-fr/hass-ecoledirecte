@@ -42,6 +42,9 @@ async def async_setup_entry(
         and "session" in coordinator.data
         and coordinator.data["session"].eleves is not None
     ):
+        if "EDFORMS" in coordinator.data["session"].modules:
+            sensors.append(EDFormulairesSensor(coordinator))
+
         for eleve in coordinator.data["session"].eleves:
             sensors.append(EDChildSensor(coordinator, eleve))
             if "CAHIER_DE_TEXTES" in eleve.modules:
@@ -77,14 +80,21 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
         device_class: str = None,
     ) -> None:
         """Initialize the ED sensor."""
+
         super().__init__(coordinator)
 
         identifiant = self.coordinator.data["session"].identifiant
 
         if name == "":
-            self._name = eleve.get_fullname_lower()
+            if eleve is None:
+                self._name = identifiant
+            else:
+                self._name = eleve.get_fullname_lower()
         else:
-            self._name = f"{eleve.get_fullname_lower()}_{name}"
+            if eleve is None:
+                self._name = name
+            else:
+                self._name = f"{eleve.get_fullname_lower()}_{name}"
         self._state = state
         self._child_info = eleve
         self._attr_unique_id = f"ed_{identifiant}_{self._name}"
@@ -421,6 +431,27 @@ class EDEncouragementsSensor(EDGenericSensor):
         return {
             "updated_at": self.coordinator.last_update_success_time,
             "encouragements": attributes,
+        }
+
+
+class EDFormulairesSensor(EDGenericSensor):
+    """Representation of a ED sensor."""
+
+    def __init__(self, coordinator: EDDataUpdateCoordinator) -> None:
+        """Initialize the ED sensor."""
+        super().__init__(coordinator, "formulaires", None, "len")
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = []
+        forms = self.coordinator.data["formulaires"]
+        for form in forms:
+            attributes.append(form)
+
+        return {
+            "updated_at": self.coordinator.last_update_success_time,
+            "formulaires": attributes,
         }
 
 

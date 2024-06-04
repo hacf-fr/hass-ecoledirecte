@@ -710,19 +710,6 @@ def get_lesson(data, lunch_break_time):
     }
 
 
-def get_day_start_at(lessons):
-    """day_start_at"""
-    day_start_at = None
-
-    if lessons is not None:
-        for lesson in lessons:
-            if not lesson.canceled:
-                day_start_at = lesson.start
-                break
-
-    return day_start_at
-
-
 def get_sondages(token, config_path):
     """Get sondages"""
 
@@ -740,9 +727,27 @@ def get_formulaires(token, account_type, id_entity, config_path):
     payload = (
         'data={"typeEntity": "' + account_type + '","idEntity":' + str(id_entity) + "}"
     )
-    return get_response(
+    json_resp = get_response(
         token,
         f"{APIURL}/edforms.awp?verbe=list&v={APIVERSION}",
         payload,
         config_path + INTEGRATION_PATH + "get_formulaires.json",
     )
+    if "data" not in json_resp:
+        _LOGGER.warning("get_formulaires: [%s]", json_resp)
+        return None
+
+    response = []
+    data = json_resp["data"]
+    for form_json in data:
+        response.append(get_formulaire(form_json))
+
+    return response
+
+
+def get_formulaire(data):
+    """Get formulaire"""
+    return {
+        "titre": data["titre"],
+        "created": data["created"],
+    }

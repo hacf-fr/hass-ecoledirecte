@@ -14,9 +14,11 @@ from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordina
 from .ecole_directe_helper import (
     EDEleve,
     get_ecoledirecte_session,
+    get_formulaires,
     get_homeworks,
     get_lessons,
     get_grades_evaluations,
+    get_messages,
     get_vie_scolaire,
 )
 
@@ -81,16 +83,43 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         next_week_end = next_week_begin + timedelta(days=6)
         after_next_week_begin = next_week_end + timedelta(days=1)
 
-        # if session._account_type == "1":  # famille
-        #     if "MESSAGERIE" in session.modules:
-        #         try:
-        #             self.data["messages"] = await self.hass.async_add_executor_job(
-        #                 get_messages, session, None, year_data
-        #             )
-        #         except Exception as ex:
-        #             _LOGGER.warning(
-        #                 "Error getting messages for family from ecole directe: %s", ex
-        #             )
+        if session._account_type == "1":  # famille
+            #     if "MESSAGERIE" in session.modules:
+            #         try:
+            #             self.data["messages"] = await self.hass.async_add_executor_job(
+            #                 get_messages,
+            #                 session.token,
+            #                 session.id,
+            #                 None,
+            #                 year_data,
+            #                 self.hass.config.config_dir,
+            #             )
+
+            #         except Exception as ex:
+            #             _LOGGER.warning(
+            #                 "Error getting messages for family from ecole directe: %s", ex
+            #             )
+
+            if "EDFORMS" in session.modules:
+                try:
+                    self.data["formulaires"] = await self.hass.async_add_executor_job(
+                        get_formulaires,
+                        session.token,
+                        session._account_type,
+                        session.id,
+                        self.hass.config.config_dir,
+                    )
+                    self.compare_data(
+                        previous_data,
+                        "formulaires",
+                        ["date", "subject"],
+                        "new_formulaires",
+                        None,
+                    )
+                except Exception as ex:
+                    _LOGGER.warning(
+                        "Error getting formulaires from ecole directe: %s", ex
+                    )
 
         for eleve in session.eleves:
             if "CAHIER_DE_TEXTES" in eleve.modules:
@@ -328,8 +357,13 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
     def trigger_event(self, event_type, eleve: EDEleve, event_data):
         """Trigger an event if there is new data"""
 
+        if eleve is None:
+            name = ""
+        else:
+            name = eleve.get_fullname()
+
         event_data = {
-            "child_name": eleve.get_fullname(),
+            "child_name": name,
             "type": event_type,
             "data": event_data,
         }

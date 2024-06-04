@@ -14,12 +14,41 @@ from .const import (
     EVENT_TYPE,
     GRADES_TO_DISPLAY,
     INTEGRATION_PATH,
+    DEFAULT_LUNCH_BREAK_TIME,
+    HOMEWORK_DESC_MAX_LENGTH,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 APIURL = "https://api.ecoledirecte.com/v3"
-APIVERSION = "4.56.0"
+APIVERSION = "4.57.1"
+
+# as per recommendation from @freylis, compile once only
+CLEANR = re.compile("<.*?>")
+
+
+def get_headers(token):
+    """return headers needed from Ecole Directe API"""
+    headers = {
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-language": "fr,fr-FR;q=0.8,en-US;q=0.5,en;q=0.3",
+        "Connection": "keep-alive",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "DNT": "1",
+        "Host": "api.ecoledirecte.com",
+        "Origin": "https://www.ecoledirecte.com",
+        "Referer": "https://www.ecoledirecte.com/",
+        "Sec-fetch-dest": "empty",
+        "Sec-fetch-mode": "cors",
+        "Sec-fetch-site": "same-site",
+        "Sec-GPC": "1",
+        "User-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0",
+    }
+    if token is not None:
+        headers["X-Token"] = token
+
+    return headers
 
 
 def get_response(token, url, payload, file_path):
@@ -153,126 +182,6 @@ class EDEleve:
     def get_fullname(self) -> str | None:
         """Student fullname"""
         return f"{self.eleve_firstname} {self.eleve_lastname}"
-
-
-class EDHomework:
-    """Homework information"""
-
-    def __init__(self, data, pour_le):
-        self.matiere = data.get("matiere")
-        self.pour_le = pour_le
-        self.effectue = data.get("effectue")
-        self.interrogation = data.get("interrogation")
-        self.contenu = data.get("contenu")
-
-    def __getitem__(self, key):
-        return self
-
-    def __lt__(self, other):
-        return self.pour_le < other
-
-    def __gt__(self, other):
-        return self.pour_le > other
-
-    def __repr__(self):
-        """Allow seeing value instead of object description"""
-        return str(self.pour_le + " - " + self.matiere)
-
-
-class EDGrade:
-    """Grade information"""
-
-    def __init__(self, data):
-        self.devoir = data.get("devoir")
-        self.libelle_matiere = data.get("libelleMatiere")
-        self.coef = data.get("coef")
-        self.note_sur = data.get("noteSur")
-        self.valeur = data.get("valeur")
-        self.date = data.get("date")
-        self.date_saisie = data.get("dateSaisie")
-        self.moyenne_classe = data.get("moyenneClasse")
-        self.min_classe = data.get("minClasse")
-        self.max_classe = data.get("maxClasse")
-        self.elements_programme = []
-        if "elementsProgramme" in data:
-            for element in data["elementsProgramme"]:
-                self.elements_programme.append(EDCompetence(element))
-
-
-class EDCompetence:
-    """Evaluation information"""
-
-    def __init__(self, data):
-        self.descriptif = data.get("descriptif")
-        self.libelle_competence = data.get("libelleCompetence")
-        self.valeur = data.get("valeur")
-        match self.valeur:
-            case "1":
-                self.level = "Maîtrise insuffisante"
-            case "2":
-                self.level = "Maîtrise fragile"
-            case "3":
-                self.level = "Maîtrise satisfaisante"
-            case "4":
-                self.level = "Très bonne maîtrise"
-            case _:
-                self.level = "Unknown"
-
-
-class EDVieScolaire:
-    """Vie scolaire information"""
-
-    def __init__(self, data):
-        self.type_element = data.get("typeElement")
-        self.date = data.get("date")
-        self.display_date = data.get("displayDate")
-        self.justifie = data.get("justifie")
-        self.libelle = data.get("libelle")
-        self.motif = data.get("motif")
-        self.commentaire = data.get("commentaire")
-
-
-class EDLesson:
-    """Lesson information"""
-
-    def __init__(self, data):
-        self.id = data.get("id")
-        self.text = data.get("text")
-        self.matiere = data.get("matiere")
-        self.code_matiere = data.get("codeMatiere")
-        self.type_cours = data["typeCours"]
-        self.start_date = datetime.strptime(data["start_date"], "%Y-%m-%d %H:%M")
-        self.end_date = datetime.strptime(data["end_date"], "%Y-%m-%d %H:%M")
-        self.color = data["color"]
-        self.dispensable = data.get("dispensable", False)
-        self.dispense = data["dispense"]
-        self.prof = data["prof"]
-        self.salle = data["salle"]
-        self.classe = data["classe"]
-        self.classe_id = data["classeId"]
-        self.classe_code = data["classeCode"]
-        self.groupe = data["groupe"]
-        self.groupe_code = data["groupeCode"]
-        self.groupe_id = data["groupeId"]
-        self.icone = data["icone"]
-        self.is_flexible = data.get("isFlexible", False)
-        self.is_modifie = data.get("isModifie", False)
-        self.contenu_de_seance = data.get("contenuDeSeance", False)
-        self.devoir_a_faire = data.get("devoirAFaire", False)
-        self.is_annule = data.get("isAnnule", False)
-
-    def __getitem__(self, key):
-        return self
-
-    def __lt__(self, other):
-        return self.start_date < other
-
-    def __gt__(self, other):
-        return self.start_date > other
-
-    def __repr__(self):
-        """Allow seeing value instead of object description"""
-        return str(self.start_date.strftime("%Y-%m-%d %H:%M") + " - " + self.matiere)
 
 
 def check_ecoledirecte_session(data, config_path, hass) -> bool:
@@ -441,46 +350,49 @@ def post_qcm_connexion(token, proposition, config_path):
     return None
 
 
-def get_messages(session, eleve, annee_scolaire, config_path):
+def get_messages(token, id, eleve, annee_scolaire, config_path):
     """Get messages from Ecole Directe"""
     payload = (
         'data={"anneeMessages":"' + urllib.parse.quote(annee_scolaire, safe="") + '"}'
     )
     if eleve is None:
         return get_response(
-            session,
-            f"{APIURL}/familles/{session.id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
+            token,
+            f"{APIURL}/familles/{id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
             payload,
             config_path + INTEGRATION_PATH + "get_messages_famille.json",
         )
     return get_response(
-        session,
+        token,
         f"{APIURL}/eleves/{eleve.eleve_id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
         payload,
         config_path + INTEGRATION_PATH + "get_messages_eleve.json",
     )
 
 
-def get_homeworks_by_date(token, eleve, date, config_path):
+def get_homeworks_by_date(token, eleve, date, config_path, idx):
     """get homeworks by date"""
+
     json_resp = get_response(
         token,
         f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte/{date}.awp?verbe=get&v={APIVERSION}",
         None,
-        config_path + INTEGRATION_PATH + "get_homeworks_by_date.json",
+        config_path + INTEGRATION_PATH + "get_homeworks_by_date_" + str(idx) + ".json",
     )
     if "data" in json_resp:
         return json_resp["data"]
     _LOGGER.warning("get_homeworks_by_date: [%s]", json_resp)
     return None
+
     # Opening JSON file
-    # f = open(config_path + INTEGRATION_PATH + "test_homeworks2.json")
+    # f = open(config_path + INTEGRATION_PATH + "test/test_homeworks_" + date + ".json")
     # data = json.load(f)
     # return data["data"]
 
 
-def get_homeworks(token, eleve, config_path):
+def get_homeworks(token, eleve, config_path, decode_html):
     """get homeworks"""
+
     json_resp = get_response(
         token,
         f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte.awp?verbe=get&v={APIVERSION}",
@@ -490,36 +402,59 @@ def get_homeworks(token, eleve, config_path):
     if "data" not in json_resp:
         _LOGGER.warning("get_homeworks: [%s]", json_resp)
         return None
+
     # Opening JSON file
-    # f = open(config_path + INTEGRATION_PATH + "test_homeworks.json")
+    # f = open(config_path + INTEGRATION_PATH + "test/test_homeworks.json")
     # json_resp = json.load(f)
 
     data = json_resp["data"]
     homeworks = []
     for key in data.keys():
-        for homework_json in data[key]:
+        for idx, homework_json in enumerate(data[key]):
             homeworks_by_date_json = get_homeworks_by_date(
-                token, eleve, key, config_path
+                token, eleve, key, config_path, idx
             )
             for matiere in homeworks_by_date_json["matieres"]:
-                for homework in data[key]:
-                    if matiere["id"] == homework["idDevoir"]:
-                        homework["nbJourMaxRenduDevoir"] = matiere[
-                            "nbJourMaxRenduDevoir"
-                        ]
-                        homework["contenu"] = matiere["aFaire"]["contenu"]
-
-            hw = EDHomework(homework_json, key)
-            if not hw.effectue:
-                homeworks.append(hw)
+                if "aFaire" in matiere and matiere["aFaire"]["effectue"] is False:
+                    if matiere["id"] == homework_json["idDevoir"]:
+                        hw = get_homework(matiere, key, decode_html)
+                        homeworks.append(hw)
     if homeworks is not None:
-        homeworks.sort(key=operator.itemgetter("pourLe"))
+        homeworks.sort(key=operator.itemgetter("date"))
 
     return homeworks
 
 
+def get_homework(data, pour_le, clean_content):
+    """get homework information"""
+
+    if "contenu" in data["aFaire"]:
+        contenu = base64.b64decode(data["aFaire"]["contenu"]).decode("utf-8")
+    else:
+        contenu = ""
+    if clean_content:
+        contenu = clean_html(contenu)
+    return {
+        "date": pour_le,
+        "subject": data.get("matiere"),
+        "short_description": contenu[0:HOMEWORK_DESC_MAX_LENGTH],
+        "description": contenu,
+        "done": data["aFaire"].get("effectue"),
+        "background_color": "#FFFFFF",
+        "files": [],
+        "interrogation": data["aFaire"].get("interrogation"),
+    }
+
+
+def clean_html(raw_html):
+    """clean html"""
+    cleantext = re.sub(CLEANR, "", raw_html)
+    return cleantext
+
+
 def get_grades_evaluations(token, eleve, annee_scolaire, config_path):
     """get grades"""
+
     json_resp = get_response(
         token,
         f"{APIURL}/eleves/{eleve.eleve_id}/notes.awp?verbe=get&v={APIVERSION}",
@@ -531,7 +466,7 @@ def get_grades_evaluations(token, eleve, annee_scolaire, config_path):
         return None
 
     # Opening JSON file
-    # f = open(config_path + INTEGRATION_PATH + "test_grades.json")
+    # f = open(config_path + INTEGRATION_PATH + "test/test_grades.json")
     # json_resp = json.load(f)
 
     response = {}
@@ -548,19 +483,99 @@ def get_grades_evaluations(token, eleve, annee_scolaire, config_path):
                 index1 += 1
                 if index1 > GRADES_TO_DISPLAY:
                     continue
-                evaluation = EDGrade(grade_json)
+                evaluation = get_evaluation(grade_json)
                 response["evaluations"].append(evaluation)
             else:
                 index2 += 1
                 if index2 > GRADES_TO_DISPLAY:
                     continue
-                grade = EDGrade(grade_json)
+                grade = get_grade(grade_json)
                 response["grades"].append(grade)
     return response
 
 
+def get_grade(data):
+    """get grade information"""
+
+    elements_programme = []
+    if "elementsProgramme" in data:
+        for element in data["elementsProgramme"]:
+            elements_programme.append(get_competence(element))
+
+    return {
+        "date": data.get("date"),
+        "subject": data.get("libelleMatiere"),
+        "comment": data.get("devoir"),
+        "grade": data.get("valeur"),
+        "out_of": data.get("noteSur").replace(".", ","),
+        "default_out_of": data.get("noteSur").replace(".", ","),
+        "grade_out_of": data.get("valeur") + "/" + data.get("noteSur"),
+        "coefficient": data.get("coef").replace(".", ","),
+        "class_average": data.get("moyenneClasse").replace(".", ","),
+        "max": str(data.get("maxClasse")).replace(".", ","),
+        "min": str(data.get("minClasse")).replace(".", ","),
+        "is_bonus": "",
+        "is_optionnal": "",
+        "is_out_of_20": "",
+        "date_saisie": data.get("dateSaisie"),
+        "elements_programme": elements_programme,
+    }
+
+
+def get_evaluation(data):
+    """get evaluation information"""
+
+    try:
+        elements_programme = []
+        if "elementsProgramme" in data:
+            for element in data["elementsProgramme"]:
+                elements_programme.append(element)
+
+        return {
+            "name": data.get("devoir"),
+            "date": data.get("date"),
+            "subject": data.get("libelle_matiere"),
+            "acquisitions": [
+                {
+                    "name": acquisition.get("libelle_competence"),
+                    "abbreviation": acquisition.get("valeur"),
+                    "level": acquisition.get("level"),
+                }
+                for acquisition in elements_programme
+            ],
+        }
+    except Exception as ex:
+        _LOGGER.warning("get_evaluation: %s", ex)
+        raise
+
+
+def get_competence(data):
+    """get grade information"""
+
+    valeur = data.get("valeur")
+    match valeur:
+        case "1":
+            level = "Maîtrise insuffisante"
+        case "2":
+            level = "Maîtrise fragile"
+        case "3":
+            level = "Maîtrise satisfaisante"
+        case "4":
+            level = "Très bonne maîtrise"
+        case _:
+            level = "Unknown"
+
+    return {
+        "descriptif": data.get("descriptif"),
+        "libelle_competence": data.get("libelleCompetence"),
+        "valeur": valeur,
+        "level": level,
+    }
+
+
 def get_vie_scolaire(token, eleve, config_path):
     """get vie scolaire (absences, retards, etc.)"""
+
     json_resp = get_response(
         token,
         f"{APIURL}/eleves/{eleve.eleve_id}/viescolaire.awp?verbe=get&v={APIVERSION}",
@@ -570,8 +585,9 @@ def get_vie_scolaire(token, eleve, config_path):
     if "data" not in json_resp:
         _LOGGER.warning("get_vie_scolaire: [%s]", json_resp)
         return None
+
     # Opening JSON file
-    # f = open(config_path + INTEGRATION_PATH + "test_vie_scolaire.json")
+    # f = open(config_path + INTEGRATION_PATH + "test/test_vie_scolaire.json")
     # json_resp = json.load(f)
 
     response = {}
@@ -590,13 +606,13 @@ def get_vie_scolaire(token, eleve, config_path):
                 index1 += 1
                 if index1 > VIE_SCOLAIRE_TO_DISPLAY:
                     continue
-                absence = EDVieScolaire(data_json)
+                absence = get_vie_scolaire_element(data_json)
                 response["absences"].append(absence)
             else:
                 index2 += 1
                 if index2 > VIE_SCOLAIRE_TO_DISPLAY:
                     continue
-                retard = EDVieScolaire(data_json)
+                retard = get_vie_scolaire_element(data_json)
                 response["retards"].append(retard)
 
     index1 = 0
@@ -609,20 +625,37 @@ def get_vie_scolaire(token, eleve, config_path):
                 index1 += 1
                 if index1 > VIE_SCOLAIRE_TO_DISPLAY:
                     continue
-                sanction = EDVieScolaire(data_json)
+                sanction = get_vie_scolaire_element(data_json)
                 response["sanctions"].append(sanction)
             else:
                 index2 += 1
                 if index2 > VIE_SCOLAIRE_TO_DISPLAY:
                     continue
-                encouragement = EDVieScolaire(data_json)
+                encouragement = get_vie_scolaire_element(data_json)
                 response["encouragements"].append(encouragement)
 
     return response
 
 
+def get_vie_scolaire_element(viescolaire) -> dict:
+    """vie scolaire format"""
+    try:
+        return {
+            "date": viescolaire["date"],
+            "type_element": viescolaire["typeElement"],
+            "display_date": viescolaire["displayDate"],
+            "justified": viescolaire["justifie"],
+            "motif": viescolaire["motif"],
+            "commentaire": viescolaire["commentaire"],
+        }
+    except Exception as ex:
+        _LOGGER.warning("Error: %s - format_viescolaire: %s", ex, viescolaire)
+        return {}
+
+
 def get_lessons(token, eleve, date_debut, date_fin, config_path):
     """get lessons"""
+
     json_resp = get_response(
         token,
         f"{APIURL}/E/{eleve.eleve_id}/emploidutemps.awp?verbe=get&v={APIVERSION}",
@@ -632,41 +665,89 @@ def get_lessons(token, eleve, date_debut, date_fin, config_path):
     if "data" not in json_resp:
         _LOGGER.warning("get_lessons: [%s]", json_resp)
         return None
+
     # Opening JSON file
-    # f = open(config_path + INTEGRATION_PATH + "test_lessons.json")
+    # f = open(config_path + INTEGRATION_PATH + "test/test_lessons.json")
     # json_resp = json.load(f)
+
+    lunch_break_time = datetime.strptime(
+        DEFAULT_LUNCH_BREAK_TIME,
+        "%H:%M",
+    ).time()
 
     response = []
     data = json_resp["data"]
     for lesson_json in data:
-        lesson = EDLesson(lesson_json)
-        if not lesson.is_annule:
+        lesson = get_lesson(lesson_json, lunch_break_time)
+        if not lesson["canceled"]:
             response.append(lesson)
     if response is not None:
-        response.sort(key=operator.itemgetter("start_date"))
+        response.sort(key=operator.itemgetter("start_at", "start_time"))
 
     return response
 
 
-def get_headers(token):
-    """return headers needed from Ecole Directe API"""
-    headers = {
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Accept-language": "fr,fr-FR;q=0.8,en-US;q=0.5,en;q=0.3",
-        "Connection": "keep-alive",
-        "Content-Type": "application/x-www-form-urlencoded",
-        "DNT": "1",
-        "Host": "api.ecoledirecte.com",
-        "Origin": "https://www.ecoledirecte.com",
-        "Referer": "https://www.ecoledirecte.com/",
-        "Sec-fetch-dest": "empty",
-        "Sec-fetch-mode": "cors",
-        "Sec-fetch-site": "same-site",
-        "Sec-GPC": "1",
-        "User-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0",
-    }
-    if token is not None:
-        headers["X-Token"] = token
+def get_lesson(data, lunch_break_time):
+    """get lesson information"""
 
-    return headers
+    start_date = datetime.strptime(data["start_date"], "%Y-%m-%d %H:%M")
+    end_date = datetime.strptime(data["end_date"], "%Y-%m-%d %H:%M")
+    return {
+        "start": start_date,
+        "end": end_date,
+        "start_at": start_date.strftime("%Y-%m-%d"),
+        "end_at": end_date.strftime("%Y-%m-%d"),
+        "start_time": start_date.strftime("%H:%M"),
+        "end_time": end_date.strftime("%H:%M"),
+        "lesson": data["text"],
+        "classroom": data["salle"],
+        "canceled": data["isAnnule"],
+        "background_color": data["color"],
+        "teacher_name": data["prof"],
+        "exempted": data["dispense"],
+        "is_morning": start_date.time() < lunch_break_time,
+        "is_afternoon": start_date.time() >= lunch_break_time,
+    }
+
+
+def get_sondages(token, config_path):
+    """Get sondages"""
+
+    return get_response(
+        token,
+        f"{APIURL}/rdt/sondages.awp?v={APIVERSION}",
+        None,
+        config_path + INTEGRATION_PATH + "get_sondages.json",
+    )
+
+
+def get_formulaires(token, account_type, id_entity, config_path):
+    """Get formulaires"""
+
+    payload = (
+        'data={"typeEntity": "' + account_type + '","idEntity":' + str(id_entity) + "}"
+    )
+    json_resp = get_response(
+        token,
+        f"{APIURL}/edforms.awp?verbe=list&v={APIVERSION}",
+        payload,
+        config_path + INTEGRATION_PATH + "get_formulaires.json",
+    )
+    if "data" not in json_resp:
+        _LOGGER.warning("get_formulaires: [%s]", json_resp)
+        return None
+
+    response = []
+    data = json_resp["data"]
+    for form_json in data:
+        response.append(get_formulaire(form_json))
+
+    return response
+
+
+def get_formulaire(data):
+    """Get formulaire"""
+    return {
+        "titre": data["titre"],
+        "created": data["created"],
+    }

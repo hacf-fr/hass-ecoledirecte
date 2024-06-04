@@ -54,6 +54,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         _LOGGER.debug("ED - Setup process initiated by user.")
         errors: dict[str, str] = {}
 
+        # Only permit a single instance of the integration
+        if self._async_in_progress() or self._async_current_entries():
+            errors["base"] = "already_configured"
+            _LOGGER.error("%s", errors["base"])
+            return self.async_abort(reason="already_configured")
+
         if user_input is not None:
             try:
                 self._user_inputs.update(user_input)

@@ -270,27 +270,27 @@ class EDLessonsSensor(EDGenericSensor):
                 index = lessons.index(lesson)
 
                 if not (
-                    lesson["start_at"] == lessons[index - 1]["start_at"]
+                    lesson["start_time"] == lessons[index - 1]["start_time"]
                     and lesson["canceled"]
                 ):
                     attributes.append(lesson)
                 if lesson["canceled"] is False and self._start_at is None:
-                    self._start_at = lesson["start_at"]
+                    self._start_at = lesson["start"]
                 if lesson["canceled"]:
                     canceled_counter += 1
                 if single_day and not lesson["canceled"]:
-                    self._end_at = lesson["end_at"]
+                    self._end_at = lesson["end"]
                     if (
                         datetime.strptime(lesson["end_time"], "%H:%M").time()
                         < lunch_break_time
                     ):
-                        self._lunch_break_start_at = lesson["end_at"]
+                        self._lunch_break_start_at = lesson["end"]
                     if (
                         self._lunch_break_end_at is None
                         and datetime.strptime(lesson["start_time"], "%H:%M").time()
                         >= lunch_break_time
                     ):
-                        self._lunch_break_end_at = lesson["start_at"]
+                        self._lunch_break_end_at = lesson["start"]
         if is_too_big(attributes):
             _LOGGER.warning("[%s] attributes are too big! %s", self._name, attributes)
             attributes = []

@@ -21,10 +21,34 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 APIURL = "https://api.ecoledirecte.com/v3"
-APIVERSION = "4.56.0"
+APIVERSION = "4.57.1"
 
 # as per recommendation from @freylis, compile once only
 CLEANR = re.compile("<.*?>")
+
+
+def get_headers(token):
+    """return headers needed from Ecole Directe API"""
+    headers = {
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-language": "fr,fr-FR;q=0.8,en-US;q=0.5,en;q=0.3",
+        "Connection": "keep-alive",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "DNT": "1",
+        "Host": "api.ecoledirecte.com",
+        "Origin": "https://www.ecoledirecte.com",
+        "Referer": "https://www.ecoledirecte.com/",
+        "Sec-fetch-dest": "empty",
+        "Sec-fetch-mode": "cors",
+        "Sec-fetch-site": "same-site",
+        "Sec-GPC": "1",
+        "User-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0",
+    }
+    if token is not None:
+        headers["X-Token"] = token
+
+    return headers
 
 
 def get_response(token, url, payload, file_path):
@@ -326,20 +350,20 @@ def post_qcm_connexion(token, proposition, config_path):
     return None
 
 
-def get_messages(session, eleve, annee_scolaire, config_path):
+def get_messages(token, id, eleve, annee_scolaire, config_path):
     """Get messages from Ecole Directe"""
     payload = (
         'data={"anneeMessages":"' + urllib.parse.quote(annee_scolaire, safe="") + '"}'
     )
     if eleve is None:
         return get_response(
-            session,
-            f"{APIURL}/familles/{session.id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
+            token,
+            f"{APIURL}/familles/{id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
             payload,
             config_path + INTEGRATION_PATH + "get_messages_famille.json",
         )
     return get_response(
-        session,
+        token,
         f"{APIURL}/eleves/{eleve.eleve_id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
         payload,
         config_path + INTEGRATION_PATH + "get_messages_eleve.json",
@@ -658,7 +682,7 @@ def get_lessons(token, eleve, date_debut, date_fin, config_path):
         if not lesson["canceled"]:
             response.append(lesson)
     if response is not None:
-        response.sort(key=operator.itemgetter("start_at"))
+        response.sort(key=operator.itemgetter("start_at", "start_time"))
 
     return response
 
@@ -669,6 +693,8 @@ def get_lesson(data, lunch_break_time):
     start_date = datetime.strptime(data["start_date"], "%Y-%m-%d %H:%M")
     end_date = datetime.strptime(data["end_date"], "%Y-%m-%d %H:%M")
     return {
+        "start": start_date,
+        "end": end_date,
         "start_at": start_date.strftime("%Y-%m-%d"),
         "end_at": end_date.strftime("%Y-%m-%d"),
         "start_time": start_date.strftime("%H:%M"),
@@ -684,25 +710,39 @@ def get_lesson(data, lunch_break_time):
     }
 
 
-def get_headers(token):
-    """return headers needed from Ecole Directe API"""
-    headers = {
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Accept-language": "fr,fr-FR;q=0.8,en-US;q=0.5,en;q=0.3",
-        "Connection": "keep-alive",
-        "Content-Type": "application/x-www-form-urlencoded",
-        "DNT": "1",
-        "Host": "api.ecoledirecte.com",
-        "Origin": "https://www.ecoledirecte.com",
-        "Referer": "https://www.ecoledirecte.com/",
-        "Sec-fetch-dest": "empty",
-        "Sec-fetch-mode": "cors",
-        "Sec-fetch-site": "same-site",
-        "Sec-GPC": "1",
-        "User-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0",
-    }
-    if token is not None:
-        headers["X-Token"] = token
+def get_day_start_at(lessons):
+    """day_start_at"""
+    day_start_at = None
 
-    return headers
+    if lessons is not None:
+        for lesson in lessons:
+            if not lesson.canceled:
+                day_start_at = lesson.start
+                break
+
+    return day_start_at
+
+
+def get_sondages(token, config_path):
+    """Get sondages"""
+
+    return get_response(
+        token,
+        f"{APIURL}/rdt/sondages.awp?v={APIVERSION}",
+        None,
+        config_path + INTEGRATION_PATH + "get_sondages.json",
+    )
+
+
+def get_formulaires(token, account_type, id_entity, config_path):
+    """Get formulaires"""
+
+    payload = (
+        'data={"typeEntity": "' + account_type + '","idEntity":' + str(id_entity) + "}"
+    )
+    return get_response(
+        token,
+        f"{APIURL}/edforms.awp?verbe=list&v={APIVERSION}",
+        payload,
+        config_path + INTEGRATION_PATH + "get_formulaires.json",
+    )

@@ -112,7 +112,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     self.compare_data(
                         previous_data,
                         "formulaires",
-                        ["date", "subject"],
+                        ["created", "titre"],
                         "new_formulaires",
                         None,
                     )
@@ -133,6 +133,14 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         self.hass.config.config_dir,
                         self.config_entry.options.get("decode_html", False),
                     )
+                    self.compare_data(
+                        previous_data,
+                        f"{eleve.get_fullname_lower()}_homework",
+                        ["date", "subject", "short_description"],
+                        "new_homework",
+                        eleve,
+                    )
+
                 except Exception as ex:
                     _LOGGER.warning(
                         "Error getting homeworks from ecole directe: %s", ex

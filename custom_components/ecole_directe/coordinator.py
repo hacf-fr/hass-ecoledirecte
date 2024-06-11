@@ -112,7 +112,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     self.compare_data(
                         previous_data,
                         "formulaires",
-                        ["created", "subject"],
+                        ["created", "titre"],
                         "new_formulaires",
                         None,
                     )

@@ -36,7 +36,7 @@ Cliquer sur ce boutton:
 Ou aller dans :  
 Paramètres > Appareils et services > Intégrations > Ajouter une intégration, et chercher "Ecole Directe"
 
-Utiliser votre identifiant et mot de passe password :
+Utiliser votre identifiant et mot de passe :
 
 ![Ecole directe config flow](doc/config_flow_username_password.png)
 

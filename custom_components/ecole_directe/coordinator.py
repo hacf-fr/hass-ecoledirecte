@@ -66,10 +66,10 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         self.data["session"] = session
 
         current_year = datetime.now().year
-        if (current_year % 2) == 0:
-            year_data = f"{str(current_year-1)}-{str(current_year)}"
-        else:
+        if datetime.now().month >= 8:
             year_data = f"{str(current_year)}-{str(current_year + 1)}"
+        else:
+            year_data = f"{str(current_year - 1)}-{str(current_year)}"
 
         # EDT BODY
         today = (

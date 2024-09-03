@@ -66,16 +66,27 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         self.data["session"] = session
 
         current_year = datetime.now().year
-        if (current_year % 2) == 0:
-            year_data = f"{str(current_year-1)}-{str(current_year)}"
-        else:
+        if datetime.now().month >= 8:
             year_data = f"{str(current_year)}-{str(current_year + 1)}"
+        else:
+            year_data = f"{str(current_year - 1)}-{str(current_year)}"
 
         # EDT BODY
-        today = datetime.today().strftime("%Y-%m-%d")
-        tomorrow = (datetime.today() + timedelta(days=1)).strftime("%Y-%m-%d")
-        current_week_begin = datetime.today() - timedelta(
-            days=datetime.today().weekday()
+        today = (
+            datetime.now()
+            .replace(hour=0, minute=0, second=0, microsecond=0)
+            .strftime("%Y-%m-%d")
+        )
+        tomorrow = (
+            datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            + timedelta(days=1)
+        ).strftime("%Y-%m-%d")
+        current_week_begin = datetime.now().replace(
+            hour=0, minute=0, second=0, microsecond=0
+        ) - timedelta(
+            days=datetime.now()
+            .replace(hour=0, minute=0, second=0, microsecond=0)
+            .weekday()
         )
         current_week_plus_21 = current_week_begin + timedelta(days=21)
         current_week_end = current_week_begin + timedelta(days=6)

@@ -54,12 +54,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         _LOGGER.debug("ED - Setup process initiated by user.")
         errors: dict[str, str] = {}
 
-        # Only permit a single instance of the integration
-        if self._async_in_progress() or self._async_current_entries():
-            errors["base"] = "already_configured"
-            _LOGGER.error("%s", errors["base"])
-            return self.async_abort(reason="already_configured")
-
         if user_input is not None:
             try:
                 self._user_inputs.update(user_input)
@@ -75,6 +69,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         encoding="utf-8",
                     ) as f:
                         json.dump({}, f, ensure_ascii=False, indent=4)
+
+                await self.async_set_unique_id(self._user_inputs["username"])
+                self._abort_if_unique_id_configured()
+
                 session = await self.hass.async_add_executor_job(
                     check_ecoledirecte_session,
                     self._user_inputs,

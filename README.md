@@ -30,7 +30,7 @@ Copier le répertoire ecole_directe de la dernière release dans le répertoire 
 
 ## Configuration
 
-Cliquer sur ce boutton:  
+Cliquer sur ce bouton:  
 [![Open your Home Assistant instance and start setting up a new integration of a specific brand.](https://my.home-assistant.io/badges/brand.svg)](https://my.home-assistant.io/redirect/brand/?brand=ecole_directe)  
 
 Ou aller dans :  
@@ -40,7 +40,7 @@ Utiliser votre identifiant et mot de passe :
 
 ![Ecole directe config flow](doc/config_flow_username_password.png)
 
-Le fichier qcm permet de sauvegarder les questions et respectives réponses pour la double authentification requise par Ecole Directe. Ce fichier doit se trouver dans le répertoire Config de Home Assistant.
+Le fichier qcm permet de sauvegarder les questions et respectives réponses pour la double authentification requise par Ecole Directe. Il est créé automatiquement dans le répertoire Config de Home Assistant.
 L'option "Envoi de notifications" permet d'envoyer une notification lorsqu'il y a une nouvelle question dans le fichier qcm. Il est aussi possible de créer une automatisation à partir de l'événement "ecole_directe_event" de type "new_qcm.
 Exemple:
 ```
@@ -64,15 +64,34 @@ max: 10
 
 ## Utilisation
 
-Cette intégration fournit plusieurs entités, toujours prefixées avec `ecole_directe_PRENOM_NOM` (où `PRENOM` et `NOM` sont remplacé).
-
-
-| Sensor | Description |
+Cette intégration fournit plusieurs entités, toujours préfixées avec `ecole_directe_PRENOM_NOM` (où `PRENOM` et `NOM` sont remplacé).
+Les entités sont mises à jour toutes les 30 minutes.
+| Entité | Description |
 |--------|-------------|
 | `sensor.ecole_directe_PRENOM_NOM` | informations basique de l'enfant |
 | `[...]_homework` | devoirs |
 | `[...]_grades` | notes |
-| `[...]_lessons` | emploi du temps  (in progress)|
+| `[...]_evaluations` | evaluations |
+| `[...]_timetable_today` | emploi du temps du jour |
+| `[...]_timetable_tomorrow` | emploi du temps du lendemain |
+| `[...]_timetable_next_day` | emploi du temps du jour ouvré suivant (ex: si on consulte le vendredi, il doit y avoir l'emploi du temps du lundi )|
+| `[...]_timetable_period` | emploi du temps de la semaine en cours |
+| `[...]_timetable_period_1` | emploi du temps de la semaine suivante |
+| `[...]_timetable_period_2` | emploi du temps de la semaine suivante suivante :D |
+| `[...]_absences` | absences |
+| `[...]_retards` | retards |
+| `[...]_sanctions` | sanctions |
+| `[...]_encouragements` | encouragements |
 
-Les entités sont mises à jour toutes les 30 minutes.
+Il y a des événements qui sont déclenché sous certaines conditions. Ils peuvent être utiliser comme déclencheur dans des automatisations.
+| Evénement | Description |
+|--------|-------------|
+| `new_formulaires` | nouveau formulaire |
+| `new_homework` | nouveau devoir |
+| `new_grade` | nouvelle note |
+| `new_absence` | nouvelle absence |
+| `new_retard` | nouveau retard |
+| `new_sanction` | nouvelle sanction |
+| `new_encouragement` | nouvel encouragement |
+| `new_qcm` | nouveau qcm |
 

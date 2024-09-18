@@ -9,6 +9,7 @@ import urllib
 import base64
 import requests
 
+from homeassistant.components.persistent_notification import async_create
 from .const import (
     VIE_SCOLAIRE_TO_DISPLAY,
     EVENT_TYPE,
@@ -21,7 +22,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 APIURL = "https://api.ecoledirecte.com/v3"
-APIVERSION = "4.57.1"
+APIVERSION = "4.61.0"
 
 # as per recommendation from @freylis, compile once only
 CLEANR = re.compile("<.*?>")
@@ -270,7 +271,8 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
                     hass.bus.fire(EVENT_TYPE, event_data)
 
                     if data["qcm_filename"]:
-                        hass.components.persistent_notification.async_create(
+                        async_create(
+                            hass,
                             "Vérifiez le fichier "
                             + data["qcm_filename"]
                             + ", et rechargez l'intégration Ecole Directe.",
@@ -534,10 +536,10 @@ def get_evaluation(data):
         return {
             "name": data.get("devoir"),
             "date": data.get("date"),
-            "subject": data.get("libelle_matiere"),
+            "subject": data.get("libelleMatiere"),
             "acquisitions": [
                 {
-                    "name": acquisition.get("libelle_competence"),
+                    "name": acquisition.get("libelleCompetence"),
                     "abbreviation": acquisition.get("valeur"),
                     "level": acquisition.get("level"),
                 }

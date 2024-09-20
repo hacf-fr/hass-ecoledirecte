@@ -20,7 +20,7 @@ from homeassistant.helpers.update_coordinator import (
 
 from .ecole_directe_helper import EDEleve
 from .coordinator import EDDataUpdateCoordinator
-from .const import DEFAULT_LUNCH_BREAK_TIME, DOMAIN, MAX_STATE_ATTRS_BYTES
+from .const import DEBUG_ON, DEFAULT_LUNCH_BREAK_TIME, DOMAIN, MAX_STATE_ATTRS_BYTES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,24 +42,24 @@ async def async_setup_entry(
         and "session" in coordinator.data
         and coordinator.data["session"].eleves is not None
     ):
-        if "EDFORMS" in coordinator.data["session"].modules:
+        if DEBUG_ON or "EDFORMS" in coordinator.data["session"].modules:
             sensors.append(EDFormulairesSensor(coordinator))
 
         for eleve in coordinator.data["session"].eleves:
             sensors.append(EDChildSensor(coordinator, eleve))
-            if "CAHIER_DE_TEXTES" in eleve.modules:
+            if DEBUG_ON or "CAHIER_DE_TEXTES" in eleve.modules:
                 sensors.append(EDHomeworksSensor(coordinator, eleve))
-            if "EDT" in eleve.modules:
+            if DEBUG_ON or "EDT" in eleve.modules:
                 sensors.append(EDLessonsSensor(coordinator, eleve, "today"))
                 sensors.append(EDLessonsSensor(coordinator, eleve, "tomorrow"))
                 sensors.append(EDLessonsSensor(coordinator, eleve, "next_day"))
                 sensors.append(EDLessonsSensor(coordinator, eleve, "period"))
                 sensors.append(EDLessonsSensor(coordinator, eleve, "period_1"))
                 sensors.append(EDLessonsSensor(coordinator, eleve, "period_2"))
-            if "NOTES" in eleve.modules:
+            if DEBUG_ON or "NOTES" in eleve.modules:
                 sensors.append(EDGradesSensor(coordinator, eleve))
                 sensors.append(EDEvaluationsSensor(coordinator, eleve))
-            if "VIE_SCOLAIRE" in eleve.modules:
+            if DEBUG_ON or "VIE_SCOLAIRE" in eleve.modules:
                 sensors.append(EDAbsencesSensor(coordinator, eleve))
                 sensors.append(EDRetardsSensor(coordinator, eleve))
                 sensors.append(EDEncouragementsSensor(coordinator, eleve))
@@ -285,11 +285,11 @@ class EDLessonsSensor(EDGenericSensor):
                 ):
                     attributes.append(lesson)
                 if lesson["canceled"] is False and self._start_at is None:
-                    self._start_at = lesson["start"]
+                    self._start_at = lesson["start"].strftime("%H:%M")
                 if lesson["canceled"]:
                     canceled_counter += 1
                 if single_day and not lesson["canceled"]:
-                    self._end_at = lesson["end"]
+                    self._end_at = lesson["end"].strftime("%H:%M")
                     if (
                         datetime.strptime(lesson["end_time"], "%H:%M").time()
                         < lunch_break_time

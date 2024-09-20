@@ -19,6 +19,7 @@ from .ecole_directe_helper import (
 
 from .const import (
     DEFAULT_ALLOW_NOTIFICATION,
+    DEFAULT_LUNCH_BREAK_TIME,
     DOMAIN,
     DEFAULT_REFRESH_INTERVAL,
     FILENAME_QCM,
@@ -134,6 +135,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                             "refresh_interval", DEFAULT_REFRESH_INTERVAL
                         ),
                     ): int,
+                    vol.Optional(
+                        "lunch_break_time",
+                        default=self.config_entry.options.get(
+                            "lunch_break_time", DEFAULT_LUNCH_BREAK_TIME
+                        ),
+                    ): str,
                     vol.Optional(
                         "decode_html",
                         default=self.config_entry.options.get("decode_html", False),

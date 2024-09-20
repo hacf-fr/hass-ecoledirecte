@@ -24,6 +24,7 @@ from .ecole_directe_helper import (
 
 from .const import (
     DEBUG_ON,
+    DEFAULT_LUNCH_BREAK_TIME,
     DEFAULT_REFRESH_INTERVAL,
     EVENT_TYPE,
 )
@@ -186,6 +187,15 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
             if DEBUG_ON or "EDT" in eleve.modules:
                 try:
+                    break_time = self.config_entry.options.get(
+                        "lunch_break_time", DEFAULT_LUNCH_BREAK_TIME
+                    )
+                    lunch_break_time = datetime.strptime(
+                        break_time,
+                        "%H:%M",
+                    ).time()
+                    _LOGGER.warning("lunch_break_time: %s", lunch_break_time)
+
                     lessons = await self.hass.async_add_executor_job(
                         get_lessons,
                         session.token,
@@ -193,6 +203,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         current_week_begin.strftime("%Y-%m-%d"),
                         current_week_plus_21.strftime("%Y-%m-%d"),
                         self.hass.config.config_dir,
+                        lunch_break_time,
                     )
                     self.data[f"{eleve.get_fullname_lower()}_timetable_today"] = list(
                         filter(

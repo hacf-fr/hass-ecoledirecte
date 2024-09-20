@@ -665,7 +665,7 @@ def get_vie_scolaire_element(viescolaire) -> dict:
         return {}
 
 
-def get_lessons(token, eleve, date_debut, date_fin, config_path):
+def get_lessons(token, eleve, date_debut, date_fin, config_path, lunch_break_time):
     """get lessons"""
 
     if DEBUG_ON:
@@ -683,11 +683,6 @@ def get_lessons(token, eleve, date_debut, date_fin, config_path):
     if "data" not in json_resp:
         _LOGGER.warning("get_lessons: [%s]", json_resp)
         return None
-
-    lunch_break_time = datetime.strptime(
-        DEFAULT_LUNCH_BREAK_TIME,
-        "%H:%M",
-    ).time()
 
     response = []
     data = json_resp["data"]

@@ -11,6 +11,7 @@ import requests
 
 from homeassistant.components.persistent_notification import async_create
 from .const import (
+    DEBUG_ON,
     VIE_SCOLAIRE_TO_DISPLAY,
     EVENT_TYPE,
     GRADES_TO_DISPLAY,
@@ -375,6 +376,14 @@ def get_messages(token, id, eleve, annee_scolaire, config_path):
 def get_homeworks_by_date(token, eleve, date, config_path, idx):
     """get homeworks by date"""
 
+    if DEBUG_ON:
+        # Opening JSON file
+        f = open(
+            config_path + INTEGRATION_PATH + "test/test_homeworks_" + date + ".json"
+        )
+        data = json.load(f)
+        return data["data"]
+
     json_resp = get_response(
         token,
         f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte/{date}.awp?verbe=get&v={APIVERSION}",
@@ -386,28 +395,25 @@ def get_homeworks_by_date(token, eleve, date, config_path, idx):
     _LOGGER.warning("get_homeworks_by_date: [%s]", json_resp)
     return None
 
-    # Opening JSON file
-    # f = open(config_path + INTEGRATION_PATH + "test/test_homeworks_" + date + ".json")
-    # data = json.load(f)
-    # return data["data"]
-
 
 def get_homeworks(token, eleve, config_path, decode_html):
     """get homeworks"""
 
-    json_resp = get_response(
-        token,
-        f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte.awp?verbe=get&v={APIVERSION}",
-        None,
-        config_path + INTEGRATION_PATH + "get_homeworks.json",
-    )
+    if DEBUG_ON:
+        # Opening JSON file
+        f = open(config_path + INTEGRATION_PATH + "test/test_homeworks.json")
+        json_resp = json.load(f)
+    else:
+        json_resp = get_response(
+            token,
+            f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte.awp?verbe=get&v={APIVERSION}",
+            None,
+            config_path + INTEGRATION_PATH + "get_homeworks.json",
+        )
+
     if "data" not in json_resp:
         _LOGGER.warning("get_homeworks: [%s]", json_resp)
         return None
-
-    # Opening JSON file
-    # f = open(config_path + INTEGRATION_PATH + "test/test_homeworks.json")
-    # json_resp = json.load(f)
 
     data = json_resp["data"]
     homeworks = []
@@ -457,19 +463,21 @@ def clean_html(raw_html):
 def get_grades_evaluations(token, eleve, annee_scolaire, config_path):
     """get grades"""
 
-    json_resp = get_response(
-        token,
-        f"{APIURL}/eleves/{eleve.eleve_id}/notes.awp?verbe=get&v={APIVERSION}",
-        f"data={{'anneeScolaire': '{annee_scolaire}'}}",
-        config_path + INTEGRATION_PATH + "get_grades_evaluations.json",
-    )
+    if DEBUG_ON:
+        # Opening JSON file
+        f = open(config_path + INTEGRATION_PATH + "test/test_grades.json")
+        json_resp = json.load(f)
+    else:
+        json_resp = get_response(
+            token,
+            f"{APIURL}/eleves/{eleve.eleve_id}/notes.awp?verbe=get&v={APIVERSION}",
+            f"data={{'anneeScolaire': '{annee_scolaire}'}}",
+            config_path + INTEGRATION_PATH + "get_grades_evaluations.json",
+        )
+
     if "data" not in json_resp:
         _LOGGER.warning("get_grades_evaluations: [%s]", json_resp)
         return None
-
-    # Opening JSON file
-    # f = open(config_path + INTEGRATION_PATH + "test/test_grades.json")
-    # json_resp = json.load(f)
 
     response = {}
     response["grades"] = []
@@ -578,19 +586,21 @@ def get_competence(data):
 def get_vie_scolaire(token, eleve, config_path):
     """get vie scolaire (absences, retards, etc.)"""
 
-    json_resp = get_response(
-        token,
-        f"{APIURL}/eleves/{eleve.eleve_id}/viescolaire.awp?verbe=get&v={APIVERSION}",
-        "data={}",
-        config_path + INTEGRATION_PATH + "get_vie_scolaire.json",
-    )
+    if DEBUG_ON:
+        # Opening JSON file
+        f = open(config_path + INTEGRATION_PATH + "test/test_vie_scolaire.json")
+        json_resp = json.load(f)
+    else:
+        json_resp = get_response(
+            token,
+            f"{APIURL}/eleves/{eleve.eleve_id}/viescolaire.awp?verbe=get&v={APIVERSION}",
+            "data={}",
+            config_path + INTEGRATION_PATH + "get_vie_scolaire.json",
+        )
+
     if "data" not in json_resp:
         _LOGGER.warning("get_vie_scolaire: [%s]", json_resp)
         return None
-
-    # Opening JSON file
-    # f = open(config_path + INTEGRATION_PATH + "test/test_vie_scolaire.json")
-    # json_resp = json.load(f)
 
     response = {}
     response["absences"] = []
@@ -655,27 +665,24 @@ def get_vie_scolaire_element(viescolaire) -> dict:
         return {}
 
 
-def get_lessons(token, eleve, date_debut, date_fin, config_path):
+def get_lessons(token, eleve, date_debut, date_fin, config_path, lunch_break_time):
     """get lessons"""
 
-    json_resp = get_response(
-        token,
-        f"{APIURL}/E/{eleve.eleve_id}/emploidutemps.awp?verbe=get&v={APIVERSION}",
-        f"data={{'dateDebut': '{date_debut}','dateFin': '{date_fin}','avecTrous': false}}",
-        config_path + INTEGRATION_PATH + "get_lessons.json",
-    )
+    if DEBUG_ON:
+        # Opening JSON file
+        f = open(config_path + INTEGRATION_PATH + "test/test_lessons.json")
+        json_resp = json.load(f)
+    else:
+        json_resp = get_response(
+            token,
+            f"{APIURL}/E/{eleve.eleve_id}/emploidutemps.awp?verbe=get&v={APIVERSION}",
+            f"data={{'dateDebut': '{date_debut}','dateFin': '{date_fin}','avecTrous': false}}",
+            config_path + INTEGRATION_PATH + "get_lessons.json",
+        )
+
     if "data" not in json_resp:
         _LOGGER.warning("get_lessons: [%s]", json_resp)
         return None
-
-    # Opening JSON file
-    # f = open(config_path + INTEGRATION_PATH + "test/test_lessons.json")
-    # json_resp = json.load(f)
-
-    lunch_break_time = datetime.strptime(
-        DEFAULT_LUNCH_BREAK_TIME,
-        "%H:%M",
-    ).time()
 
     response = []
     data = json_resp["data"]
@@ -684,7 +691,7 @@ def get_lessons(token, eleve, date_debut, date_fin, config_path):
         if not lesson["canceled"]:
             response.append(lesson)
     if response is not None:
-        response.sort(key=operator.itemgetter("start_at", "start_time"))
+        response.sort(key=operator.itemgetter("start"))
 
     return response
 
@@ -697,8 +704,8 @@ def get_lesson(data, lunch_break_time):
     return {
         "start": start_date,
         "end": end_date,
-        "start_at": start_date.strftime("%Y-%m-%d"),
-        "end_at": end_date.strftime("%Y-%m-%d"),
+        "start_at": start_date.strftime("%Y-%m-%d %H:%M"),
+        "end_at": end_date.strftime("%Y-%m-%d %H:%M"),
         "start_time": start_date.strftime("%H:%M"),
         "end_time": end_date.strftime("%H:%M"),
         "lesson": data["text"],

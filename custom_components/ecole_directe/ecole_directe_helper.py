@@ -369,7 +369,7 @@ def get_messages(token, id, eleve, annee_scolaire, config_path):
         token,
         f"{APIURL}/eleves/{eleve.eleve_id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
         payload,
-        config_path + INTEGRATION_PATH + "get_messages_eleve.json",
+        f"{config_path + INTEGRATION_PATH}{eleve.eleve_id}_get_messages_eleve.json",
     )
 
 
@@ -388,7 +388,7 @@ def get_homeworks_by_date(token, eleve, date, config_path, idx):
         token,
         f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte/{date}.awp?verbe=get&v={APIVERSION}",
         None,
-        config_path + INTEGRATION_PATH + "get_homeworks_by_date_" + str(idx) + ".json",
+        f"{config_path + INTEGRATION_PATH}{eleve.eleve_id}_get_homeworks_by_date_{str(idx)}.json"
     )
     if "data" in json_resp:
         return json_resp["data"]
@@ -408,7 +408,7 @@ def get_homeworks(token, eleve, config_path, decode_html):
             token,
             f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte.awp?verbe=get&v={APIVERSION}",
             None,
-            config_path + INTEGRATION_PATH + "get_homeworks.json",
+            f"{config_path + INTEGRATION_PATH}{eleve.eleve_id}_get_homeworks.json",
         )
 
     if "data" not in json_resp:
@@ -472,7 +472,7 @@ def get_grades_evaluations(token, eleve, annee_scolaire, config_path):
             token,
             f"{APIURL}/eleves/{eleve.eleve_id}/notes.awp?verbe=get&v={APIVERSION}",
             f"data={{'anneeScolaire': '{annee_scolaire}'}}",
-            config_path + INTEGRATION_PATH + "get_grades_evaluations.json",
+            f"{config_path + INTEGRATION_PATH}{eleve.eleve_id}_get_grades_evaluations",
         )
 
     if "data" not in json_resp:
@@ -595,7 +595,8 @@ def get_vie_scolaire(token, eleve, config_path):
             token,
             f"{APIURL}/eleves/{eleve.eleve_id}/viescolaire.awp?verbe=get&v={APIVERSION}",
             "data={}",
-            config_path + INTEGRATION_PATH + "get_vie_scolaire.json",
+            f"{config_path + INTEGRATION_PATH}{eleve.eleve_id}_get_vie_scolaire.json",
+
         )
 
     if "data" not in json_resp:
@@ -677,7 +678,7 @@ def get_lessons(token, eleve, date_debut, date_fin, config_path, lunch_break_tim
             token,
             f"{APIURL}/E/{eleve.eleve_id}/emploidutemps.awp?verbe=get&v={APIVERSION}",
             f"data={{'dateDebut': '{date_debut}','dateFin': '{date_fin}','avecTrous': false}}",
-            config_path + INTEGRATION_PATH + "get_lessons.json",
+            f"{config_path + INTEGRATION_PATH}{eleve.eleve_id}_get_lessons.json",
         )
 
     if "data" not in json_resp:

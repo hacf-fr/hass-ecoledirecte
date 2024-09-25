@@ -423,7 +423,7 @@ def get_homeworks(token, eleve, config_path, decode_html):
                 token, eleve, key, config_path, idx
             )
             for matiere in homeworks_by_date_json["matieres"]:
-                if "aFaire" in matiere and matiere["aFaire"]["effectue"] is False:
+                if "aFaire" in matiere :
                     if matiere["id"] == homework_json["idDevoir"]:
                         hw = get_homework(matiere, key, decode_html)
                         homeworks.append(hw)

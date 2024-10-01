@@ -472,7 +472,7 @@ def get_grades_evaluations(token, eleve, annee_scolaire, config_path):
             token,
             f"{APIURL}/eleves/{eleve.eleve_id}/notes.awp?verbe=get&v={APIVERSION}",
             f"data={{'anneeScolaire': '{annee_scolaire}'}}",
-            f"{config_path + INTEGRATION_PATH}{eleve.eleve_id}_get_grades_evaluations",
+            f"{config_path + INTEGRATION_PATH}{eleve.eleve_id}_get_grades_evaluations.json",
         )
 
     if "data" not in json_resp:

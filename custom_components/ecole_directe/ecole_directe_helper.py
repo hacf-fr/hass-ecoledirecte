@@ -373,7 +373,7 @@ def get_messages(token, id, eleve, annee_scolaire, config_path):
     )
 
 
-def get_homeworks_by_date(token, eleve, date, config_path, idx):
+def get_homeworks_by_date(token, eleve, date, config_path):
     """get homeworks by date"""
 
     if DEBUG_ON:
@@ -388,7 +388,7 @@ def get_homeworks_by_date(token, eleve, date, config_path, idx):
         token,
         f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte/{date}.awp?verbe=get&v={APIVERSION}",
         None,
-        f"{config_path + INTEGRATION_PATH}{eleve.eleve_id}_get_homeworks_by_date_{str(idx)}.json"
+        f"{config_path + INTEGRATION_PATH}{eleve.eleve_id}_get_homeworks_by_date_{date}.json"
     )
     if "data" in json_resp:
         return json_resp["data"]
@@ -420,7 +420,7 @@ def get_homeworks(token, eleve, config_path, decode_html):
     for key in data.keys():
         for idx, homework_json in enumerate(data[key]):
             homeworks_by_date_json = get_homeworks_by_date(
-                token, eleve, key, config_path, idx
+                token, eleve, key, config_path
             )
             for matiere in homeworks_by_date_json["matieres"]:
                 if "aFaire" in matiere :

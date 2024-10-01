@@ -200,7 +200,7 @@ class EDHomeworksSensor(EDGenericSensor):
             for homework in homeworks:
                 if not homework["done"]:
                     todo_counter += 1
-                    attributes.append(homework)
+                attributes.append(homework)
             if attributes is not None:
                 attributes.sort(key=operator.itemgetter("date"))
         else:

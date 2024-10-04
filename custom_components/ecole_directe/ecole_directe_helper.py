@@ -16,14 +16,13 @@ from .const import (
     EVENT_TYPE,
     GRADES_TO_DISPLAY,
     INTEGRATION_PATH,
-    DEFAULT_LUNCH_BREAK_TIME,
     HOMEWORK_DESC_MAX_LENGTH,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 APIURL = "https://api.ecoledirecte.com/v3"
-APIVERSION = "4.61.0"
+APIVERSION = "4.62.1"
 
 # as per recommendation from @freylis, compile once only
 CLEANR = re.compile("<.*?>")
@@ -388,7 +387,7 @@ def get_homeworks_by_date(token, eleve, date, config_path):
         token,
         f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte/{date}.awp?verbe=get&v={APIVERSION}",
         None,
-        f"{config_path + INTEGRATION_PATH}{eleve.eleve_id}_get_homeworks_by_date_{date}.json"
+        f"{config_path + INTEGRATION_PATH}{eleve.eleve_id}_get_homeworks_by_date_{date}.json",
     )
     if "data" in json_resp:
         return json_resp["data"]
@@ -423,7 +422,7 @@ def get_homeworks(token, eleve, config_path, decode_html):
                 token, eleve, key, config_path
             )
             for matiere in homeworks_by_date_json["matieres"]:
-                if "aFaire" in matiere :
+                if "aFaire" in matiere:
                     if matiere["id"] == homework_json["idDevoir"]:
                         hw = get_homework(matiere, key, decode_html)
                         homeworks.append(hw)
@@ -596,7 +595,6 @@ def get_vie_scolaire(token, eleve, config_path):
             f"{APIURL}/eleves/{eleve.eleve_id}/viescolaire.awp?verbe=get&v={APIVERSION}",
             "data={}",
             f"{config_path + INTEGRATION_PATH}{eleve.eleve_id}_get_vie_scolaire.json",
-
         )
 
     if "data" not in json_resp:

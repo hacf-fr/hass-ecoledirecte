@@ -48,7 +48,10 @@ async def async_setup_entry(
         for eleve in coordinator.data["session"].eleves:
             sensors.append(EDChildSensor(coordinator, eleve))
             if DEBUG_ON or "CAHIER_DE_TEXTES" in eleve.modules:
-                sensors.append(EDHomeworksSensor(coordinator, eleve))
+                sensors.append(EDHomeworksSensor(coordinator, eleve, ""))
+                sensors.append(EDHomeworksSensor(coordinator, eleve, "_1"))
+                sensors.append(EDHomeworksSensor(coordinator, eleve, "_2"))
+                sensors.append(EDHomeworksSensor(coordinator, eleve, "_3"))
             if DEBUG_ON or "EDT" in eleve.modules:
                 sensors.append(EDLessonsSensor(coordinator, eleve, "today"))
                 sensors.append(EDLessonsSensor(coordinator, eleve, "tomorrow"))
@@ -179,23 +182,29 @@ class EDChildSensor(EDGenericSensor):
 class EDHomeworksSensor(EDGenericSensor):
     """Representation of a ED sensor."""
 
-    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
+    def __init__(
+        self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve, suffix
+    ) -> None:
         """Initialize the ED sensor."""
         super().__init__(
             coordinator,
-            "homework",
+            "homework" + suffix,
             eleve,
             "len",
         )
+        self._suffix = suffix
 
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         attributes = []
         todo_counter = 0
-        if f"{self._child_info.get_fullname_lower()}_homework" in self.coordinator.data:
+        if (
+            f"{self._child_info.get_fullname_lower()}_homework{self._suffix}"
+            in self.coordinator.data
+        ):
             homeworks = self.coordinator.data[
-                f"{self._child_info.get_fullname_lower()}_homework"
+                f"{self._child_info.get_fullname_lower()}_homework{self._suffix}"
             ]
             for homework in homeworks:
                 if not homework["done"]:
@@ -206,7 +215,7 @@ class EDHomeworksSensor(EDGenericSensor):
         else:
             attributes.append(
                 {
-                    "Erreur": f"{self._child_info.get_fullname_lower()}_homework n'existe pas."
+                    "Erreur": f"{self._child_info.get_fullname_lower()}_homework{self._suffix} n'existe pas."
                 }
             )
 

@@ -130,21 +130,54 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         for eleve in session.eleves:
             if DEBUG_ON or "CAHIER_DE_TEXTES" in eleve.modules:
                 try:
-                    self.data[
-                        f"{eleve.get_fullname_lower()}_homework"
-                    ] = await self.hass.async_add_executor_job(
+                    homeworks = await self.hass.async_add_executor_job(
                         get_homeworks,
                         session.token,
                         eleve,
                         self.hass.config.config_dir,
                         self.config_entry.options.get("decode_html", False),
                     )
+
+                    self.data[f"{eleve.get_fullname_lower()}_homework"] = homeworks
+
                     self.compare_data(
                         previous_data,
                         f"{eleve.get_fullname_lower()}_homework",
                         ["date", "subject", "short_description"],
                         "new_homework",
                         eleve,
+                    )
+
+                    self.data[f"{eleve.get_fullname_lower()}_homework_1"] = list(
+                        filter(
+                            lambda homework: datetime.strptime(
+                                homework["date"], "%Y-%m-%d"
+                            ).date()
+                            >= current_week_begin
+                            and datetime.strptime(homework["date"], "%Y-%m-%d").date()
+                            <= current_week_end,
+                            homeworks,
+                        )
+                    )
+                    self.data[f"{eleve.get_fullname_lower()}_homework_2"] = list(
+                        filter(
+                            lambda homework: datetime.strptime(
+                                homework["date"], "%Y-%m-%d"
+                            ).date()
+                            >= next_week_begin
+                            and datetime.strptime(homework["date"], "%Y-%m-%d").date()
+                            <= next_week_end,
+                            homeworks,
+                        )
+                    )
+                    self.data[f"{eleve.get_fullname_lower()}_homework_3"] = list(
+                        filter(
+                            lambda homework: datetime.strptime(
+                                homework["date"], "%Y-%m-%d"
+                            ).date()
+                            >= after_next_week_begin,
+                            homeworks,
+                        )
                     )
 
                 except Exception as ex:
@@ -194,7 +227,6 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         break_time,
                         "%H:%M",
                     ).time()
-                    _LOGGER.warning("lunch_break_time: %s", lunch_break_time)
 
                     lessons = await self.hass.async_add_executor_job(
                         get_lessons,

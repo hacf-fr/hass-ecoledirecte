@@ -13,6 +13,7 @@ from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordina
 
 from .ecole_directe_helper import (
     EDEleve,
+    get_classe,
     get_ecoledirecte_session,
     get_formulaires,
     get_homeworks,
@@ -89,22 +90,33 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         next_week_end = next_week_begin + timedelta(days=6)
         after_next_week_begin = next_week_end + timedelta(days=1)
 
-        if session._account_type == "1":  # famille
-            #     if DEBUG_ON or "MESSAGERIE" in session.modules:
-            #         try:
-            #             self.data["messages"] = await self.hass.async_add_executor_job(
-            #                 get_messages,
-            #                 session.token,
-            #                 session.id,
-            #                 None,
-            #                 year_data,
-            #                 self.hass.config.config_dir,
-            #             )
+        if session._account_type == "P":  # professor ???
+            try:
+                for classe in session["accounts"][0]["profile"]["classes"]:
+                    get_classe(
+                        session.token,
+                        classe["id"],
+                        self.hass.config.config_dir,
+                    )
+            except Exception as ex:
+                _LOGGER.warning("Error getting classes: %s", ex)
 
-            #         except Exception as ex:
-            #             _LOGGER.warning(
-            #                 "Error getting messages for family from ecole directe: %s", ex
-            #             )
+        if session._account_type == "1":  # famille
+            if "MESSAGERIE" in session.modules:
+                try:
+                    self.data["messagerie"] = await self.hass.async_add_executor_job(
+                        get_messages,
+                        session.token,
+                        session.id,
+                        None,
+                        year_data,
+                        self.hass.config.config_dir,
+                    )
+
+                except Exception as ex:
+                    _LOGGER.warning(
+                        "Error getting messages for family from ecole directe: %s", ex
+                    )
 
             if DEBUG_ON or "EDFORMS" in session.modules:
                 try:
@@ -345,15 +357,20 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     _LOGGER.warning(
                         "Error getting vie scolaire from ecole directe: %s", ex
                     )
-        # if DEBUG_ON or "MESSAGERIE" in eleve.modules:
-        #     try:
-        #         self.data[
-        #             "messages" + eleve.eleve_id
-        #         ] = await self.hass.async_add_executor_job(
-        #             get_messages, session, eleve, year_data
-        #         )
-        #     except Exception as ex:
-        #         _LOGGER.warning("Error getting messages from ecole directe: %s", ex)
+            if DEBUG_ON or "MESSAGERIE" in eleve.modules:
+                try:
+                    self.data[
+                        f"{eleve.get_fullname_lower()}_messagerie"
+                    ] = await self.hass.async_add_executor_job(
+                        get_messages,
+                        session.token,
+                        session.id,
+                        eleve,
+                        year_data,
+                        self.hass.config.config_dir,
+                    )
+                except Exception as ex:
+                    _LOGGER.warning("Error getting messages from ecole directe: %s", ex)
 
         return self.data
 

@@ -354,22 +354,37 @@ def post_qcm_connexion(token, proposition, config_path):
 
 def get_messages(token, id, eleve, annee_scolaire, config_path):
     """Get messages from Ecole Directe"""
-    payload = (
-        'data={"anneeMessages":"' + urllib.parse.quote(annee_scolaire, safe="") + '"}'
-    )
-    if eleve is None:
-        return get_response(
-            token,
-            f"{APIURL}/familles/{id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
-            payload,
-            config_path + INTEGRATION_PATH + "get_messages_famille.json",
+
+    if DEBUG_ON:
+        # Opening JSON file
+        f = open(config_path + INTEGRATION_PATH + "test/test_messages.json")
+        json_resp = json.load(f)
+    else:
+        payload = (
+            'data={"anneeMessages":"'
+            + urllib.parse.quote(annee_scolaire, safe="")
+            + '"}'
         )
-    return get_response(
-        token,
-        f"{APIURL}/eleves/{eleve.eleve_id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
-        payload,
-        f"{config_path + INTEGRATION_PATH}{eleve.eleve_id}_get_messages_eleve.json",
-    )
+        if eleve is None:
+            json_resp = get_response(
+                token,
+                f"{APIURL}/familles/{id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
+                payload,
+                config_path + INTEGRATION_PATH + "get_messages_famille.json",
+            )
+        else:
+            json_resp = get_response(
+                token,
+                f"{APIURL}/eleves/{eleve.eleve_id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
+                payload,
+                f"{config_path + INTEGRATION_PATH}{eleve.eleve_id}_get_messages_eleve.json",
+            )
+
+    if "data" not in json_resp:
+        _LOGGER.warning("get_messages: [%s]", json_resp)
+        return None
+
+    return json_resp["data"]["pagination"]
 
 
 def get_homeworks_by_date(token, eleve, date, config_path):
@@ -760,3 +775,25 @@ def get_formulaire(data):
         "titre": data["titre"],
         "created": data["created"],
     }
+
+
+def get_classe(token, classe_id, config_path):
+    """Get classe"""
+
+    json_resp = get_response(
+        token,
+        f"{APIURL}/Classes/{classe_id}/viedelaclasse.awp?verbe=get&v={APIVERSION}",
+        "data={}",
+        f"{config_path + INTEGRATION_PATH}get_classe_{classe_id}.json",
+    )
+    _LOGGER.warning("get_classe: [%s]", json_resp)
+
+    json_resp = get_response(
+        token,
+        f"{APIURL}/R/{classe_id}/viedelaclasse.awp?verbe=get&v={APIVERSION}",
+        "data={}",
+        f"{config_path + INTEGRATION_PATH}get_classeV2_{classe_id}.json",
+    )
+    _LOGGER.warning("get_classeV2: [%s]", json_resp)
+
+    return None

@@ -42,8 +42,10 @@ async def async_setup_entry(
         and "session" in coordinator.data
         and coordinator.data["session"].eleves is not None
     ):
-        if DEBUG_ON or "EDFORMS" in coordinator.data["session"].modules:
+        if "EDFORMS" in coordinator.data["session"].modules:
             sensors.append(EDFormulairesSensor(coordinator))
+        if "MESSAGERIE" in coordinator.data["session"].modules:
+            sensors.append(EDMessagerieSensor(coordinator, None))
 
         for eleve in coordinator.data["session"].eleves:
             sensors.append(EDChildSensor(coordinator, eleve))
@@ -67,6 +69,8 @@ async def async_setup_entry(
                 sensors.append(EDRetardsSensor(coordinator, eleve))
                 sensors.append(EDEncouragementsSensor(coordinator, eleve))
                 sensors.append(EDSanctionsSensor(coordinator, eleve))
+            if DEBUG_ON or "MESSAGERIE" in coordinator.data["session"].modules:
+                sensors.append(EDMessagerieSensor(coordinator, eleve))
 
         async_add_entities(sensors, False)
 
@@ -457,6 +461,31 @@ class EDFormulairesSensor(EDGenericSensor):
         forms = self.coordinator.data["formulaires"]
         for form in forms:
             attributes.append(form)
+
+        return {
+            "updated_at": self.coordinator.last_update_success_time,
+            "formulaires": attributes,
+        }
+
+
+class EDMessagerieSensor(EDGenericSensor):
+    """Representation of a ED sensor."""
+
+    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
+        """Initialize the ED sensor."""
+        super().__init__(coordinator, "messagerie", eleve, "len")
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        attributes = []
+        if self._child_info:
+            messagerie = self.coordinator.data[
+                f"{self._child_info.get_fullname_lower()}_messagerie"
+            ]
+        else:
+            messagerie = self.coordinator.data["messagerie"]
+        attributes.append(messagerie)
 
         return {
             "updated_at": self.coordinator.last_update_success_time,

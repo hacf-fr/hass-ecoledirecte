@@ -485,11 +485,16 @@ class EDMessagerieSensor(EDGenericSensor):
             ]
         else:
             messagerie = self.coordinator.data["messagerie"]
-        attributes.append(messagerie)
+
+        attributes.append({"reçus": messagerie["messagesRecusCount"]})
+        attributes.append({"envoyés": messagerie["messagesEnvoyesCount"]})
+        attributes.append({"archivés": messagerie["messagesArchivesCount"]})
+        attributes.append({"non lu": messagerie["messagesRecusNotReadCount"]})
+        attributes.append({"brouillons": messagerie["messagesDraftCount"]})
 
         return {
             "updated_at": self.coordinator.last_update_success_time,
-            "formulaires": attributes,
+            "messagerie": attributes,
         }
 
 

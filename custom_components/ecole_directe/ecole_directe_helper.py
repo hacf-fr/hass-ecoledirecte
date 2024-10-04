@@ -657,6 +657,7 @@ def get_vie_scolaire_element(viescolaire) -> dict:
             "display_date": viescolaire["displayDate"],
             "justified": viescolaire["justifie"],
             "motif": viescolaire["motif"],
+            "libelle": viescolaire["libelle"],
             "commentaire": viescolaire["commentaire"],
         }
     except Exception as ex:

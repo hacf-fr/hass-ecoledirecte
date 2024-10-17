@@ -576,12 +576,12 @@ def get_disciplines_periode(data):
             if "disciplines" in data["ensembleMatieres"]:
                 for discipline_json in data["ensembleMatieres"]["disciplines"]:
                     discipline = {
-                        "name": discipline_json["discipline"].lower(),
-                        "moyenne": discipline_json["moyenne"],
-                        "moyenneClasse": discipline_json["moyenneClasse"],
-                        "moyenneMin": discipline_json["moyenneMin"],
-                        "moyenneMax": discipline_json["moyenneMax"],
-                        "appreciations":discipline_json["appreciations"],
+                        "name": discipline_json.get("discipline", "").lower(),
+                        "moyenne": discipline_json.get("moyenne", ""),
+                        "moyenneClasse": discipline_json.get("moyenneClasse", ""),
+                        "moyenneMin": discipline_json.get("moyenneMin", ""),
+                        "moyenneMax": discipline_json.get("moyenneMax", ""),
+                        "appreciations": discipline_json.get("appreciations", ""),
                     }
                     disciplines.append(discipline)
         return disciplines

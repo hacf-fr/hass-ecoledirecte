@@ -64,6 +64,12 @@ async def async_setup_entry(
             if DEBUG_ON or "NOTES" in eleve.modules:
                 sensors.append(EDGradesSensor(coordinator, eleve))
                 sensors.append(EDEvaluationsSensor(coordinator, eleve))
+                disciplines = coordinator.data[f"{eleve.get_fullname_lower()}_disciplines"]
+                for discipline in disciplines:
+                    sensors.append(EDDisciplineSensor(coordinator, eleve,discipline["name"],discipline["moyenne"]))
+                moyenne = coordinator.data[f"{eleve.get_fullname_lower()}_moyenne_generale"]
+                sensors.append(EDMoyenneSensor(coordinator, eleve,moyenne["moyenneGenerale"]))
+
             if DEBUG_ON or "VIE_SCOLAIRE" in eleve.modules:
                 sensors.append(EDAbsencesSensor(coordinator, eleve))
                 sensors.append(EDRetardsSensor(coordinator, eleve))
@@ -256,6 +262,25 @@ class EDGradesSensor(EDGenericSensor):
             "grades": attributes,
         }
 
+class EDDisciplineSensor(EDGenericSensor):
+    """Representation of a ED sensor."""
+
+    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve, nom, note) -> None:
+        """Initialize the ED sensor."""
+        super().__init__(coordinator, nom, eleve, note)
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        discipline = self.coordinator.data[self._name]
+
+        return {
+            "updated_at": self.coordinator.last_update_success_time,
+            "moyenneClasse": discipline["moyenneClasse"],
+            "moyenneMin": discipline["moyenneMin"],
+            "moyenneMax": discipline["moyenneMax"],
+            "appreciations":discipline["appreciations"]
+        }
 
 class EDLessonsSensor(EDGenericSensor):
     """Representation of a ED sensor."""
@@ -331,6 +356,27 @@ class EDLessonsSensor(EDGenericSensor):
 
         return result
 
+class EDMoyenneSensor(EDGenericSensor):
+    """Representation of a ED sensor."""
+
+    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve, note) -> None:
+        """Initialize the ED sensor."""
+        super().__init__(coordinator, "moyenne_generale", eleve, note)
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        moyenne = self.coordinator.data[
+            f"{self._child_info.get_fullname_lower()}_moyenne_generale"
+        ]
+
+        return {
+            "updated_at": self.coordinator.last_update_success_time,
+            "moyenneClasse": moyenne["moyenneClasse"],
+            "moyenneMin": moyenne["moyenneMin"],
+            "moyenneMax": moyenne["moyenneMax"],
+            "dateCalcul": moyenne["dateCalcul"],
+        }
 
 class EDEvaluationsSensor(EDGenericSensor):
     """Representation of a ED sensor."""

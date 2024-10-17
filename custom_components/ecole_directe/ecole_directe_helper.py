@@ -495,10 +495,32 @@ def get_grades_evaluations(token, eleve, annee_scolaire, config_path):
 
     response = {}
     response["grades"] = []
+    response["moyenne_generale"] = {}
     response["evaluations"] = []
+    response["disciplines"] = []
     data = json_resp["data"]
     index1 = 0
     index2 = 0
+    if "periodes" in data:
+        data["periodes"].sort(key=operator.itemgetter("dateDebut"))
+        for periode_json in data["periodes"]:
+            if datetime.now() < datetime.strptime(periode_json["dateDebut"], "%Y-%m-%d"):
+                continue
+            if datetime.now() > datetime.strptime(periode_json["dateFin"], "%Y-%m-%d"):
+                continue
+            response["disciplines"] = get_disciplines_periode(periode_json)
+            if periode_json["ensembleMatieres"]:
+                response["moyenne_generale"] = {
+                    "moyenneGenerale":periode_json["ensembleMatieres"]["moyenneGenerale"],
+                    "moyenneClasse":periode_json["ensembleMatieres"]["moyenneClasse"],
+                    "moyenneMin":periode_json["ensembleMatieres"]["moyenneMin"],
+                    "moyenneMax":periode_json["ensembleMatieres"]["moyenneMax"],
+                    "dateCalcul":periode_json["ensembleMatieres"]["dateCalcul"],
+                    }
+
+            break
+
+
     if "notes" in data:
         data["notes"].sort(key=operator.itemgetter("date"))
         data["notes"].reverse()
@@ -545,6 +567,27 @@ def get_grade(data):
         "elements_programme": elements_programme,
     }
 
+def get_disciplines_periode(data):
+    """get periode information"""
+
+    try:
+        disciplines = []
+        if "ensembleMatieres" in data:
+            if "disciplines" in data["ensembleMatieres"]:
+                for discipline_json in data["ensembleMatieres"]["disciplines"]:
+                    discipline = {
+                        "name": discipline_json["discipline"].lower(),
+                        "moyenne": discipline_json["moyenne"],
+                        "moyenneClasse": discipline_json["moyenneClasse"],
+                        "moyenneMin": discipline_json["moyenneMin"],
+                        "moyenneMax": discipline_json["moyenneMax"],
+                        "appreciations":discipline_json["appreciations"],
+                    }
+                    disciplines.append(discipline)
+        return disciplines
+    except Exception as ex:
+        _LOGGER.warning("get_periode: %s", ex)
+        raise
 
 def get_evaluation(data):
     """get evaluation information"""

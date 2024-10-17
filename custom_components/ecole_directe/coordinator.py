@@ -205,6 +205,12 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         year_data,
                         self.hass.config.config_dir,
                     )
+                    disciplines = grades_evaluations["disciplines"]
+                    self.data[f"{eleve.get_fullname_lower()}_disciplines"] = disciplines
+                    for discipline in disciplines:
+                        self.data[f"{eleve.get_fullname_lower()}_{discipline["name"]}"] = discipline
+
+                    self.data[f"{eleve.get_fullname_lower()}_moyenne_generale"] = grades_evaluations["moyenne_generale"]
 
                     self.data[f"{eleve.get_fullname_lower()}_grades"] = (
                         grades_evaluations["grades"]

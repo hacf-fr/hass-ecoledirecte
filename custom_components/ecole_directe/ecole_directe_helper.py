@@ -511,11 +511,11 @@ def get_grades_evaluations(token, eleve, annee_scolaire, config_path):
             response["disciplines"] = get_disciplines_periode(periode_json)
             if periode_json["ensembleMatieres"]:
                 response["moyenne_generale"] = {
-                    "moyenneGenerale":periode_json["ensembleMatieres"]["moyenneGenerale"],
-                    "moyenneClasse":periode_json["ensembleMatieres"]["moyenneClasse"],
-                    "moyenneMin":periode_json["ensembleMatieres"]["moyenneMin"],
-                    "moyenneMax":periode_json["ensembleMatieres"]["moyenneMax"],
-                    "dateCalcul":periode_json["ensembleMatieres"]["dateCalcul"],
+                    "moyenneGenerale":periode_json.get(["ensembleMatieres"]["moyenneGenerale"], ""),
+                    "moyenneClasse":periode_json.get(["ensembleMatieres"]["moyenneClasse"], ""),
+                    "moyenneMin":periode_json.get(["ensembleMatieres"]["moyenneMin"], ""),
+                    "moyenneMax":periode_json.get(["ensembleMatieres"]["moyenneMax"], ""),
+                    "dateCalcul":periode_json.get(["ensembleMatieres"]["dateCalcul"], ""),
                     }
 
             break
@@ -576,7 +576,7 @@ def get_disciplines_periode(data):
             if "disciplines" in data["ensembleMatieres"]:
                 for discipline_json in data["ensembleMatieres"]["disciplines"]:
                     discipline = {
-                        "name": discipline_json.get("discipline", "").lower(),
+                        "name": discipline_json.get("discipline", ""),
                         "moyenne": discipline_json.get("moyenne", ""),
                         "moyenneClasse": discipline_json.get("moyenneClasse", ""),
                         "moyenneMin": discipline_json.get("moyenneMin", ""),

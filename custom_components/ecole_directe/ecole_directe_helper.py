@@ -504,22 +504,33 @@ def get_grades_evaluations(token, eleve, annee_scolaire, config_path):
     if "periodes" in data:
         data["periodes"].sort(key=operator.itemgetter("dateDebut"))
         for periode_json in data["periodes"]:
-            if datetime.now() < datetime.strptime(periode_json["dateDebut"], "%Y-%m-%d"):
+            if datetime.now() < datetime.strptime(
+                periode_json["dateDebut"], "%Y-%m-%d"
+            ):
                 continue
             if datetime.now() > datetime.strptime(periode_json["dateFin"], "%Y-%m-%d"):
                 continue
             response["disciplines"] = get_disciplines_periode(periode_json)
             if periode_json["ensembleMatieres"]:
                 response["moyenne_generale"] = {
-                    "moyenneGenerale":periode_json["ensembleMatieres"]["moyenneGenerale"],
-                    "moyenneClasse":periode_json["ensembleMatieres"]["moyenneClasse"],
-                    "moyenneMin":periode_json["ensembleMatieres"]["moyenneMin"],
-                    "moyenneMax":periode_json["ensembleMatieres"]["moyenneMax"],
-                    "dateCalcul":periode_json["ensembleMatieres"]["dateCalcul"],
-                    }
+                    "moyenneGenerale": periode_json.get(
+                        ["ensembleMatieres"]["moyenneGenerale"], ""
+                    ),
+                    "moyenneClasse": periode_json.get(
+                        ["ensembleMatieres"]["moyenneClasse"], ""
+                    ),
+                    "moyenneMin": periode_json.get(
+                        ["ensembleMatieres"]["moyenneMin"], ""
+                    ),
+                    "moyenneMax": periode_json.get(
+                        ["ensembleMatieres"]["moyenneMax"], ""
+                    ),
+                    "dateCalcul": periode_json.get(
+                        ["ensembleMatieres"]["dateCalcul"], ""
+                    ),
+                }
 
             break
-
 
     if "notes" in data:
         data["notes"].sort(key=operator.itemgetter("date"))
@@ -567,6 +578,7 @@ def get_grade(data):
         "elements_programme": elements_programme,
     }
 
+
 def get_disciplines_periode(data):
     """get periode information"""
 
@@ -588,6 +600,7 @@ def get_disciplines_periode(data):
     except Exception as ex:
         _LOGGER.warning("get_periode: %s", ex)
         raise
+
 
 def get_evaluation(data):
     """get evaluation information"""

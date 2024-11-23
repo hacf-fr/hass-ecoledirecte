@@ -276,6 +276,7 @@ class EDDisciplineSensor(EDGenericSensor):
 
         return {
             "updated_at": self.coordinator.last_update_success_time,
+            "nom": discipline["name"],
             "moyenneClasse": discipline["moyenneClasse"],
             "moyenneMin": discipline["moyenneMin"],
             "moyenneMax": discipline["moyenneMax"],

@@ -205,6 +205,7 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
             + urllib.parse.quote(data["password"], safe="")
             + '", "isRelogin": false}'
         )
+
         login = get_response(
             None,
             f"{APIURL}/login.awp?v={APIVERSION}",
@@ -513,21 +514,11 @@ def get_grades_evaluations(token, eleve, annee_scolaire, config_path):
             response["disciplines"] = get_disciplines_periode(periode_json)
             if periode_json["ensembleMatieres"]:
                 response["moyenne_generale"] = {
-                    "moyenneGenerale": periode_json.get(
-                        ["ensembleMatieres"]["moyenneGenerale"], ""
-                    ),
-                    "moyenneClasse": periode_json.get(
-                        ["ensembleMatieres"]["moyenneClasse"], ""
-                    ),
-                    "moyenneMin": periode_json.get(
-                        ["ensembleMatieres"]["moyenneMin"], ""
-                    ),
-                    "moyenneMax": periode_json.get(
-                        ["ensembleMatieres"]["moyenneMax"], ""
-                    ),
-                    "dateCalcul": periode_json.get(
-                        ["ensembleMatieres"]["dateCalcul"], ""
-                    ),
+                    "moyenneGenerale": periode_json["ensembleMatieres"].get("moyenneGenerale", ""),
+                    "moyenneClasse": periode_json["ensembleMatieres"].get("moyenneClasse", ""),
+                    "moyenneMin": periode_json["ensembleMatieres"].get("moyenneMin", ""),
+                    "moyenneMax": periode_json["ensembleMatieres"].get("moyenneMax", ""),
+                    "dateCalcul": periode_json["ensembleMatieres"].get("dateCalcul", ""),
                 }
 
             break

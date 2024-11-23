@@ -514,10 +514,10 @@ def get_grades_evaluations(token, eleve, annee_scolaire, config_path):
             response["disciplines"] = get_disciplines_periode(periode_json)
             if periode_json["ensembleMatieres"]:
                 response["moyenne_generale"] = {
-                    "moyenneGenerale": periode_json["ensembleMatieres"].get("moyenneGenerale", ""),
-                    "moyenneClasse": periode_json["ensembleMatieres"].get("moyenneClasse", ""),
-                    "moyenneMin": periode_json["ensembleMatieres"].get("moyenneMin", ""),
-                    "moyenneMax": periode_json["ensembleMatieres"].get("moyenneMax", ""),
+                    "moyenneGenerale": periode_json["ensembleMatieres"].get("moyenneGenerale", "").replace(",","."),
+                    "moyenneClasse": periode_json["ensembleMatieres"].get("moyenneClasse", "").replace(",","."),
+                    "moyenneMin": periode_json["ensembleMatieres"].get("moyenneMin", "").replace(",","."),
+                    "moyenneMax": periode_json["ensembleMatieres"].get("moyenneMax", "").replace(",","."),
                     "dateCalcul": periode_json["ensembleMatieres"].get("dateCalcul", ""),
                 }
 
@@ -580,10 +580,10 @@ def get_disciplines_periode(data):
                 for discipline_json in data["ensembleMatieres"]["disciplines"]:
                     discipline = {
                         "name": discipline_json.get("discipline", "").lower(),
-                        "moyenne": discipline_json.get("moyenne", ""),
-                        "moyenneClasse": discipline_json.get("moyenneClasse", ""),
-                        "moyenneMin": discipline_json.get("moyenneMin", ""),
-                        "moyenneMax": discipline_json.get("moyenneMax", ""),
+                        "moyenne": discipline_json.get("moyenne", "").replace(",","."),
+                        "moyenneClasse": discipline_json.get("moyenneClasse", "").replace(",","."),
+                        "moyenneMin": discipline_json.get("moyenneMin", "").replace(",","."),
+                        "moyenneMax": discipline_json.get("moyenneMax", "").replace(",","."),
                         "appreciations": discipline_json.get("appreciations", ""),
                     }
                     disciplines.append(discipline)

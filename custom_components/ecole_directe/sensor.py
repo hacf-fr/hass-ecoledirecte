@@ -290,7 +290,7 @@ class EDLessonsSensor(EDGenericSensor):
         self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve, suffix: str
     ) -> None:
         """Initialize the ED sensor."""
-        super().__init__(coordinator, "timetable_" + suffix, eleve, "len")
+        super().__init__(coordinator, name="timetable_" + suffix, eleve=eleve, state="len")
         self._suffix = suffix
         self._start_at = None
         self._end_at = None

@@ -29,7 +29,8 @@
                 "data": {
                     "refresh_interval": "Intervale de mise à jour des données (en minutes)",
                     "lunch_break_time": "Heure de la pause déjeuner",
-                    "decode_html": "Decode HTML pour les devoirs - Attention cela va supprimer tout le HTML (style, liens, iFrame, etc.)"
+                    "decode_html": "Decode HTML pour les devoirs - Attention cela va supprimer tout le HTML (style, liens, iFrame, etc.)",
+                    "notes_affichees": "Notes maximum affichées"
                 }
             }
         }

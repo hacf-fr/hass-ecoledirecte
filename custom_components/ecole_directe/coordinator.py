@@ -28,6 +28,7 @@ from .const import (
     DEFAULT_LUNCH_BREAK_TIME,
     DEFAULT_REFRESH_INTERVAL,
     EVENT_TYPE,
+    GRADES_TO_DISPLAY,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -204,6 +205,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         eleve,
                         year_data,
                         self.hass.config.config_dir,
+                        self.config_entry.options.get("notes_affichees", GRADES_TO_DISPLAY)
                     )
                     disciplines = grades_evaluations["disciplines"]
                     self.data[f"{eleve.get_fullname_lower()}_disciplines"] = disciplines

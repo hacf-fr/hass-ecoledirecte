@@ -475,7 +475,7 @@ def clean_html(raw_html):
     return cleantext
 
 
-def get_grades_evaluations(token, eleve, annee_scolaire, config_path):
+def get_grades_evaluations(token, eleve, annee_scolaire, config_path, grades_dispaly = GRADES_TO_DISPLAY):
     """get grades"""
 
     if DEBUG_ON:
@@ -524,18 +524,18 @@ def get_grades_evaluations(token, eleve, annee_scolaire, config_path):
             break
 
     if "notes" in data:
-        data["notes"].sort(key=operator.itemgetter("date"))
+        data["notes"].sort(key=operator.itemgetter("dateSaisie"))
         data["notes"].reverse()
         for grade_json in data["notes"]:
             if grade_json["noteSur"] == "0":
                 index1 += 1
-                if index1 > GRADES_TO_DISPLAY:
+                if index1 > grades_dispaly:
                     continue
                 evaluation = get_evaluation(grade_json)
                 response["evaluations"].append(evaluation)
             else:
                 index2 += 1
-                if index2 > GRADES_TO_DISPLAY:
+                if index2 > grades_dispaly:
                     continue
                 grade = get_grade(grade_json)
                 response["grades"].append(grade)

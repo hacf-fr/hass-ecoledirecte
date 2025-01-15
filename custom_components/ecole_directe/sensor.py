@@ -64,11 +64,14 @@ async def async_setup_entry(
             if DEBUG_ON or "NOTES" in eleve.modules:
                 sensors.append(EDGradesSensor(coordinator, eleve))
                 sensors.append(EDEvaluationsSensor(coordinator, eleve))
-                disciplines = coordinator.data[f"{eleve.get_fullname_lower()}_disciplines"]
+                disciplines = coordinator.data[f"{
+                    eleve.get_fullname_lower()}_disciplines"]
                 for discipline in disciplines:
-                    sensors.append(EDDisciplineSensor(coordinator, eleve,discipline["name"],discipline["moyenne"]))
-                moyenne = coordinator.data[f"{eleve.get_fullname_lower()}_moyenne_generale"]
-                sensors.append(EDMoyenneSensor(coordinator, eleve,moyenne["moyenneGenerale"]))
+                    sensors.append(EDDisciplineSensor(
+                        coordinator, eleve, discipline["name"], discipline["moyenne"]))
+                if f"{eleve.get_fullname_lower()}_moyenne_generale" in coordinator.data:
+                    sensors.append(EDMoyenneSensor(coordinator, eleve, coordinator.data[f"{
+                                   eleve.get_fullname_lower()}_moyenne_generale"]))
 
             if DEBUG_ON or "VIE_SCOLAIRE" in eleve.modules:
                 sensors.append(EDAbsencesSensor(coordinator, eleve))
@@ -157,7 +160,8 @@ class EDChildSensor(EDGenericSensor):
     def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
         super().__init__(coordinator, "", eleve, "len")
-        self._attr_unique_id = f"ed_{eleve.get_fullname_lower()}_{eleve.eleve_id}]"
+        self._attr_unique_id = f"ed_{eleve.get_fullname_lower()}_{
+            eleve.eleve_id}]"
         self._account_type = self.coordinator.data["session"]._account_type
 
     @property
@@ -214,7 +218,8 @@ class EDHomeworksSensor(EDGenericSensor):
             in self.coordinator.data
         ):
             homeworks = self.coordinator.data[
-                f"{self._child_info.get_fullname_lower()}_homework{self._suffix}"
+                f"{self._child_info.get_fullname_lower()}_homework{
+                    self._suffix}"
             ]
             for homework in homeworks:
                 if not homework["done"]:
@@ -231,7 +236,8 @@ class EDHomeworksSensor(EDGenericSensor):
 
         if is_too_big(attributes):
             attributes = []
-            _LOGGER.warning("[%s] attributes are too big! %s", self._name, attributes)
+            _LOGGER.warning("[%s] attributes are too big! %s",
+                            self._name, attributes)
 
         return {
             "updated_at": self.coordinator.last_update_success_time,
@@ -262,6 +268,7 @@ class EDGradesSensor(EDGenericSensor):
             "grades": attributes,
         }
 
+
 class EDDisciplineSensor(EDGenericSensor):
     """Representation of a ED sensor."""
 
@@ -280,8 +287,9 @@ class EDDisciplineSensor(EDGenericSensor):
             "moyenneClasse": discipline["moyenneClasse"],
             "moyenneMin": discipline["moyenneMin"],
             "moyenneMax": discipline["moyenneMax"],
-            "appreciations":discipline["appreciations"]
+            "appreciations": discipline["appreciations"]
         }
+
 
 class EDLessonsSensor(EDGenericSensor):
     """Representation of a ED sensor."""
@@ -341,7 +349,8 @@ class EDLessonsSensor(EDGenericSensor):
                     ):
                         self._lunch_break_end_at = lesson["start"]
         if is_too_big(attributes):
-            _LOGGER.warning("[%s] attributes are too big! %s", self._name, attributes)
+            _LOGGER.warning("[%s] attributes are too big! %s",
+                            self._name, attributes)
             attributes = []
         result = {
             "updated_at": self.coordinator.last_update_success_time,
@@ -356,6 +365,7 @@ class EDLessonsSensor(EDGenericSensor):
             result["lunch_break_end_at"] = self._lunch_break_end_at
 
         return result
+
 
 class EDMoyenneSensor(EDGenericSensor):
     """Representation of a ED sensor."""
@@ -378,6 +388,7 @@ class EDMoyenneSensor(EDGenericSensor):
             "moyenneMax": moyenne["moyenneMax"],
             "dateCalcul": moyenne["dateCalcul"],
         }
+
 
 class EDEvaluationsSensor(EDGenericSensor):
     """Representation of a ED sensor."""

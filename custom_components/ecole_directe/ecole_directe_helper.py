@@ -59,7 +59,8 @@ def get_response(token, url, payload, file_path):
         payload = "data={}"
 
     _LOGGER.debug("URL: [%s] - Payload: [%s]", url, payload)
-    response = requests.post(url, data=payload, headers=get_headers(token), timeout=120)
+    response = requests.post(
+        url, data=payload, headers=get_headers(token), timeout=120)
 
     try:
         resp_json = response.json()
@@ -71,7 +72,8 @@ def get_response(token, url, payload, file_path):
             json.dump(resp_json, f, ensure_ascii=False, indent=4)
 
     except Exception as ex:
-        raise RequestError(f"Error with URL:[{url}]: {response.content}") from ex
+        raise RequestError(f"Error with URL:[{url}]: {
+                           response.content}") from ex
 
     if "code" not in resp_json:
         raise RequestError(f"Error with URL:[{url}]: json:[{resp_json}]")
@@ -82,7 +84,8 @@ def get_response(token, url, payload, file_path):
 
     if resp_json["code"] != 200:
         raise RequestError(
-            f"Error with URL:[{url}] - Code {resp_json["code"]}: {resp_json["message"]}"
+            f"Error with URL:[{url}] - Code {resp_json["code"]
+                                             }: {resp_json["message"]}"
         )
 
     _LOGGER.debug("%s", resp_json)
@@ -134,7 +137,8 @@ class EDSession:
             if "eleves" in data["data"]["accounts"][0]["profile"]:
                 for eleve in data["data"]["accounts"][0]["profile"]["eleves"]:
                     self.eleves.append(
-                        EDEleve(eleve, data["data"]["accounts"][0]["nomEtablissement"])
+                        EDEleve(eleve, data["data"]
+                                ["accounts"][0]["nomEtablissement"])
                     )
 
 
@@ -177,8 +181,8 @@ class EDEleve:
         """Student fullname lowercase"""
         return f"{re.sub("[^A-Za-z]", "_",
                          self.eleve_firstname.lower())
-                         }_{
-                             re.sub("[^A-Za-z]", "_", self.eleve_lastname.lower())}"
+                  }_{
+            re.sub("[^A-Za-z]", "_", self.eleve_lastname.lower())}"
 
     def get_fullname(self) -> str | None:
         """Student fullname"""
@@ -254,7 +258,8 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
                     rep = []
                     propositions = qcm["propositions"]
                     for proposition in propositions:
-                        rep.append(base64.b64decode(proposition).decode("utf-8"))
+                        rep.append(base64.b64decode(
+                            proposition).decode("utf-8"))
 
                     qcm_json[question] = rep
 
@@ -475,7 +480,7 @@ def clean_html(raw_html):
     return cleantext
 
 
-def get_grades_evaluations(token, eleve, annee_scolaire, config_path, grades_dispaly = GRADES_TO_DISPLAY):
+def get_grades_evaluations(token, eleve, annee_scolaire, config_path, grades_dispaly=GRADES_TO_DISPLAY):
     """get grades"""
 
     if DEBUG_ON:
@@ -505,6 +510,8 @@ def get_grades_evaluations(token, eleve, annee_scolaire, config_path, grades_dis
     if "periodes" in data:
         data["periodes"].sort(key=operator.itemgetter("dateDebut"))
         for periode_json in data["periodes"]:
+            if "trimestre" not in periode_json["periode"].lower():
+                continue
             if datetime.now() < datetime.strptime(
                 periode_json["dateDebut"], "%Y-%m-%d"
             ):
@@ -512,15 +519,15 @@ def get_grades_evaluations(token, eleve, annee_scolaire, config_path, grades_dis
             if datetime.now() > datetime.strptime(periode_json["dateFin"], "%Y-%m-%d"):
                 continue
             response["disciplines"] = get_disciplines_periode(periode_json)
-            if periode_json["ensembleMatieres"]:
-                response["moyenne_generale"] = {
-                    "moyenneGenerale": periode_json["ensembleMatieres"].get("moyenneGenerale", "").replace(",","."),
-                    "moyenneClasse": periode_json["ensembleMatieres"].get("moyenneClasse", "").replace(",","."),
-                    "moyenneMin": periode_json["ensembleMatieres"].get("moyenneMin", "").replace(",","."),
-                    "moyenneMax": periode_json["ensembleMatieres"].get("moyenneMax", "").replace(",","."),
-                    "dateCalcul": periode_json["ensembleMatieres"].get("dateCalcul", ""),
-                }
-
+            if "ensembleMatieres" in periode_json:
+                if "moyenneGenerale" in periode_json["ensembleMatieres"]:
+                    response["moyenne_generale"] = {
+                        "moyenneGenerale": periode_json["ensembleMatieres"].get("moyenneGenerale", "").replace(",", "."),
+                        "moyenneClasse": periode_json["ensembleMatieres"].get("moyenneClasse", "").replace(",", "."),
+                        "moyenneMin": periode_json["ensembleMatieres"].get("moyenneMin", "").replace(",", "."),
+                        "moyenneMax": periode_json["ensembleMatieres"].get("moyenneMax", "").replace(",", "."),
+                        "dateCalcul": periode_json["ensembleMatieres"].get("dateCalcul", ""),
+                    }
             break
 
     if "notes" in data:
@@ -580,10 +587,10 @@ def get_disciplines_periode(data):
                 for discipline_json in data["ensembleMatieres"]["disciplines"]:
                     discipline = {
                         "name": discipline_json.get("discipline", "").lower(),
-                        "moyenne": discipline_json.get("moyenne", "").replace(",","."),
-                        "moyenneClasse": discipline_json.get("moyenneClasse", "").replace(",","."),
-                        "moyenneMin": discipline_json.get("moyenneMin", "").replace(",","."),
-                        "moyenneMax": discipline_json.get("moyenneMax", "").replace(",","."),
+                        "moyenne": discipline_json.get("moyenne", "").replace(",", "."),
+                        "moyenneClasse": discipline_json.get("moyenneClasse", "").replace(",", "."),
+                        "moyenneMin": discipline_json.get("moyenneMin", "").replace(",", "."),
+                        "moyenneMax": discipline_json.get("moyenneMax", "").replace(",", "."),
                         "appreciations": discipline_json.get("appreciations", ""),
                     }
                     disciplines.append(discipline)
@@ -649,7 +656,8 @@ def get_vie_scolaire(token, eleve, config_path):
 
     if DEBUG_ON:
         # Opening JSON file
-        f = open(config_path + INTEGRATION_PATH + "test/test_vie_scolaire.json")
+        f = open(config_path + INTEGRATION_PATH +
+                 "test/test_vie_scolaire.json")
         json_resp = json.load(f)
     else:
         json_resp = get_response(
@@ -738,7 +746,8 @@ def get_lessons(token, eleve, date_debut, date_fin, config_path, lunch_break_tim
         json_resp = get_response(
             token,
             f"{APIURL}/E/{eleve.eleve_id}/emploidutemps.awp?verbe=get&v={APIVERSION}",
-            f"data={{'dateDebut': '{date_debut}','dateFin': '{date_fin}','avecTrous': false}}",
+            f"data={{'dateDebut': '{date_debut}','dateFin': '{
+                date_fin}','avecTrous': false}}",
             f"{config_path + INTEGRATION_PATH}{eleve.eleve_id}_get_lessons.json",
         )
 
@@ -796,7 +805,8 @@ def get_formulaires(token, account_type, id_entity, config_path):
     """Get formulaires"""
 
     payload = (
-        'data={"typeEntity": "' + account_type + '","idEntity":' + str(id_entity) + "}"
+        'data={"typeEntity": "' + account_type +
+        '","idEntity":' + str(id_entity) + "}"
     )
     json_resp = get_response(
         token,

@@ -46,7 +46,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             logger=_LOGGER,
             name=entry.title,
             update_interval=timedelta(
-                minutes=entry.options.get("refresh_interval", DEFAULT_REFRESH_INTERVAL)
+                minutes=entry.options.get(
+                    "refresh_interval", DEFAULT_REFRESH_INTERVAL)
             ),
         )
         self.config_entry = entry
@@ -151,7 +152,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         self.config_entry.options.get("decode_html", False),
                     )
 
-                    self.data[f"{eleve.get_fullname_lower()}_homework"] = homeworks
+                    self.data[f"{
+                        eleve.get_fullname_lower()}_homework"] = homeworks
 
                     self.compare_data(
                         previous_data,
@@ -205,14 +207,18 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         eleve,
                         year_data,
                         self.hass.config.config_dir,
-                        self.config_entry.options.get("notes_affichees", GRADES_TO_DISPLAY)
+                        self.config_entry.options.get(
+                            "notes_affichees", GRADES_TO_DISPLAY)
                     )
                     disciplines = grades_evaluations["disciplines"]
-                    self.data[f"{eleve.get_fullname_lower()}_disciplines"] = disciplines
+                    self.data[f"{
+                        eleve.get_fullname_lower()}_disciplines"] = disciplines
                     for discipline in disciplines:
-                        self.data[f"{eleve.get_fullname_lower()}_{discipline["name"]}"] = discipline
+                        self.data[f"{eleve.get_fullname_lower()}_{
+                            discipline["name"]}"] = discipline
 
-                    self.data[f"{eleve.get_fullname_lower()}_moyenne_generale"] = grades_evaluations["moyenne_generale"]
+                    self.data[f"{eleve.get_fullname_lower(
+                    )}_moyenne_generale"] = grades_evaluations["moyenne_generale"]
 
                     self.data[f"{eleve.get_fullname_lower()}_grades"] = (
                         grades_evaluations["grades"]
@@ -236,7 +242,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         eleve,
                     )
                 except Exception as ex:
-                    _LOGGER.warning("Error getting grades from ecole directe: %s", ex)
+                    _LOGGER.warning(
+                        "Error getting grades from ecole directe: %s", ex)
 
             if DEBUG_ON or "EDT" in eleve.modules:
                 try:
@@ -281,7 +288,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     )
                     self.data[f"{eleve.get_fullname_lower()}_timetable_period"] = list(
                         filter(
-                            lambda lesson: lesson["start"].date() >= current_week_begin
+                            lambda lesson: lesson["start"].date(
+                            ) >= current_week_begin
                             and lesson["start"].date() <= current_week_end,
                             lessons,
                         )
@@ -289,7 +297,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     self.data[f"{eleve.get_fullname_lower()}_timetable_period_1"] = (
                         list(
                             filter(
-                                lambda lesson: lesson["start"].date() >= next_week_begin
+                                lambda lesson: lesson["start"].date(
+                                ) >= next_week_begin
                                 and lesson["start"].date() <= next_week_end,
                                 lessons,
                             )
@@ -306,7 +315,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     )
 
                 except Exception as ex:
-                    _LOGGER.warning("Error getting Lessons from ecole directe: %s", ex)
+                    _LOGGER.warning(
+                        "Error getting Lessons from ecole directe: %s", ex)
 
             if DEBUG_ON or "VIE_SCOLAIRE" in eleve.modules:
                 try:
@@ -378,7 +388,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         self.hass.config.config_dir,
                     )
                 except Exception as ex:
-                    _LOGGER.warning("Error getting messages from ecole directe: %s", ex)
+                    _LOGGER.warning(
+                        "Error getting messages from ecole directe: %s", ex)
 
         return self.data
 

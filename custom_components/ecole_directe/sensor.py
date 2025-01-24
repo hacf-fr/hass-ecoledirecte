@@ -70,8 +70,7 @@ async def async_setup_entry(
                     sensors.append(EDDisciplineSensor(
                         coordinator, eleve, discipline["name"], discipline["moyenne"]))
                 if f"{eleve.get_fullname_lower()}_moyenne_generale" in coordinator.data:
-                    sensors.append(EDMoyenneSensor(coordinator, eleve, coordinator.data[f"{
-                                   eleve.get_fullname_lower()}_moyenne_generale"]))
+                    sensors.append(EDMoyenneSensor(coordinator, eleve))
 
             if DEBUG_ON or "VIE_SCOLAIRE" in eleve.modules:
                 sensors.append(EDAbsencesSensor(coordinator, eleve))
@@ -370,9 +369,10 @@ class EDLessonsSensor(EDGenericSensor):
 class EDMoyenneSensor(EDGenericSensor):
     """Representation of a ED sensor."""
 
-    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve, note) -> None:
+    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
-        super().__init__(coordinator, "moyenne_generale", eleve, note)
+        super().__init__(coordinator, "moyenne_generale", eleve)
+        self._state = self.coordinator.data[self._name]["moyenneGenerale"]
 
     @property
     def extra_state_attributes(self):

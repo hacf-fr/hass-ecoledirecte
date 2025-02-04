@@ -510,7 +510,9 @@ def get_grades_evaluations(token, eleve, annee_scolaire, config_path, grades_dis
     if "periodes" in data:
         data["periodes"].sort(key=operator.itemgetter("dateDebut"))
         for periode_json in data["periodes"]:
-            if "trimestre" not in periode_json["periode"].lower():
+            if periode_json["cloture"] == True:
+                continue
+            if "trimestre" not in periode_json["periode"].lower() and "semestre" not in periode_json["periode"].lower():
                 continue
             if datetime.now() < datetime.strptime(
                 periode_json["dateDebut"], "%Y-%m-%d"
@@ -520,14 +522,13 @@ def get_grades_evaluations(token, eleve, annee_scolaire, config_path, grades_dis
                 continue
             response["disciplines"] = get_disciplines_periode(periode_json)
             if "ensembleMatieres" in periode_json:
-                if "moyenneGenerale" in periode_json["ensembleMatieres"]:
-                    response["moyenne_generale"] = {
-                        "moyenneGenerale": periode_json["ensembleMatieres"].get("moyenneGenerale", "").replace(",", "."),
-                        "moyenneClasse": periode_json["ensembleMatieres"].get("moyenneClasse", "").replace(",", "."),
-                        "moyenneMin": periode_json["ensembleMatieres"].get("moyenneMin", "").replace(",", "."),
-                        "moyenneMax": periode_json["ensembleMatieres"].get("moyenneMax", "").replace(",", "."),
-                        "dateCalcul": periode_json["ensembleMatieres"].get("dateCalcul", ""),
-                    }
+                response["moyenne_generale"] = {
+                    "moyenneGenerale": (periode_json["ensembleMatieres"].get("moyenneGenerale") or "").replace(",", "."),
+                    "moyenneClasse": (periode_json["ensembleMatieres"].get("moyenneClasse") or "").replace(",", "."),
+                    "moyenneMin": (periode_json["ensembleMatieres"].get("moyenneMin") or "").replace(",", "."),
+                    "moyenneMax": (periode_json["ensembleMatieres"].get("moyenneMax") or "").replace(",", "."),
+                    "dateCalcul": (periode_json["ensembleMatieres"].get("dateCalcul") or ""),
+                }
             break
 
     if "notes" in data:
@@ -585,7 +586,10 @@ def get_disciplines_periode(data):
         if "ensembleMatieres" in data:
             if "disciplines" in data["ensembleMatieres"]:
                 for discipline_json in data["ensembleMatieres"]["disciplines"]:
+                    if "codeSousMatiere" in discipline_json and len(discipline_json["codeSousMatiere"]) > 0:
+                        continue
                     discipline = {
+                        "code": discipline_json.get("codeMatiere", "").lower(),
                         "name": discipline_json.get("discipline", "").lower(),
                         "moyenne": discipline_json.get("moyenne", "").replace(",", "."),
                         "moyenneClasse": discipline_json.get("moyenneClasse", "").replace(",", "."),

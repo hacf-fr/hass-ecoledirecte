@@ -217,8 +217,9 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         self.data[f"{eleve.get_fullname_lower()}_{
                             discipline["name"]}"] = discipline
 
-                    self.data[f"{eleve.get_fullname_lower(
-                    )}_moyenne_generale"] = grades_evaluations["moyenne_generale"]
+                    if grades_evaluations["moyenne_generale"]:
+                        self.data[f"{eleve.get_fullname_lower(
+                        )}_moyenne_generale"] = grades_evaluations["moyenne_generale"]
 
                     self.data[f"{eleve.get_fullname_lower()}_grades"] = (
                         grades_evaluations["grades"]

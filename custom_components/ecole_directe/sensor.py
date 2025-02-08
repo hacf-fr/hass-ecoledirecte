@@ -1,6 +1,5 @@
 """Module providing sensors to Home Assistant."""
 
-import logging
 import operator
 
 from datetime import datetime
@@ -20,9 +19,7 @@ from homeassistant.helpers.update_coordinator import (
 
 from .ecole_directe_helper import EDEleve
 from .coordinator import EDDataUpdateCoordinator
-from .const import DEBUG_ON, DEFAULT_LUNCH_BREAK_TIME, DOMAIN, MAX_STATE_ATTRS_BYTES
-
-_LOGGER = logging.getLogger(__name__)
+from .const import DEBUG_ON, DEFAULT_LUNCH_BREAK_TIME, DOMAIN, LOGGER, MAX_STATE_ATTRS_BYTES
 
 
 async def async_setup_entry(
@@ -235,8 +232,8 @@ class EDHomeworksSensor(EDGenericSensor):
 
         if is_too_big(attributes):
             attributes = []
-            _LOGGER.warning("[%s] attributes are too big! %s",
-                            self._name, attributes)
+            LOGGER.warning("[%s] attributes are too big! %s",
+                           self._name, attributes)
 
         return {
             "updated_at": self.coordinator.last_update_success_time,
@@ -349,8 +346,8 @@ class EDLessonsSensor(EDGenericSensor):
                     ):
                         self._lunch_break_end_at = lesson["start"]
         if is_too_big(attributes):
-            _LOGGER.warning("[%s] attributes are too big! %s",
-                            self._name, attributes)
+            LOGGER.warning("[%s] attributes are too big! %s",
+                           self._name, attributes)
             attributes = []
         result = {
             "updated_at": self.coordinator.last_update_success_time,

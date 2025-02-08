@@ -2,5 +2,7 @@
   "name": "Ecole Directe",
   "country": "FR",
   "render_readme": true,
-  "homeassistant": "2024.2.0"
+  "homeassistant": "2024.2.0",
+  "zip_release": true,
+  "filename": "ecole_directe.zip"
 }

@@ -4,7 +4,6 @@ from datetime import datetime
 import json
 import operator
 import re
-import logging
 import urllib
 import base64
 import requests
@@ -12,6 +11,7 @@ import requests
 from homeassistant.components.persistent_notification import async_create
 from .const import (
     DEBUG_ON,
+    LOGGER,
     VIE_SCOLAIRE_TO_DISPLAY,
     EVENT_TYPE,
     GRADES_TO_DISPLAY,
@@ -19,10 +19,8 @@ from .const import (
     HOMEWORK_DESC_MAX_LENGTH,
 )
 
-_LOGGER = logging.getLogger(__name__)
-
 APIURL = "https://api.ecoledirecte.com/v3"
-APIVERSION = "4.62.1"
+APIVERSION = "4.70.0"
 
 # as per recommendation from @freylis, compile once only
 CLEANR = re.compile("<.*?>")
@@ -58,9 +56,8 @@ def get_response(token, url, payload, file_path):
     if payload is None:
         payload = "data={}"
 
-    _LOGGER.debug("URL: [%s] - Payload: [%s]", url, payload)
-    response = requests.post(
-        url, data=payload, headers=get_headers(token), timeout=120)
+    LOGGER.debug("URL: [%s] - Payload: [%s]", url, payload)
+    response = requests.post(url, data=payload, headers=get_headers(token), timeout=120)
 
     try:
         resp_json = response.json()
@@ -72,23 +69,21 @@ def get_response(token, url, payload, file_path):
             json.dump(resp_json, f, ensure_ascii=False, indent=4)
 
     except Exception as ex:
-        raise RequestError(f"Error with URL:[{url}]: {
-                           response.content}") from ex
+        raise RequestError(f"Error with URL:[{url}]: {response.content}") from ex
 
     if "code" not in resp_json:
         raise RequestError(f"Error with URL:[{url}]: json:[{resp_json}]")
 
     if resp_json["code"] == 250 and token is None:
-        _LOGGER.debug("%s", resp_json)
+        LOGGER.debug("%s", resp_json)
         return resp_json
 
     if resp_json["code"] != 200:
         raise RequestError(
-            f"Error with URL:[{url}] - Code {resp_json["code"]
-                                             }: {resp_json["message"]}"
+            f"Error with URL:[{url}] - Code {resp_json['code']}: {resp_json['message']}"
         )
 
-    _LOGGER.debug("%s", resp_json)
+    LOGGER.debug("%s", resp_json)
     return resp_json
 
 
@@ -137,8 +132,7 @@ class EDSession:
             if "eleves" in data["data"]["accounts"][0]["profile"]:
                 for eleve in data["data"]["accounts"][0]["profile"]["eleves"]:
                     self.eleves.append(
-                        EDEleve(eleve, data["data"]
-                                ["accounts"][0]["nomEtablissement"])
+                        EDEleve(eleve, data["data"]["accounts"][0]["nomEtablissement"])
                     )
 
 
@@ -179,10 +173,9 @@ class EDEleve:
 
     def get_fullname_lower(self) -> str | None:
         """Student fullname lowercase"""
-        return f"{re.sub("[^A-Za-z]", "_",
-                         self.eleve_firstname.lower())
-                  }_{
-            re.sub("[^A-Za-z]", "_", self.eleve_lastname.lower())}"
+        return f"{re.sub('[^A-Za-z]', '_', self.eleve_firstname.lower())}_{
+            re.sub('[^A-Za-z]', '_', self.eleve_lastname.lower())
+        }"
 
     def get_fullname(self) -> str | None:
         """Student fullname"""
@@ -244,7 +237,7 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
                     )
                     # Si le quiz a été raté
                     if not cn_et_cv:
-                        _LOGGER.warning(
+                        LOGGER.warning(
                             "qcm raté pour la question [%s], vérifier le fichier %s. [%s]",
                             question,
                             data["qcm_filename"],
@@ -258,8 +251,7 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
                     rep = []
                     propositions = qcm["propositions"]
                     for proposition in propositions:
-                        rep.append(base64.b64decode(
-                            proposition).decode("utf-8"))
+                        rep.append(base64.b64decode(proposition).decode("utf-8"))
 
                     qcm_json[question] = rep
 
@@ -291,7 +283,7 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
                     "Vérifiez le fichier qcm.json, et rechargez l'intégration Ecole Directe."
                 )
 
-            _LOGGER.debug("cn: [%s] - cv: [%s]", cn, cv)
+            LOGGER.debug("cn: [%s] - cv: [%s]", cn, cv)
 
             payload = (
                 'data={"identifiant":"'
@@ -313,16 +305,16 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
                 config_path + INTEGRATION_PATH + "get_ecoledirecte_session2.json",
             )
 
-        _LOGGER.info(
+        LOGGER.info(
             "Connection OK - identifiant: [{%s}]",
             login["data"]["accounts"][0]["identifiant"],
         )
         return EDSession(login)
     except QCMError as err:
-        _LOGGER.warning(err)
+        LOGGER.warning(err)
         raise
     except Exception as err:
-        _LOGGER.critical(err)
+        LOGGER.critical(err)
         return None
 
 
@@ -338,7 +330,7 @@ def get_qcm_connexion(token, config_path):
 
     if "data" in json_resp:
         return json_resp["data"]
-    _LOGGER.warning("get_qcm_connexion: [%s]", json_resp)
+    LOGGER.warning("get_qcm_connexion: [%s]", json_resp)
     return None
 
 
@@ -354,7 +346,7 @@ def post_qcm_connexion(token, proposition, config_path):
 
     if "data" in json_resp:
         return json_resp["data"]
-    _LOGGER.warning("post_qcm_connexion: [%s]", json_resp)
+    LOGGER.warning("post_qcm_connexion: [%s]", json_resp)
     return None
 
 
@@ -387,7 +379,7 @@ def get_messages(token, id, eleve, annee_scolaire, config_path):
             )
 
     if "data" not in json_resp:
-        _LOGGER.warning("get_messages: [%s]", json_resp)
+        LOGGER.warning("get_messages: [%s]", json_resp)
         return None
 
     return json_resp["data"]["pagination"]
@@ -412,7 +404,7 @@ def get_homeworks_by_date(token, eleve, date, config_path):
     )
     if "data" in json_resp:
         return json_resp["data"]
-    _LOGGER.warning("get_homeworks_by_date: [%s]", json_resp)
+    LOGGER.warning("get_homeworks_by_date: [%s]", json_resp)
     return None
 
 
@@ -432,7 +424,7 @@ def get_homeworks(token, eleve, config_path, decode_html):
         )
 
     if "data" not in json_resp:
-        _LOGGER.warning("get_homeworks: [%s]", json_resp)
+        LOGGER.warning("get_homeworks: [%s]", json_resp)
         return None
 
     data = json_resp["data"]
@@ -480,7 +472,9 @@ def clean_html(raw_html):
     return cleantext
 
 
-def get_grades_evaluations(token, eleve, annee_scolaire, config_path, grades_dispaly=GRADES_TO_DISPLAY):
+def get_grades_evaluations(
+    token, eleve, annee_scolaire, config_path, grades_dispaly=GRADES_TO_DISPLAY
+):
     """get grades"""
 
     if DEBUG_ON:
@@ -496,7 +490,7 @@ def get_grades_evaluations(token, eleve, annee_scolaire, config_path, grades_dis
         )
 
     if "data" not in json_resp:
-        _LOGGER.warning("get_grades_evaluations: [%s]", json_resp)
+        LOGGER.warning("get_grades_evaluations: [%s]", json_resp)
         return None
 
     response = {}
@@ -512,7 +506,10 @@ def get_grades_evaluations(token, eleve, annee_scolaire, config_path, grades_dis
         for periode_json in data["periodes"]:
             if periode_json["cloture"] == True:
                 continue
-            if "trimestre" not in periode_json["periode"].lower() and "semestre" not in periode_json["periode"].lower():
+            if (
+                "trimestre" not in periode_json["periode"].lower()
+                and "semestre" not in periode_json["periode"].lower()
+            ):
                 continue
             if datetime.now() < datetime.strptime(
                 periode_json["dateDebut"], "%Y-%m-%d"
@@ -523,11 +520,21 @@ def get_grades_evaluations(token, eleve, annee_scolaire, config_path, grades_dis
             response["disciplines"] = get_disciplines_periode(periode_json)
             if "ensembleMatieres" in periode_json:
                 response["moyenne_generale"] = {
-                    "moyenneGenerale": (periode_json["ensembleMatieres"].get("moyenneGenerale") or "").replace(",", "."),
-                    "moyenneClasse": (periode_json["ensembleMatieres"].get("moyenneClasse") or "").replace(",", "."),
-                    "moyenneMin": (periode_json["ensembleMatieres"].get("moyenneMin") or "").replace(",", "."),
-                    "moyenneMax": (periode_json["ensembleMatieres"].get("moyenneMax") or "").replace(",", "."),
-                    "dateCalcul": (periode_json["ensembleMatieres"].get("dateCalcul") or ""),
+                    "moyenneGenerale": (
+                        periode_json["ensembleMatieres"].get("moyenneGenerale") or ""
+                    ).replace(",", "."),
+                    "moyenneClasse": (
+                        periode_json["ensembleMatieres"].get("moyenneClasse") or ""
+                    ).replace(",", "."),
+                    "moyenneMin": (
+                        periode_json["ensembleMatieres"].get("moyenneMin") or ""
+                    ).replace(",", "."),
+                    "moyenneMax": (
+                        periode_json["ensembleMatieres"].get("moyenneMax") or ""
+                    ).replace(",", "."),
+                    "dateCalcul": (
+                        periode_json["ensembleMatieres"].get("dateCalcul") or ""
+                    ),
                 }
             break
 
@@ -586,21 +593,30 @@ def get_disciplines_periode(data):
         if "ensembleMatieres" in data:
             if "disciplines" in data["ensembleMatieres"]:
                 for discipline_json in data["ensembleMatieres"]["disciplines"]:
-                    if "codeSousMatiere" in discipline_json and len(discipline_json["codeSousMatiere"]) > 0:
+                    if (
+                        "codeSousMatiere" in discipline_json
+                        and len(discipline_json["codeSousMatiere"]) > 0
+                    ):
                         continue
                     discipline = {
                         "code": discipline_json.get("codeMatiere", "").lower(),
                         "name": discipline_json.get("discipline", "").lower(),
                         "moyenne": discipline_json.get("moyenne", "").replace(",", "."),
-                        "moyenneClasse": discipline_json.get("moyenneClasse", "").replace(",", "."),
-                        "moyenneMin": discipline_json.get("moyenneMin", "").replace(",", "."),
-                        "moyenneMax": discipline_json.get("moyenneMax", "").replace(",", "."),
+                        "moyenneClasse": discipline_json.get(
+                            "moyenneClasse", ""
+                        ).replace(",", "."),
+                        "moyenneMin": discipline_json.get("moyenneMin", "").replace(
+                            ",", "."
+                        ),
+                        "moyenneMax": discipline_json.get("moyenneMax", "").replace(
+                            ",", "."
+                        ),
                         "appreciations": discipline_json.get("appreciations", ""),
                     }
                     disciplines.append(discipline)
         return disciplines
     except Exception as ex:
-        _LOGGER.warning("get_periode: %s", ex)
+        LOGGER.warning("get_periode: %s", ex)
         raise
 
 
@@ -627,7 +643,7 @@ def get_evaluation(data):
             ],
         }
     except Exception as ex:
-        _LOGGER.warning("get_evaluation: %s", ex)
+        LOGGER.warning("get_evaluation: %s", ex)
         raise
 
 
@@ -660,8 +676,7 @@ def get_vie_scolaire(token, eleve, config_path):
 
     if DEBUG_ON:
         # Opening JSON file
-        f = open(config_path + INTEGRATION_PATH +
-                 "test/test_vie_scolaire.json")
+        f = open(config_path + INTEGRATION_PATH + "test/test_vie_scolaire.json")
         json_resp = json.load(f)
     else:
         json_resp = get_response(
@@ -672,7 +687,7 @@ def get_vie_scolaire(token, eleve, config_path):
         )
 
     if "data" not in json_resp:
-        _LOGGER.warning("get_vie_scolaire: [%s]", json_resp)
+        LOGGER.warning("get_vie_scolaire: [%s]", json_resp)
         return None
 
     response = {}
@@ -735,7 +750,7 @@ def get_vie_scolaire_element(viescolaire) -> dict:
             "commentaire": viescolaire["commentaire"],
         }
     except Exception as ex:
-        _LOGGER.warning("Error: %s - format_viescolaire: %s", ex, viescolaire)
+        LOGGER.warning("Error: %s - format_viescolaire: %s", ex, viescolaire)
         return {}
 
 
@@ -751,12 +766,13 @@ def get_lessons(token, eleve, date_debut, date_fin, config_path, lunch_break_tim
             token,
             f"{APIURL}/E/{eleve.eleve_id}/emploidutemps.awp?verbe=get&v={APIVERSION}",
             f"data={{'dateDebut': '{date_debut}','dateFin': '{
-                date_fin}','avecTrous': false}}",
+                date_fin
+            }','avecTrous': false}}",
             f"{config_path + INTEGRATION_PATH}{eleve.eleve_id}_get_lessons.json",
         )
 
     if "data" not in json_resp:
-        _LOGGER.warning("get_lessons: [%s]", json_resp)
+        LOGGER.warning("get_lessons: [%s]", json_resp)
         return None
 
     response = []
@@ -809,8 +825,7 @@ def get_formulaires(token, account_type, id_entity, config_path):
     """Get formulaires"""
 
     payload = (
-        'data={"typeEntity": "' + account_type +
-        '","idEntity":' + str(id_entity) + "}"
+        'data={"typeEntity": "' + account_type + '","idEntity":' + str(id_entity) + "}"
     )
     json_resp = get_response(
         token,
@@ -819,7 +834,7 @@ def get_formulaires(token, account_type, id_entity, config_path):
         config_path + INTEGRATION_PATH + "get_formulaires.json",
     )
     if "data" not in json_resp:
-        _LOGGER.warning("get_formulaires: [%s]", json_resp)
+        LOGGER.warning("get_formulaires: [%s]", json_resp)
         return None
 
     response = []
@@ -847,7 +862,7 @@ def get_classe(token, classe_id, config_path):
         "data={}",
         f"{config_path + INTEGRATION_PATH}get_classe_{classe_id}.json",
     )
-    _LOGGER.warning("get_classe: [%s]", json_resp)
+    LOGGER.warning("get_classe: [%s]", json_resp)
 
     json_resp = get_response(
         token,
@@ -855,6 +870,6 @@ def get_classe(token, classe_id, config_path):
         "data={}",
         f"{config_path + INTEGRATION_PATH}get_classeV2_{classe_id}.json",
     )
-    _LOGGER.warning("get_classeV2: [%s]", json_resp)
+    LOGGER.warning("get_classeV2: [%s]", json_resp)
 
     return None

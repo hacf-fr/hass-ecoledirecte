@@ -1,6 +1,9 @@
 """Constants for the Ecole Directe integration."""
 
 from homeassistant.const import Platform
+from logging import Logger, getLogger
+
+LOGGER: Logger = getLogger(__package__)
 
 DOMAIN = "ecole_directe"
 EVENT_TYPE = DOMAIN + "_event"

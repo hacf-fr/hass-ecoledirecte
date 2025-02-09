@@ -1,6 +1,5 @@
 """Module providing sensors to Home Assistant."""
 
-import logging
 import operator
 
 from datetime import datetime
@@ -20,9 +19,13 @@ from homeassistant.helpers.update_coordinator import (
 
 from .ecole_directe_helper import EDEleve
 from .coordinator import EDDataUpdateCoordinator
-from .const import DEBUG_ON, DEFAULT_LUNCH_BREAK_TIME, DOMAIN, MAX_STATE_ATTRS_BYTES
-
-_LOGGER = logging.getLogger(__name__)
+from .const import (
+    DEBUG_ON,
+    DEFAULT_LUNCH_BREAK_TIME,
+    DOMAIN,
+    LOGGER,
+    MAX_STATE_ATTRS_BYTES,
+)
 
 
 async def async_setup_entry(
@@ -42,43 +45,76 @@ async def async_setup_entry(
         and "session" in coordinator.data
         and coordinator.data["session"].eleves is not None
     ):
-        if "EDFORMS" in coordinator.data["session"].modules:
-            sensors.append(EDFormulairesSensor(coordinator))
-        if "MESSAGERIE" in coordinator.data["session"].modules:
-            sensors.append(EDMessagerieSensor(coordinator, None))
+        try:
+            if "EDFORMS" in coordinator.data["session"].modules:
+                sensors.append(EDFormulairesSensor(coordinator))
+            if "MESSAGERIE" in coordinator.data["session"].modules:
+                sensors.append(EDMessagerieSensor(coordinator, None))
+        except Exception as e:
+            LOGGER.error("Error while creating generic sensors: %s", e)
 
         for eleve in coordinator.data["session"].eleves:
             sensors.append(EDChildSensor(coordinator, eleve))
             if DEBUG_ON or "CAHIER_DE_TEXTES" in eleve.modules:
-                sensors.append(EDHomeworksSensor(coordinator, eleve, ""))
-                sensors.append(EDHomeworksSensor(coordinator, eleve, "_1"))
-                sensors.append(EDHomeworksSensor(coordinator, eleve, "_2"))
-                sensors.append(EDHomeworksSensor(coordinator, eleve, "_3"))
+                try:
+                    sensors.append(EDHomeworksSensor(coordinator, eleve, ""))
+                    sensors.append(EDHomeworksSensor(coordinator, eleve, "_1"))
+                    sensors.append(EDHomeworksSensor(coordinator, eleve, "_2"))
+                    sensors.append(EDHomeworksSensor(coordinator, eleve, "_3"))
+                except Exception as e:
+                    LOGGER.error("Error while creating homeworks sensors: %s", e)
             if DEBUG_ON or "EDT" in eleve.modules:
-                sensors.append(EDLessonsSensor(coordinator, eleve, "today"))
-                sensors.append(EDLessonsSensor(coordinator, eleve, "tomorrow"))
-                sensors.append(EDLessonsSensor(coordinator, eleve, "next_day"))
-                sensors.append(EDLessonsSensor(coordinator, eleve, "period"))
-                sensors.append(EDLessonsSensor(coordinator, eleve, "period_1"))
-                sensors.append(EDLessonsSensor(coordinator, eleve, "period_2"))
+                try:
+                    sensors.append(EDLessonsSensor(coordinator, eleve, "today"))
+                    sensors.append(EDLessonsSensor(coordinator, eleve, "tomorrow"))
+                    sensors.append(EDLessonsSensor(coordinator, eleve, "next_day"))
+                    sensors.append(EDLessonsSensor(coordinator, eleve, "period"))
+                    sensors.append(EDLessonsSensor(coordinator, eleve, "period_1"))
+                    sensors.append(EDLessonsSensor(coordinator, eleve, "period_2"))
+                except Exception as e:
+                    LOGGER.error("Error while creating lessons sensors: %s", e)
             if DEBUG_ON or "NOTES" in eleve.modules:
-                sensors.append(EDGradesSensor(coordinator, eleve))
-                sensors.append(EDEvaluationsSensor(coordinator, eleve))
-                disciplines = coordinator.data[f"{
-                    eleve.get_fullname_lower()}_disciplines"]
-                for discipline in disciplines:
-                    sensors.append(EDDisciplineSensor(
-                        coordinator, eleve, discipline["name"], discipline["moyenne"]))
-                if f"{eleve.get_fullname_lower()}_moyenne_generale" in coordinator.data:
-                    sensors.append(EDMoyenneSensor(coordinator, eleve))
+                try:
+                    sensors.append(EDGradesSensor(coordinator, eleve))
+                    sensors.append(EDEvaluationsSensor(coordinator, eleve))
+                except Exception as e:
+                    LOGGER.error("Error while creating grades sensors: %s", e)
+                try:
+                    disciplines = coordinator.data[
+                        f"{eleve.get_fullname_lower()}_disciplines"
+                    ]
+                    for discipline in disciplines:
+                        sensors.append(
+                            EDDisciplineSensor(
+                                coordinator,
+                                eleve,
+                                discipline["name"],
+                                discipline["moyenne"],
+                            )
+                        )
+                    if (
+                        f"{eleve.get_fullname_lower()}_moyenne_generale"
+                        in coordinator.data
+                    ):
+                        sensors.append(EDMoyenneSensor(coordinator, eleve))
+                except Exception as e:
+                    LOGGER.error("Error while creating moyennes sensors: %s", e)
 
             if DEBUG_ON or "VIE_SCOLAIRE" in eleve.modules:
-                sensors.append(EDAbsencesSensor(coordinator, eleve))
-                sensors.append(EDRetardsSensor(coordinator, eleve))
-                sensors.append(EDEncouragementsSensor(coordinator, eleve))
-                sensors.append(EDSanctionsSensor(coordinator, eleve))
+                try:
+                    sensors.append(EDAbsencesSensor(coordinator, eleve))
+                    sensors.append(EDRetardsSensor(coordinator, eleve))
+                    sensors.append(EDEncouragementsSensor(coordinator, eleve))
+                    sensors.append(EDSanctionsSensor(coordinator, eleve))
+                except Exception as e:
+                    LOGGER.error("Error while creating VIE_SCOLAIRE sensors: %s", e)
             if DEBUG_ON or "MESSAGERIE" in coordinator.data["session"].modules:
-                sensors.append(EDMessagerieSensor(coordinator, eleve))
+                try:
+                    sensors.append(EDMessagerieSensor(coordinator, eleve))
+                except Exception as e:
+                    LOGGER.error(
+                        "Error while creating student messagerie sensors: %s", e
+                    )
 
         async_add_entities(sensors, False)
 
@@ -159,8 +195,7 @@ class EDChildSensor(EDGenericSensor):
     def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
         super().__init__(coordinator, "", eleve, "len")
-        self._attr_unique_id = f"ed_{eleve.get_fullname_lower()}_{
-            eleve.eleve_id}]"
+        self._attr_unique_id = f"ed_{eleve.get_fullname_lower()}_{eleve.eleve_id}]"
         self._account_type = self.coordinator.data["session"]._account_type
 
     @property
@@ -217,8 +252,7 @@ class EDHomeworksSensor(EDGenericSensor):
             in self.coordinator.data
         ):
             homeworks = self.coordinator.data[
-                f"{self._child_info.get_fullname_lower()}_homework{
-                    self._suffix}"
+                f"{self._child_info.get_fullname_lower()}_homework{self._suffix}"
             ]
             for homework in homeworks:
                 if not homework["done"]:
@@ -235,8 +269,7 @@ class EDHomeworksSensor(EDGenericSensor):
 
         if is_too_big(attributes):
             attributes = []
-            _LOGGER.warning("[%s] attributes are too big! %s",
-                            self._name, attributes)
+            LOGGER.warning("[%s] attributes are too big! %s", self._name, attributes)
 
         return {
             "updated_at": self.coordinator.last_update_success_time,
@@ -271,7 +304,9 @@ class EDGradesSensor(EDGenericSensor):
 class EDDisciplineSensor(EDGenericSensor):
     """Representation of a ED sensor."""
 
-    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve, nom, note) -> None:
+    def __init__(
+        self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve, nom, note
+    ) -> None:
         """Initialize the ED sensor."""
         super().__init__(coordinator, nom, eleve, note)
 
@@ -287,7 +322,7 @@ class EDDisciplineSensor(EDGenericSensor):
             "moyenneClasse": discipline["moyenneClasse"],
             "moyenneMin": discipline["moyenneMin"],
             "moyenneMax": discipline["moyenneMax"],
-            "appreciations": discipline["appreciations"]
+            "appreciations": discipline["appreciations"],
         }
 
 
@@ -298,7 +333,9 @@ class EDLessonsSensor(EDGenericSensor):
         self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve, suffix: str
     ) -> None:
         """Initialize the ED sensor."""
-        super().__init__(coordinator, name="timetable_" + suffix, eleve=eleve, state="len")
+        super().__init__(
+            coordinator, name="timetable_" + suffix, eleve=eleve, state="len"
+        )
         self._suffix = suffix
         self._start_at = None
         self._end_at = None
@@ -349,8 +386,7 @@ class EDLessonsSensor(EDGenericSensor):
                     ):
                         self._lunch_break_end_at = lesson["start"]
         if is_too_big(attributes):
-            _LOGGER.warning("[%s] attributes are too big! %s",
-                            self._name, attributes)
+            LOGGER.warning("[%s] attributes are too big! %s", self._name, attributes)
             attributes = []
         result = {
             "updated_at": self.coordinator.last_update_success_time,

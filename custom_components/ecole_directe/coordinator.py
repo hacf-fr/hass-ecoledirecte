@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -29,9 +28,8 @@ from .const import (
     DEFAULT_REFRESH_INTERVAL,
     EVENT_TYPE,
     GRADES_TO_DISPLAY,
+    LOGGER
 )
-
-_LOGGER = logging.getLogger(__name__)
 
 
 class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
@@ -43,7 +41,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         """Initialize the coordinator."""
         super().__init__(
             hass=hass,
-            logger=_LOGGER,
+            logger=LOGGER,
             name=entry.title,
             update_interval=timedelta(
                 minutes=entry.options.get(
@@ -55,7 +53,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
     async def _async_update_data(self) -> dict[Platform, dict[str, Any]]:
         """Get the latest data from Ecole Directe and updates the state."""
         if DEBUG_ON:
-            _LOGGER.info("DEBUG MODE ON")
+            LOGGER.info("DEBUG MODE ON")
 
         previous_data = None if self.data is None else self.data.copy()
 
@@ -66,7 +64,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         )
 
         if session is None:
-            _LOGGER.error("Unable to init ecole directe client")
+            LOGGER.error("Unable to init ecole directe client")
             return None
 
         self.data = {}
@@ -101,7 +99,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         self.hass.config.config_dir,
                     )
             except Exception as ex:
-                _LOGGER.warning("Error getting classes: %s", ex)
+                LOGGER.warning("Error getting classes: %s", ex)
 
         if session._account_type == "1":  # famille
             if "MESSAGERIE" in session.modules:
@@ -116,7 +114,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     )
 
                 except Exception as ex:
-                    _LOGGER.warning(
+                    LOGGER.warning(
                         "Error getting messages for family from ecole directe: %s", ex
                     )
 
@@ -137,7 +135,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         None,
                     )
                 except Exception as ex:
-                    _LOGGER.warning(
+                    LOGGER.warning(
                         "Error getting formulaires from ecole directe: %s", ex
                     )
 
@@ -196,7 +194,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     )
 
                 except Exception as ex:
-                    _LOGGER.warning(
+                    LOGGER.warning(
                         "Error getting homeworks from ecole directe: %s", ex
                     )
             if DEBUG_ON or "NOTES" in eleve.modules:
@@ -243,7 +241,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         eleve,
                     )
                 except Exception as ex:
-                    _LOGGER.warning(
+                    LOGGER.warning(
                         "Error getting grades from ecole directe: %s", ex)
 
             if DEBUG_ON or "EDT" in eleve.modules:
@@ -316,7 +314,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     )
 
                 except Exception as ex:
-                    _LOGGER.warning(
+                    LOGGER.warning(
                         "Error getting Lessons from ecole directe: %s", ex)
 
             if DEBUG_ON or "VIE_SCOLAIRE" in eleve.modules:
@@ -373,7 +371,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             eleve,
                         )
                 except Exception as ex:
-                    _LOGGER.warning(
+                    LOGGER.warning(
                         "Error getting vie scolaire from ecole directe: %s", ex
                     )
             if DEBUG_ON or "MESSAGERIE" in eleve.modules:
@@ -389,7 +387,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         self.hass.config.config_dir,
                     )
                 except Exception as ex:
-                    _LOGGER.warning(
+                    LOGGER.warning(
                         "Error getting messages from ecole directe: %s", ex)
 
         return self.data
@@ -424,7 +422,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 for not_found_item in not_found_items:
                     self.trigger_event(event_type, eleve, not_found_item)
         except Exception as ex:
-            _LOGGER.warning(
+            LOGGER.warning(
                 "Error comparing data: self[%s] previous_data[%s] data_key[%s] ex[%s]",
                 self,
                 previous_data,

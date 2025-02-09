@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import os.path
-import logging
 from typing import Any
 import voluptuous as vol
 
@@ -24,9 +23,8 @@ from .const import (
     DEFAULT_REFRESH_INTERVAL,
     FILENAME_QCM,
     GRADES_TO_DISPLAY,
+    LOGGER
 )
-
-_LOGGER = logging.getLogger(__name__)
 
 STEP_USER_DATA_SCHEMA_UP = vol.Schema(
     {
@@ -53,7 +51,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input: dict | None = None) -> FlowResult:
         """Handle a flow initialized by the user."""
-        _LOGGER.debug("ED - Setup process initiated by user.")
+        LOGGER.debug("ED - Setup process initiated by user.")
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -144,11 +142,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     ): str,
                     vol.Optional(
                         "decode_html",
-                        default=self.config_entry.options.get("decode_html", False),
+                        default=self.config_entry.options.get(
+                            "decode_html", False),
                     ): bool,
                     vol.Optional(
                         "notes_affichees",
-                        default=self.config_entry.options.get("notes_affichees", GRADES_TO_DISPLAY),
+                        default=self.config_entry.options.get(
+                            "notes_affichees", GRADES_TO_DISPLAY),
                     ): int,
                 }
             ),

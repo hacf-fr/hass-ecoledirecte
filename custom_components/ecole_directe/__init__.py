@@ -1,8 +1,11 @@
-"""Ecole Directe integration."""
+"""
+Ecole Directe integration.
+
+For more details about this integration, please refer to
+https://github.com/hacf-fr/hass-ecoledirecte
+"""
 
 from __future__ import annotations
-
-import logging
 
 from datetime import timedelta
 
@@ -11,14 +14,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
 from .coordinator import EDDataUpdateCoordinator
-from .const import DEFAULT_REFRESH_INTERVAL, DOMAIN, PLATFORMS
-
-_LOGGER = logging.getLogger(__name__)
+from .const import DEFAULT_REFRESH_INTERVAL, DOMAIN, PLATFORMS, LOGGER
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Ecole Directe from a config entry."""
-    _LOGGER.debug("async_setup_entry")
+    LOGGER.debug("async_setup_entry")
     hass.data.setdefault(DOMAIN, {})
 
     coordinator = EDDataUpdateCoordinator(hass, entry)

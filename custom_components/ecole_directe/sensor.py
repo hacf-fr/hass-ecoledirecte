@@ -573,7 +573,6 @@ class EDMessagerieSensor(EDGenericSensor):
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
-        attributes = []
         if self._child_info:
             messagerie = self.coordinator.data[
                 f"{self._child_info.get_fullname_lower()}_messagerie"

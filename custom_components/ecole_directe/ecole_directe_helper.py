@@ -504,7 +504,7 @@ def get_grades_evaluations(
     if "periodes" in data:
         data["periodes"].sort(key=operator.itemgetter("dateDebut"))
         for periode_json in data["periodes"]:
-            if periode_json["cloture"] == True:
+            if periode_json["cloture"]:
                 continue
             if (
                 "trimestre" not in periode_json["periode"].lower()

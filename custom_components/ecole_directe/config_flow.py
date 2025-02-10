@@ -23,7 +23,7 @@ from .const import (
     DEFAULT_REFRESH_INTERVAL,
     FILENAME_QCM,
     GRADES_TO_DISPLAY,
-    LOGGER
+    LOGGER,
 )
 
 STEP_USER_DATA_SCHEMA_UP = vol.Schema(
@@ -142,13 +142,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     ): str,
                     vol.Optional(
                         "decode_html",
-                        default=self.config_entry.options.get(
-                            "decode_html", False),
+                        default=self.config_entry.options.get("decode_html", False),
                     ): bool,
                     vol.Optional(
                         "notes_affichees",
                         default=self.config_entry.options.get(
-                            "notes_affichees", GRADES_TO_DISPLAY),
+                            "notes_affichees", GRADES_TO_DISPLAY
+                        ),
                     ): int,
                 }
             ),

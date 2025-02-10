@@ -578,7 +578,7 @@ def get_grade(data):
         "max": str(data.get("maxClasse") or "").replace(".", ","),
         "min": str(data.get("minClasse") or "").replace(".", ","),
         "is_bonus": "",
-        "is_optionnal": "",
+        "is_optionnal": data.get("nonSignificatif"),
         "is_out_of_20": "",
         "date_saisie": data.get("dateSaisie"),
         "elements_programme": elements_programme,

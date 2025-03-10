@@ -573,7 +573,6 @@ class EDMessagerieSensor(EDGenericSensor):
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
-        attributes = []
         if self._child_info:
             messagerie = self.coordinator.data[
                 f"{self._child_info.get_fullname_lower()}_messagerie"
@@ -592,6 +591,6 @@ class EDMessagerieSensor(EDGenericSensor):
 
 
 def is_too_big(obj):
-    """calculte is_too_big"""
+    """Calculate is_too_big."""
     bytes_result = json_bytes(obj)
     return len(bytes_result) > MAX_STATE_ATTRS_BYTES

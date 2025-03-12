@@ -1,0 +1,118 @@
+[project]
+name = "hass-ecoledirecte"
+version = "0.0.0"
+license = { text = "MIT License" }
+description = "Integration Ecole directe pour Home Assistant"
+authors = [{ name = "Giga77", email = "giga77@giga77.net" }]
+maintainers = [{ name = "Giga77", email = "giga77@giga77.net" }]
+readme = "README.md"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3",
+]
+keywords = [
+    "automation",
+    "automations",
+    "component",
+    "custom component",
+    "custom integration",
+    "hacs-component",
+    "hacs-integration",
+    "hacs-repository",
+    "hacs",
+    "hass.io",
+    "hass",
+    "hassio",
+    "home assistant",
+    "home-assistant",
+    "homeassistant",
+    "integration",
+    "powertools",
+    "utils",
+]
+requires-python = ">=3.13"
+dependencies = ["homeassistant>=2025.2.0"]
+
+[project.urls]
+Homepage = "https://github.com/hacf-fr/hass-ecoledirecte"
+Documentation = "https://github.com/hacf-fr/hass-ecoledirecte"
+Changelog = "https://github.com/hacf-fr/hass-ecoledirecte/releases"
+Support = "https://github.com/hacf-fr/hass-ecoledirecte/issues"
+Issues = "https://github.com/hacf-fr/hass-ecoledirecte/issues"
+Repository = "https://github.com/hacf-fr/hass-ecoledirecte"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["custom_components/ecole_directe"]
+
+[tool.ruff]
+src = ["custom_components/ecole_directe"]
+
+[tool.ruff.lint]
+ignore = [
+    "A005",   # It is just wrong
+    "ANN101", # Missing type annotation for `self` in method
+    "ANN401", # Dynamically typed expressions (typing.Any) are disallowed
+    "D203",   # no-blank-line-before-class (incompatible with formatter)
+    "D212",   # multi-line-summary-first-line (incompatible with formatter)
+    "D213",   # Conflicts with other rules
+    "RUF012", # Just broken
+    "TID252", # Relative imports
+
+    # Formatter conflicts
+    "COM812",
+    "COM819",
+    "D206",
+    "E501",
+    "ISC001",
+    "Q000",
+    "Q001",
+    "Q002",
+    "Q003",
+    "W191",
+]
+select = ["ALL"]
+
+[tool.ruff.lint.flake8-import-conventions.extend-aliases]
+"homeassistant.helpers.area_registry" = "ar"
+"homeassistant.helpers.config_validation" = "cv"
+"homeassistant.helpers.device_registry" = "dr"
+"homeassistant.helpers.entity_registry" = "er"
+"homeassistant.helpers.issue_registry" = "ir"
+voluptuous = "vol"
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+known-first-party = ["homeassistant"]
+combine-as-imports = true
+
+[tool.pylint."MESSAGES CONTROL"]
+# Reasons disabled:
+# format - handled by ruff
+# duplicate-code - unavoidable
+# used-before-assignment - false positives with TYPE_CHECKING structures
+disable = [
+    "abstract-method",
+    "duplicate-code",
+    "format",
+    "unexpected-keyword-arg",
+    "used-before-assignment",
+]
+
+# [tool.uv]
+# dev-dependencies = [
+#     "pre-commit>=3.6.0",
+#     "pre-commit-hooks>=4.5.0",
+#     "pylint>=3.1.0",
+#     "ruff>=0.3.2",
+# ]
+
+# [build-system]
+# requires = ["hatchling"]
+# build-backend = "hatchling.build"

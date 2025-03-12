@@ -591,6 +591,6 @@ class EDMessagerieSensor(EDGenericSensor):
 
 
 def is_too_big(obj):
-    """calculte is_too_big"""
+    """Calculate is_too_big."""
     bytes_result = json_bytes(obj)
     return len(bytes_result) > MAX_STATE_ATTRS_BYTES

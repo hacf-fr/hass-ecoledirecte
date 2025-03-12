@@ -1,5 +1,8 @@
 {
     "[html]": {
         "editor.defaultFormatter": "ms-python.python"
+    },
+    "files.associations": {
+        "*.yaml": "home-assistant"
     }
 }

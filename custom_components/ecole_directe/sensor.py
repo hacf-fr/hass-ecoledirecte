@@ -1,15 +1,16 @@
 """Module providing sensors to Home Assistant."""
 
-import operator
-
 from datetime import datetime
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+import operator
+from typing import Any, Literal
+
 from homeassistant.components.sensor import (
     SensorEntity,
 )
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.json import (
     json_bytes,
 )
@@ -17,8 +18,6 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
 
-from .ecole_directe_helper import EDEleve
-from .coordinator import EDDataUpdateCoordinator
 from .const import (
     DEBUG_ON,
     DEFAULT_LUNCH_BREAK_TIME,
@@ -26,6 +25,8 @@ from .const import (
     LOGGER,
     MAX_STATE_ATTRS_BYTES,
 )
+from .coordinator import EDDataUpdateCoordinator
+from .ecole_directe_helper import EDEleve
 
 
 async def async_setup_entry(
@@ -34,7 +35,6 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up a bridge from a config entry."""
-
     coordinator: EDDataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id][
         "coordinator"
     ]
@@ -83,15 +83,7 @@ async def async_setup_entry(
                     disciplines = coordinator.data[
                         f"{eleve.get_fullname_lower()}_disciplines"
                     ]
-                    for discipline in disciplines:
-                        sensors.append(
-                            EDDisciplineSensor(
-                                coordinator,
-                                eleve,
-                                discipline["name"],
-                                discipline["moyenne"],
-                            )
-                        )
+                    sensors.extend(disciplines)
                     if (
                         f"{eleve.get_fullname_lower()}_moyenne_generale"
                         in coordinator.data
@@ -116,7 +108,7 @@ async def async_setup_entry(
                         "Error while creating student messagerie sensors: %s", e
                     )
 
-        async_add_entities(sensors, False)
+        async_add_entities(sensors, update_before_add=False)
 
 
 class EDGenericSensor(CoordinatorEntity, SensorEntity):
@@ -124,32 +116,30 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
 
     def __init__(
         self,
-        coordinator,
+        coordinator: Any,
         name: str,
-        eleve: EDEleve = None,
-        state: str = None,
-        device_class: str = None,
+        eleve: EDEleve,
+        state: str,
+        device_class: str,
     ) -> None:
         """Initialize the ED sensor."""
-
         super().__init__(coordinator)
 
         identifiant = self.coordinator.data["session"].identifiant
 
         if name == "":
             if eleve is None:
-                self._name = identifiant
+                self.name = identifiant
             else:
-                self._name = eleve.get_fullname_lower()
+                self.name = eleve.get_fullname_lower()
+        elif eleve is None:
+            self.name = name
         else:
-            if eleve is None:
-                self._name = name
-            else:
-                self._name = f"{eleve.get_fullname_lower()}_{name}"
-        self._state = state
-        self._child_info = eleve
-        self._attr_unique_id = f"ed_{identifiant}_{self._name}"
-        self._attr_device_info = DeviceInfo(
+            self.name = f"{eleve.get_fullname_lower()}_{name}"
+        self.state = state
+        self.child_info = eleve
+        self.attr_unique_id = f"ed_{identifiant}_{self.name}"
+        self.attr_device_info = DeviceInfo(
             name=identifiant,
             entry_type=DeviceEntryType.SERVICE,
             identifiers={(DOMAIN, f"ED - {identifiant}")},
@@ -161,23 +151,23 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
             self._attr_device_class = device_class
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name of the sensor."""
-        return f"{DOMAIN}_{self._name}"
+        return f"{DOMAIN}_{self.name}"
 
     @property
-    def native_value(self):
+    def native_value(self) -> int | Any | Literal["unavailable"]:
         """Return the state of the sensor."""
-        if self._name not in self.coordinator.data:
+        if self.name not in self.coordinator.data:
             return "unavailable"
-        elif self._state == "len":
-            return len(self.coordinator.data[self._name])
-        elif self._state is not None:
-            return self._state
-        return self.coordinator.data[self._name]
+        if self.state == "len":
+            return len(self.coordinator.data[self.name])
+        if self.state is not None:
+            return self.state
+        return self.coordinator.data[self.name]
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         return {"updated_at": self.coordinator.last_update_success_time}
 
@@ -185,7 +175,7 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
     def available(self) -> bool:
         """Return if entity is available."""
         return (
-            self.coordinator.last_update_success and self._name in self.coordinator.data
+            self.coordinator.last_update_success and self.name in self.coordinator.data
         )
 
 
@@ -195,29 +185,29 @@ class EDChildSensor(EDGenericSensor):
     def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
         super().__init__(coordinator, "", eleve, "len")
-        self._attr_unique_id = f"ed_{eleve.get_fullname_lower()}_{eleve.eleve_id}]"
-        self._account_type = self.coordinator.data["session"]._account_type
+        self.attr_unique_id = f"ed_{eleve.get_fullname_lower()}_{eleve.eleve_id}]"
+        self.account_type = self.coordinator.data["session"].account_type
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name of the sensor."""
-        return f"{DOMAIN}_{self._name}"
+        return f"{DOMAIN}_{self.name}"
 
     @property
-    def native_value(self):
+    def native_value(self) -> str | None:
         """Return the state of the sensor."""
-        return self._child_info.get_fullname()
+        return self.child_info.get_fullname()
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         return {
-            "firstname": self._child_info.eleve_firstname,
-            "lastname": self._child_info.eleve_lastname,
-            "full_name": self._child_info.get_fullname(),
-            "class_name": self._child_info.classe_name,
-            "establishment": self._child_info.establishment,
-            "via_parent_account": self._account_type == "1",
+            "firstname": self.child_info.eleve_firstname,
+            "lastname": self.child_info.eleve_lastname,
+            "full_name": self.child_info.get_fullname(),
+            "class_name": self.child_info.classe_name,
+            "establishment": self.child_info.establishment,
+            "via_parent_account": self.account_type == "1",
             "updated_at": self.coordinator.last_update_success_time,
         }
 
@@ -231,7 +221,7 @@ class EDHomeworksSensor(EDGenericSensor):
     """Representation of a ED sensor."""
 
     def __init__(
-        self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve, suffix
+        self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve, suffix: Any
     ) -> None:
         """Initialize the ED sensor."""
         super().__init__(
@@ -243,16 +233,16 @@ class EDHomeworksSensor(EDGenericSensor):
         self._suffix = suffix
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
         todo_counter = 0
         if (
-            f"{self._child_info.get_fullname_lower()}_homework{self._suffix}"
+            f"{self.child_info.get_fullname_lower()}_homework{self._suffix}"
             in self.coordinator.data
         ):
             homeworks = self.coordinator.data[
-                f"{self._child_info.get_fullname_lower()}_homework{self._suffix}"
+                f"{self.child_info.get_fullname_lower()}_homework{self._suffix}"
             ]
             for homework in homeworks:
                 if not homework["done"]:
@@ -261,15 +251,13 @@ class EDHomeworksSensor(EDGenericSensor):
             if attributes is not None:
                 attributes.sort(key=operator.itemgetter("date"))
         else:
-            attributes.append(
-                {
-                    "Erreur": f"{self._child_info.get_fullname_lower()}_homework{self._suffix} n'existe pas."
-                }
-            )
+            attributes.append({
+                "Erreur": f"{self.child_info.get_fullname_lower()}_homework{self._suffix} n'existe pas."
+            })
 
         if is_too_big(attributes):
             attributes = []
-            LOGGER.warning("[%s] attributes are too big! %s", self._name, attributes)
+            LOGGER.warning("[%s] attributes are too big! %s", self.name, attributes)
 
         return {
             "updated_at": self.coordinator.last_update_success_time,
@@ -286,43 +274,13 @@ class EDGradesSensor(EDGenericSensor):
         super().__init__(coordinator, "grades", eleve, "len")
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
-        attributes = []
-        grades = self.coordinator.data[
-            f"{self._child_info.get_fullname_lower()}_grades"
-        ]
-        for grade in grades:
-            attributes.append(grade)
-
         return {
             "updated_at": self.coordinator.last_update_success_time,
-            "grades": attributes,
-        }
-
-
-class EDDisciplineSensor(EDGenericSensor):
-    """Representation of a ED sensor."""
-
-    def __init__(
-        self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve, nom, note
-    ) -> None:
-        """Initialize the ED sensor."""
-        super().__init__(coordinator, nom, eleve, note)
-
-    @property
-    def extra_state_attributes(self):
-        """Return the state attributes."""
-        discipline = self.coordinator.data[self._name]
-
-        return {
-            "updated_at": self.coordinator.last_update_success_time,
-            "code": discipline["code"],
-            "nom": discipline["name"],
-            "moyenneClasse": discipline["moyenneClasse"],
-            "moyenneMin": discipline["moyenneMin"],
-            "moyenneMax": discipline["moyenneMax"],
-            "appreciations": discipline["appreciations"],
+            "grades": list(
+                self.coordinator.data[f"{self.child_info.get_fullname_lower()}_grades"]
+            ),
         }
 
 
@@ -343,16 +301,20 @@ class EDLessonsSensor(EDGenericSensor):
         self._lunch_break_end_at = None
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
-        lessons = self.coordinator.data[self._name]
+        lessons = self.coordinator.data[self.name]
         canceled_counter = None
         single_day = self._suffix in ["today", "tomorrow", "next_day"]
-        lunch_break_time = datetime.strptime(
-            DEFAULT_LUNCH_BREAK_TIME,
-            "%H:%M",
-        ).time()
+        lunch_break_time = (
+            datetime.strptime(
+                DEFAULT_LUNCH_BREAK_TIME,
+                "%H:%M",
+            )
+            .astimezone(self.hass.config.time_zone)
+            .time()
+        )
 
         if lessons is not None:
             self._start_at = None
@@ -375,18 +337,22 @@ class EDLessonsSensor(EDGenericSensor):
                 if single_day and not lesson["canceled"]:
                     self._end_at = lesson["end"].strftime("%H:%M")
                     if (
-                        datetime.strptime(lesson["end_time"], "%H:%M").time()
+                        datetime.strptime(lesson["end_time"], "%H:%M")
+                        .astimezone(self.hass.config.time_zone)
+                        .time()
                         < lunch_break_time
                     ):
                         self._lunch_break_start_at = lesson["end"]
                     if (
                         self._lunch_break_end_at is None
-                        and datetime.strptime(lesson["start_time"], "%H:%M").time()
+                        and datetime.strptime(lesson["start_time"], "%H:%M")
+                        .astimezone(self.hass.config.time_zone)
+                        .time()
                         >= lunch_break_time
                     ):
                         self._lunch_break_end_at = lesson["start"]
         if is_too_big(attributes):
-            LOGGER.warning("[%s] attributes are too big! %s", self._name, attributes)
+            LOGGER.warning("[%s] attributes are too big! %s", self.name, attributes)
             attributes = []
         result = {
             "updated_at": self.coordinator.last_update_success_time,
@@ -409,13 +375,13 @@ class EDMoyenneSensor(EDGenericSensor):
     def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
         super().__init__(coordinator, "moyenne_generale", eleve)
-        self._state = self.coordinator.data[self._name]["moyenneGenerale"]
+        self._state = self.coordinator.data[self.name]["moyenneGenerale"]
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         moyenne = self.coordinator.data[
-            f"{self._child_info.get_fullname_lower()}_moyenne_generale"
+            f"{self.child_info.get_fullname_lower()}_moyenne_generale"
         ]
 
         return {
@@ -435,18 +401,15 @@ class EDEvaluationsSensor(EDGenericSensor):
         super().__init__(coordinator, "evaluations", eleve, "len")
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
-        attributes = []
-        evaluations = self.coordinator.data[
-            f"{self._child_info.get_fullname_lower()}_evaluations"
-        ]
-        for evaluation in evaluations:
-            attributes.append(evaluation)
-
         return {
             "updated_at": self.coordinator.last_update_success_time,
-            "evaluations": attributes,
+            "evaluations": list(
+                self.coordinator.data[
+                    f"{self.child_info.get_fullname_lower()}_evaluations"
+                ]
+            ),
         }
 
 
@@ -458,18 +421,15 @@ class EDAbsencesSensor(EDGenericSensor):
         super().__init__(coordinator, "absences", eleve, "len")
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
-        attributes = []
-        absences = self.coordinator.data[
-            f"{self._child_info.get_fullname_lower()}_absences"
-        ]
-        for absence in absences:
-            attributes.append(absence)
-
         return {
             "updated_at": self.coordinator.last_update_success_time,
-            "absences": attributes,
+            "absences": list(
+                self.coordinator.data[
+                    f"{self.child_info.get_fullname_lower()}_absences"
+                ]
+            ),
         }
 
 
@@ -481,18 +441,13 @@ class EDRetardsSensor(EDGenericSensor):
         super().__init__(coordinator, "retards", eleve, "len")
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
-        attributes = []
-        retards = self.coordinator.data[
-            f"{self._child_info.get_fullname_lower()}_retards"
-        ]
-        for retard in retards:
-            attributes.append(retard)
-
         return {
             "updated_at": self.coordinator.last_update_success_time,
-            "delays": attributes,
+            "delays": list(
+                self.coordinator.data[f"{self.child_info.get_fullname_lower()}_retards"]
+            ),
         }
 
 
@@ -504,18 +459,15 @@ class EDSanctionsSensor(EDGenericSensor):
         super().__init__(coordinator, "sanctions", eleve, "len")
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
-        attributes = []
-        sanctions = self.coordinator.data[
-            f"{self._child_info.get_fullname_lower()}_sanctions"
-        ]
-        for sanction in sanctions:
-            attributes.append(sanction)
-
         return {
             "updated_at": self.coordinator.last_update_success_time,
-            "sanctions": attributes,
+            "sanctions": list(
+                self.coordinator.data[
+                    f"{self.child_info.get_fullname_lower()}_sanctions"
+                ]
+            ),
         }
 
 
@@ -527,18 +479,15 @@ class EDEncouragementsSensor(EDGenericSensor):
         super().__init__(coordinator, "encouragements", eleve, "len")
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
-        attributes = []
-        encouragements = self.coordinator.data[
-            f"{self._child_info.get_fullname_lower()}_encouragements"
-        ]
-        for encouragement in encouragements:
-            attributes.append(encouragement)
-
         return {
             "updated_at": self.coordinator.last_update_success_time,
-            "encouragements": attributes,
+            "encouragements": list(
+                self.coordinator.data[
+                    f"{self.child_info.get_fullname_lower()}_encouragements"
+                ]
+            ),
         }
 
 
@@ -550,16 +499,11 @@ class EDFormulairesSensor(EDGenericSensor):
         super().__init__(coordinator, "formulaires", None, "len")
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
-        attributes = []
-        forms = self.coordinator.data["formulaires"]
-        for form in forms:
-            attributes.append(form)
-
         return {
             "updated_at": self.coordinator.last_update_success_time,
-            "formulaires": attributes,
+            "formulaires": list(self.coordinator.data["formulaires"]),
         }
 
 
@@ -571,11 +515,11 @@ class EDMessagerieSensor(EDGenericSensor):
         super().__init__(coordinator, "messagerie", eleve, "len")
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
-        if self._child_info:
+        if self.child_info:
             messagerie = self.coordinator.data[
-                f"{self._child_info.get_fullname_lower()}_messagerie"
+                f"{self.child_info.get_fullname_lower()}_messagerie"
             ]
         else:
             messagerie = self.coordinator.data["messagerie"]
@@ -590,7 +534,7 @@ class EDMessagerieSensor(EDGenericSensor):
         }
 
 
-def is_too_big(obj):
+def is_too_big(obj: Any) -> bool:
     """Calculate is_too_big."""
     bytes_result = json_bytes(obj)
     return len(bytes_result) > MAX_STATE_ATTRS_BYTES

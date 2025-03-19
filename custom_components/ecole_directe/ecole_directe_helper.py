@@ -1,22 +1,29 @@
-"""Module to help communication with Ecole Directe API"""
+"""Module to help communication with Ecole Directe API."""
 
+import base64
 from datetime import datetime
 import json
 import operator
+from pathlib import Path
 import re
+from typing import Any
 import urllib
-import base64
+
+from custom_components.ecole_directe.config_flow import InvalidAuthError
 import requests
 
 from homeassistant.components.persistent_notification import async_create
+
 from .const import (
     DEBUG_ON,
-    LOGGER,
-    VIE_SCOLAIRE_TO_DISPLAY,
+    EDMFA,
+    EDOK,
     EVENT_TYPE,
     GRADES_TO_DISPLAY,
-    INTEGRATION_PATH,
     HOMEWORK_DESC_MAX_LENGTH,
+    INTEGRATION_PATH,
+    LOGGER,
+    VIE_SCOLAIRE_TO_DISPLAY,
 )
 
 APIURL = "https://api.ecoledirecte.com/v3"
@@ -26,8 +33,8 @@ APIVERSION = "4.70.0"
 CLEANR = re.compile("<.*?>")
 
 
-def get_headers(token):
-    """return headers needed from Ecole Directe API"""
+def get_headers(token: str | None) -> dict:
+    """Return headers needed from Ecole Directe API."""
     headers = {
         "Accept": "application/json, text/plain, */*",
         "Accept-Encoding": "gzip, deflate, br",
@@ -50,9 +57,8 @@ def get_headers(token):
     return headers
 
 
-def get_response(token, url, payload, file_path):
-    """send a request to API and return a json if possible or raise an error"""
-
+def get_response(token: str | None, url: str, payload: Any, file_path: str) -> dict:
+    """Send a request to API and return a json if possible or raise an error."""
     if payload is None:
         payload = "data={}"
 
@@ -61,7 +67,7 @@ def get_response(token, url, payload, file_path):
 
     try:
         resp_json = response.json()
-        with open(
+        with Path.open(
             file_path,
             "w",
             encoding="utf-8",
@@ -69,53 +75,59 @@ def get_response(token, url, payload, file_path):
             json.dump(resp_json, f, ensure_ascii=False, indent=4)
 
     except Exception as ex:
-        raise RequestError(f"Error with URL:[{url}]: {response.content}") from ex
+        msg = f"Error with URL:[{url}]: {response.content}"
+        raise RequestError(msg) from ex
 
     if "code" not in resp_json:
-        raise RequestError(f"Error with URL:[{url}]: json:[{resp_json}]")
+        msg = f"Error with URL:[{url}]: json:[{resp_json}]"
+        raise RequestError(msg)
 
-    if resp_json["code"] == 250 and token is None:
+    if resp_json["code"] == EDMFA and token is None:
         LOGGER.debug("%s", resp_json)
         return resp_json
 
-    if resp_json["code"] != 200:
-        raise RequestError(
+    if resp_json["code"] != EDOK:
+        msg = (
             f"Error with URL:[{url}] - Code {resp_json['code']}: {resp_json['message']}"
         )
+        raise RequestError(msg)
 
     LOGGER.debug("%s", resp_json)
     return resp_json
 
 
 class RequestError(Exception):
-    """Request error from API"""
+    """Request error from API."""
 
-    def __init__(self, message):
-        super(RequestError, self).__init__(message)
+    def __init__(self, message: str) -> None:
+        """Initialize RequestError."""
+        super().__init__(message)
 
 
 class QCMError(Exception):
-    """QCM error on double autentication from API"""
+    """QCM error on double autentication from API."""
 
-    def __init__(self, message):
-        super(QCMError, self).__init__(message)
+    def __init__(self, message: str) -> None:
+        """Initialize QCMError."""
+        super().__init__(message)
 
 
 class EDSession:
-    """Ecole Directe session with Token"""
+    """Ecole Directe session with Token."""
 
-    def __init__(self, data):
+    def __init__(self, data: Any) -> None:
+        """Initialize EDSession."""
         self.token = data["token"]
         self.id = data["data"]["accounts"][0]["id"]
         self.identifiant = data["data"]["accounts"][0]["identifiant"]
         self._id_login = data["data"]["accounts"][0]["idLogin"]
-        self._account_type = data["data"]["accounts"][0]["typeCompte"]
+        self.account_type = data["data"]["accounts"][0]["typeCompte"]
         self.modules = []
         for module in data["data"]["accounts"][0]["modules"]:
             if module["enable"]:
                 self.modules.append(module["code"])
         self.eleves = []
-        if self._account_type == "E":
+        if self.account_type == "E":
             self.eleves.append(
                 EDEleve(
                     None,
@@ -128,16 +140,15 @@ class EDSession:
                     self.modules,
                 )
             )
-        else:
-            if "eleves" in data["data"]["accounts"][0]["profile"]:
-                for eleve in data["data"]["accounts"][0]["profile"]["eleves"]:
-                    self.eleves.append(
-                        EDEleve(eleve, data["data"]["accounts"][0]["nomEtablissement"])
-                    )
+        elif "eleves" in data["data"]["accounts"][0]["profile"]:
+            for eleve in data["data"]["accounts"][0]["profile"]["eleves"]:
+                self.eleves.append(
+                    EDEleve(eleve, data["data"]["accounts"][0]["nomEtablissement"])
+                )
 
 
 class EDEleve:
-    """Student information"""
+    """Student information."""
 
     def __init__(
         self,
@@ -149,7 +160,8 @@ class EDEleve:
         classe_id=None,
         classe_name=None,
         modules=None,
-    ):
+    ) -> None:
+        """Initialize EDEleve."""
         if data is None:
             self.classe_id = classe_id
             self.classe_name = classe_name
@@ -172,28 +184,30 @@ class EDEleve:
                     self.modules.append(module["code"])
 
     def get_fullname_lower(self) -> str | None:
-        """Student fullname lowercase"""
+        """Student fullname lowercase."""
         return f"{re.sub('[^A-Za-z]', '_', self.eleve_firstname.lower())}_{
             re.sub('[^A-Za-z]', '_', self.eleve_lastname.lower())
         }"
 
     def get_fullname(self) -> str | None:
-        """Student fullname"""
+        """Student fullname."""
         return f"{self.eleve_firstname} {self.eleve_lastname}"
 
 
 def check_ecoledirecte_session(data, config_path, hass) -> bool:
-    """check if credentials to Ecole Directe are ok"""
+    """Check if credentials to Ecole Directe are ok."""
     try:
         session = get_ecoledirecte_session(data, config_path, hass)
+        if session is None:
+            raise InvalidAuthError
     except QCMError:
         return True
 
-    return session is not None
+    return True
 
 
 def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
-    """Function connecting to Ecole Directe"""
+    """Function connecting to Ecole Directe."""
     try:
         payload = (
             'data={"identifiant":"'
@@ -211,8 +225,8 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
         )
 
         # Si connexion initiale
-        if login["code"] == 250:
-            with open(
+        if login["code"] == EDMFA:
+            with Path.open(
                 config_path + "/" + data["qcm_filename"],
                 encoding="utf-8",
             ) as f:
@@ -247,41 +261,39 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
                     cn = cn_et_cv["cn"]
                     cv = cn_et_cv["cv"]
                     break
-                else:
-                    rep = []
-                    propositions = qcm["propositions"]
-                    for proposition in propositions:
-                        rep.append(base64.b64decode(proposition).decode("utf-8"))
+                rep = []
+                propositions = qcm["propositions"]
+                for proposition in propositions:
+                    rep.append(base64.b64decode(proposition).decode("utf-8"))
 
-                    qcm_json[question] = rep
+                qcm_json[question] = rep
 
-                    with open(
-                        config_path + "/" + data["qcm_filename"],
-                        "w",
-                        encoding="utf-8",
-                    ) as f:
-                        json.dump(qcm_json, f, ensure_ascii=False, indent=4)
-                    event_data = {
-                        "device_id": "ED - " + data["username"],
-                        "type": "new_qcm",
-                        "question": question,
-                    }
-                    hass.bus.fire(EVENT_TYPE, event_data)
+                with Path.open(
+                    config_path + "/" + data["qcm_filename"],
+                    "w",
+                    encoding="utf-8",
+                ) as f:
+                    json.dump(qcm_json, f, ensure_ascii=False, indent=4)
+                event_data = {
+                    "device_id": "ED - " + data["username"],
+                    "type": "new_qcm",
+                    "question": question,
+                }
+                hass.bus.fire(EVENT_TYPE, event_data)
 
-                    if data["qcm_filename"]:
-                        async_create(
-                            hass,
-                            "Vérifiez le fichier "
-                            + data["qcm_filename"]
-                            + ", et rechargez l'intégration Ecole Directe.",
-                            title="Ecole Directe",
-                        )
+                if data["qcm_filename"]:
+                    async_create(
+                        hass,
+                        "Vérifiez le fichier "
+                        + data["qcm_filename"]
+                        + ", et rechargez l'intégration Ecole Directe.",
+                        title="Ecole Directe",
+                    )
                 try_login -= 1
 
             if try_login == 0:
-                raise QCMError(
-                    "Vérifiez le fichier qcm.json, et rechargez l'intégration Ecole Directe."
-                )
+                msg = "Vérifiez le fichier qcm.json, et rechargez l'intégration Ecole Directe."
+                raise QCMError(msg)
 
             LOGGER.debug("cn: [%s] - cv: [%s]", cn, cv)
 
@@ -319,8 +331,7 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
 
 
 def get_qcm_connexion(token, config_path):
-    """Obtenir le QCM donné lors d'une connexion à partir d'un nouvel appareil"""
-
+    """Obtenir le QCM donné lors d'une connexion à partir d'un nouvel appareil."""
     json_resp = get_response(
         token,
         f"{APIURL}/connexion/doubleauth.awp?verbe=get&v={APIVERSION}",
@@ -335,8 +346,7 @@ def get_qcm_connexion(token, config_path):
 
 
 def post_qcm_connexion(token, proposition, config_path):
-    """Renvoyer la réponse du QCM donné"""
-
+    """Renvoyer la réponse du QCM donné."""
     json_resp = get_response(
         token,
         f"{APIURL}/connexion/doubleauth.awp?verbe=post&v={APIVERSION}",
@@ -351,8 +361,7 @@ def post_qcm_connexion(token, proposition, config_path):
 
 
 def get_messages(token, id, eleve, annee_scolaire, config_path):
-    """Get messages from Ecole Directe"""
-
+    """Get messages from Ecole Directe."""
     if DEBUG_ON:
         # Opening JSON file
         f = open(config_path + INTEGRATION_PATH + "test/test_messages.json")
@@ -386,8 +395,7 @@ def get_messages(token, id, eleve, annee_scolaire, config_path):
 
 
 def get_homeworks_by_date(token, eleve, date, config_path):
-    """get homeworks by date"""
-
+    """Get homeworks by date."""
     if DEBUG_ON:
         # Opening JSON file
         f = open(
@@ -409,8 +417,7 @@ def get_homeworks_by_date(token, eleve, date, config_path):
 
 
 def get_homeworks(token, eleve, config_path, decode_html):
-    """get homeworks"""
-
+    """Get homeworks."""
     if DEBUG_ON:
         # Opening JSON file
         f = open(config_path + INTEGRATION_PATH + "test/test_homeworks.json")
@@ -446,8 +453,7 @@ def get_homeworks(token, eleve, config_path, decode_html):
 
 
 def get_homework(data, pour_le, clean_content):
-    """get homework information"""
-
+    """Get homework information."""
     if "contenu" in data["aFaire"]:
         contenu = base64.b64decode(data["aFaire"]["contenu"]).decode("utf-8")
     else:
@@ -467,7 +473,7 @@ def get_homework(data, pour_le, clean_content):
 
 
 def clean_html(raw_html):
-    """clean html"""
+    """Clean html."""
     cleantext = re.sub(CLEANR, "", raw_html)
     return cleantext
 
@@ -475,8 +481,7 @@ def clean_html(raw_html):
 def get_grades_evaluations(
     token, eleve, annee_scolaire, config_path, grades_dispaly=GRADES_TO_DISPLAY
 ):
-    """get grades"""
-
+    """Get grades."""
     if DEBUG_ON:
         # Opening JSON file
         f = open(config_path + INTEGRATION_PATH + "test/test_grades.json")
@@ -558,8 +563,7 @@ def get_grades_evaluations(
 
 
 def get_grade(data):
-    """get grade information"""
-
+    """Get grade information."""
     elements_programme = []
     if "elementsProgramme" in data:
         for element in data["elementsProgramme"]:
@@ -586,8 +590,7 @@ def get_grade(data):
 
 
 def get_disciplines_periode(data):
-    """get periode information"""
-
+    """Get periode information."""
     try:
         disciplines = []
         if "ensembleMatieres" in data:
@@ -621,8 +624,7 @@ def get_disciplines_periode(data):
 
 
 def get_evaluation(data):
-    """get evaluation information"""
-
+    """Get evaluation information."""
     try:
         elements_programme = []
         if "elementsProgramme" in data:
@@ -648,8 +650,7 @@ def get_evaluation(data):
 
 
 def get_competence(data):
-    """get grade information"""
-
+    """Get grade information."""
     valeur = data.get("valeur")
     match valeur:
         case "1":
@@ -672,8 +673,7 @@ def get_competence(data):
 
 
 def get_vie_scolaire(token, eleve, config_path):
-    """get vie scolaire (absences, retards, etc.)"""
-
+    """Get vie scolaire (absences, retards, etc.)."""
     if DEBUG_ON:
         # Opening JSON file
         f = open(config_path + INTEGRATION_PATH + "test/test_vie_scolaire.json")
@@ -738,7 +738,7 @@ def get_vie_scolaire(token, eleve, config_path):
 
 
 def get_vie_scolaire_element(viescolaire) -> dict:
-    """vie scolaire format"""
+    """Vie scolaire format"""
     try:
         return {
             "date": viescolaire["date"],
@@ -755,8 +755,7 @@ def get_vie_scolaire_element(viescolaire) -> dict:
 
 
 def get_lessons(token, eleve, date_debut, date_fin, config_path, lunch_break_time):
-    """get lessons"""
-
+    """Get lessons."""
     if DEBUG_ON:
         # Opening JSON file
         f = open(config_path + INTEGRATION_PATH + "test/test_lessons.json")
@@ -788,8 +787,7 @@ def get_lessons(token, eleve, date_debut, date_fin, config_path, lunch_break_tim
 
 
 def get_lesson(data, lunch_break_time):
-    """get lesson information"""
-
+    """Get lesson information."""
     start_date = datetime.strptime(data["start_date"], "%Y-%m-%d %H:%M")
     end_date = datetime.strptime(data["end_date"], "%Y-%m-%d %H:%M")
     return {
@@ -811,8 +809,7 @@ def get_lesson(data, lunch_break_time):
 
 
 def get_sondages(token, config_path):
-    """Get sondages"""
-
+    """Get sondages."""
     return get_response(
         token,
         f"{APIURL}/rdt/sondages.awp?v={APIVERSION}",
@@ -822,8 +819,7 @@ def get_sondages(token, config_path):
 
 
 def get_formulaires(token, account_type, id_entity, config_path):
-    """Get formulaires"""
-
+    """Get formulaires."""
     payload = (
         'data={"typeEntity": "' + account_type + '","idEntity":' + str(id_entity) + "}"
     )
@@ -846,7 +842,7 @@ def get_formulaires(token, account_type, id_entity, config_path):
 
 
 def get_formulaire(data):
-    """Get formulaire"""
+    """Get formulaire."""
     return {
         "titre": data["titre"],
         "created": data["created"],
@@ -854,8 +850,7 @@ def get_formulaire(data):
 
 
 def get_classe(token, classe_id, config_path):
-    """Get classe"""
-
+    """Get classe."""
     json_resp = get_response(
         token,
         f"{APIURL}/Classes/{classe_id}/viedelaclasse.awp?verbe=get&v={APIVERSION}",
@@ -871,5 +866,3 @@ def get_classe(token, classe_id, config_path):
         f"{config_path + INTEGRATION_PATH}get_classeV2_{classe_id}.json",
     )
     LOGGER.warning("get_classeV2: [%s]", json_resp)
-
-    return None

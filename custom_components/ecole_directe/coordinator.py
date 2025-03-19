@@ -3,26 +3,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordinator
 
-from .ecole_directe_helper import (
-    EDEleve,
-    get_classe,
-    get_ecoledirecte_session,
-    get_formulaires,
-    get_homeworks,
-    get_lessons,
-    get_grades_evaluations,
-    get_messages,
-    get_vie_scolaire,
-)
-
 from .const import (
+    AUGUST,
     DEBUG_ON,
     DEFAULT_LUNCH_BREAK_TIME,
     DEFAULT_REFRESH_INTERVAL,
@@ -30,6 +16,22 @@ from .const import (
     GRADES_TO_DISPLAY,
     LOGGER,
 )
+from .ecole_directe_helper import (
+    EDEleve,
+    get_classe,
+    get_ecoledirecte_session,
+    get_formulaires,
+    get_grades_evaluations,
+    get_homeworks,
+    get_lessons,
+    get_messages,
+    get_vie_scolaire,
+)
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.const import Platform
+    from homeassistant.core import HomeAssistant
 
 
 class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
@@ -69,19 +71,19 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         self.data = {}
         self.data["session"] = session
 
-        current_year = datetime.now().year
-        if datetime.now().month >= 8:
-            year_data = f"{str(current_year)}-{str(current_year + 1)}"
+        current_year = datetime.now(self.hass.config.time_zone).year
+        if datetime.now(self.hass.config.time_zone).month >= AUGUST:
+            year_data = f"{current_year!s}-{current_year + 1!s}"
         else:
-            year_data = f"{str(current_year - 1)}-{str(current_year)}"
+            year_data = f"{current_year - 1!s}-{current_year!s}"
 
         # EDT BODY
-        today = datetime.now().date()
-        tomorrow = datetime.now().date() + timedelta(days=1)
+        today = datetime.now(self.hass.config.time_zone).date()
+        tomorrow = datetime.now(self.hass.config.time_zone).date() + timedelta(days=1)
 
-        current_week_begin = datetime.now().date() - timedelta(
-            days=datetime.now().weekday()
-        )
+        current_week_begin = datetime.now(
+            self.hass.config.time_zone
+        ).date() - timedelta(days=datetime.now(self.hass.config.time_zone).weekday())
 
         current_week_plus_21 = current_week_begin + timedelta(days=21)
         current_week_end = current_week_begin + timedelta(days=6)
@@ -89,7 +91,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         next_week_end = next_week_begin + timedelta(days=6)
         after_next_week_begin = next_week_end + timedelta(days=1)
 
-        if session._account_type == "P":  # professor ???
+        if session.account_type == "P":  # professor ???
             try:
                 for classe in session["accounts"][0]["profile"]["classes"]:
                     get_classe(
@@ -100,7 +102,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             except Exception as ex:
                 LOGGER.warning("Error getting classes: %s", ex)
 
-        if session._account_type == "1":  # famille
+        if session.account_type == "1":  # famille
             if "MESSAGERIE" in session.modules:
                 try:
                     self.data["messagerie"] = await self.hass.async_add_executor_job(
@@ -122,7 +124,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     self.data["formulaires"] = await self.hass.async_add_executor_job(
                         get_formulaires,
                         session.token,
-                        session._account_type,
+                        session.account_type,
                         session.id,
                         self.hass.config.config_dir,
                     )
@@ -163,9 +165,13 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         filter(
                             lambda homework: datetime.strptime(
                                 homework["date"], "%Y-%m-%d"
-                            ).date()
+                            )
+                            .astimezone(self.hass.config.time_zone)
+                            .date()
                             >= current_week_begin
-                            and datetime.strptime(homework["date"], "%Y-%m-%d").date()
+                            and datetime.strptime(homework["date"], "%Y-%m-%d")
+                            .astimezone(self.hass.config.time_zone)
+                            .date()
                             <= current_week_end,
                             homeworks,
                         )
@@ -174,9 +180,13 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         filter(
                             lambda homework: datetime.strptime(
                                 homework["date"], "%Y-%m-%d"
-                            ).date()
+                            )
+                            .astimezone(self.hass.config.time_zone)
+                            .date()
                             >= next_week_begin
-                            and datetime.strptime(homework["date"], "%Y-%m-%d").date()
+                            and datetime.strptime(homework["date"], "%Y-%m-%d")
+                            .astimezone(self.hass.config.time_zone)
+                            .date()
                             <= next_week_end,
                             homeworks,
                         )
@@ -185,7 +195,9 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         filter(
                             lambda homework: datetime.strptime(
                                 homework["date"], "%Y-%m-%d"
-                            ).date()
+                            )
+                            .astimezone(self.hass.config.time_zone)
+                            .date()
                             >= after_next_week_begin,
                             homeworks,
                         )
@@ -246,10 +258,14 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     break_time = self.config_entry.options.get(
                         "lunch_break_time", DEFAULT_LUNCH_BREAK_TIME
                     )
-                    lunch_break_time = datetime.strptime(
-                        break_time,
-                        "%H:%M",
-                    ).time()
+                    lunch_break_time = (
+                        datetime.strptime(
+                            break_time,
+                            "%H:%M",
+                        )
+                        .astimezone(self.hass.config.time_zone)
+                        .time()
+                    )
 
                     lessons = await self.hass.async_add_executor_job(
                         get_lessons,
@@ -387,14 +403,13 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
     def compare_data(
         self,
-        previous_data,
-        data_key,
-        compare_keys,
-        event_type,
+        previous_data: Any,
+        data_key: Any,
+        compare_keys: Any,
+        event_type: str,
         eleve: EDEleve,
-    ):
-        """Compare data from previous session"""
-
+    ) -> None:
+        """Compare data from previous session."""
         try:
             if (
                 previous_data is not None
@@ -423,13 +438,9 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 ex,
             )
 
-    def trigger_event(self, event_type, eleve: EDEleve, event_data):
-        """Trigger an event if there is new data"""
-
-        if eleve is None:
-            name = ""
-        else:
-            name = eleve.get_fullname()
+    def trigger_event(self, event_type: str, eleve: EDEleve, event_data: Any) -> None:
+        """Trigger an event if there is new data."""
+        name = "" if eleve is None else eleve.get_fullname()
 
         event_data = {
             "child_name": name,
@@ -439,8 +450,10 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         self.hass.bus.fire(EVENT_TYPE, event_data)
 
 
-def get_next_day_lessons(lessons, lessons_next_day, next_day):
-    """get next day lessons"""
+def get_next_day_lessons(
+    lessons: Any, lessons_next_day: Any, next_day: Any
+) -> Any | None:
+    """Get next day lessons."""
     if len(lessons) == 0:
         return None
     if lessons[-1]["start"].date() < next_day:

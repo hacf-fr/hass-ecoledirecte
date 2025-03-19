@@ -1,20 +1,23 @@
-"""
-Ecole Directe integration.
-
-For more details about this integration, please refer to
-https://github.com/hacf-fr/hass-ecoledirecte
-"""
+"""Ecole Directe integration."""
 
 from __future__ import annotations
 
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
+from .const import (
+    DEFAULT_REFRESH_INTERVAL,
+    DOMAIN,
+    LOGGER,
+    PLATFORMS,
+)
 from .coordinator import EDDataUpdateCoordinator
-from .const import DEFAULT_REFRESH_INTERVAL, DOMAIN, PLATFORMS, LOGGER
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -48,7 +51,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 
-async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
+async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Handle options update."""
     hass.data[DOMAIN][entry.entry_id]["coordinator"].update_interval = timedelta(
         minutes=entry.options.get("refresh_interval", DEFAULT_REFRESH_INTERVAL)

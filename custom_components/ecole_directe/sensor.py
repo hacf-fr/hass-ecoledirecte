@@ -251,9 +251,11 @@ class EDHomeworksSensor(EDGenericSensor):
             if attributes is not None:
                 attributes.sort(key=operator.itemgetter("date"))
         else:
-            attributes.append({
-                "Erreur": f"{self.child_info.get_fullname_lower()}_homework{self._suffix} n'existe pas."
-            })
+            attributes.append(
+                {
+                    "Erreur": f"{self.child_info.get_fullname_lower()}_homework{self._suffix} n'existe pas."
+                }
+            )
 
         if is_too_big(attributes):
             attributes = []

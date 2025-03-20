@@ -27,7 +27,7 @@ from .const import (
 )
 
 APIURL = "https://api.ecoledirecte.com/v3"
-APIVERSION = "4.70.0"
+APIVERSION = "4.74.1"
 
 # as per recommendation from @freylis, compile once only
 CLEANR = re.compile("<.*?>")
@@ -37,7 +37,7 @@ def get_headers(token: str | None) -> dict:
     """Return headers needed from Ecole Directe API."""
     headers = {
         "Accept": "application/json, text/plain, */*",
-        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
         "Accept-language": "fr,fr-FR;q=0.8,en-US;q=0.5,en;q=0.3",
         "Connection": "keep-alive",
         "Content-Type": "application/x-www-form-urlencoded",
@@ -49,7 +49,7 @@ def get_headers(token: str | None) -> dict:
         "Sec-fetch-mode": "cors",
         "Sec-fetch-site": "same-site",
         "Sec-GPC": "1",
-        "User-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0",
+        "User-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:136.0) Gecko/20100101 Firefox/136.0",
     }
     if token is not None:
         headers["X-Token"] = token
@@ -152,14 +152,14 @@ class EDEleve:
 
     def __init__(
         self,
-        data=None,
-        establishment=None,
-        eleve_id=None,
-        first_name=None,
-        last_name=None,
-        classe_id=None,
-        classe_name=None,
-        modules=None,
+        data: Any | None = None,
+        establishment: Any | None = None,
+        eleve_id: Any | None = None,
+        first_name: Any | None = None,
+        last_name: Any | None = None,
+        classe_id: Any | None = None,
+        classe_name: Any | None = None,
+        modules: Any | None = None,
     ) -> None:
         """Initialize EDEleve."""
         if data is None:
@@ -194,7 +194,7 @@ class EDEleve:
         return f"{self.eleve_firstname} {self.eleve_lastname}"
 
 
-def check_ecoledirecte_session(data, config_path, hass) -> bool:
+def check_ecoledirecte_session(data: Any, config_path: Any, hass: Any) -> bool:
     """Check if credentials to Ecole Directe are ok."""
     try:
         session = get_ecoledirecte_session(data, config_path, hass)
@@ -206,15 +206,17 @@ def check_ecoledirecte_session(data, config_path, hass) -> bool:
     return True
 
 
-def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
-    """Function connecting to Ecole Directe."""
+def get_ecoledirecte_session(
+    data: Any, config_path: Any, hass: Any
+) -> EDSession | None:
+    """Connect to Ecole Directe."""
     try:
         payload = (
             'data={"identifiant":"'
             + urllib.parse.quote(data["username"], safe="")
             + '", "motdepasse":"'
             + urllib.parse.quote(data["password"], safe="")
-            + '", "isRelogin": false}'
+            + '", "isRelogin": false,"uuid": "","fa": []}'
         )
 
         login = get_response(
@@ -261,12 +263,11 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
                     cn = cn_et_cv["cn"]
                     cv = cn_et_cv["cv"]
                     break
-                rep = []
-                propositions = qcm["propositions"]
-                for proposition in propositions:
-                    rep.append(base64.b64decode(proposition).decode("utf-8"))
 
-                qcm_json[question] = rep
+                qcm_json[question] = [
+                    base64.b64decode(proposition).decode("utf-8")
+                    for proposition in qcm["propositions"]
+                ]
 
                 with Path.open(
                     config_path + "/" + data["qcm_filename"],
@@ -330,7 +331,7 @@ def get_ecoledirecte_session(data, config_path, hass) -> EDSession | None:
         return None
 
 
-def get_qcm_connexion(token, config_path):
+def get_qcm_connexion(token: Any, config_path: Any) -> dict:
     """Obtenir le QCM donné lors d'une connexion à partir d'un nouvel appareil."""
     json_resp = get_response(
         token,
@@ -345,7 +346,7 @@ def get_qcm_connexion(token, config_path):
     return None
 
 
-def post_qcm_connexion(token, proposition, config_path):
+def post_qcm_connexion(token: Any, proposition: Any, config_path: Any) -> dict:
     """Renvoyer la réponse du QCM donné."""
     json_resp = get_response(
         token,
@@ -360,11 +361,13 @@ def post_qcm_connexion(token, proposition, config_path):
     return None
 
 
-def get_messages(token, id, eleve, annee_scolaire, config_path):
+def get_messages(
+    token: Any, id1: Any, eleve: Any, annee_scolaire: Any, config_path: Any
+) -> dict:
     """Get messages from Ecole Directe."""
     if DEBUG_ON:
         # Opening JSON file
-        f = open(config_path + INTEGRATION_PATH + "test/test_messages.json")
+        f = Path.open(config_path + INTEGRATION_PATH + "test/test_messages.json")
         json_resp = json.load(f)
     else:
         payload = (
@@ -375,7 +378,7 @@ def get_messages(token, id, eleve, annee_scolaire, config_path):
         if eleve is None:
             json_resp = get_response(
                 token,
-                f"{APIURL}/familles/{id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
+                f"{APIURL}/familles/{id1}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=100&getAll=0&verbe=get&v={APIVERSION}",
                 payload,
                 config_path + INTEGRATION_PATH + "get_messages_famille.json",
             )
@@ -394,11 +397,11 @@ def get_messages(token, id, eleve, annee_scolaire, config_path):
     return json_resp["data"]["pagination"]
 
 
-def get_homeworks_by_date(token, eleve, date, config_path):
+def get_homeworks_by_date(token: Any, eleve: Any, date: Any, config_path: Any) -> dict:
     """Get homeworks by date."""
     if DEBUG_ON:
         # Opening JSON file
-        f = open(
+        f = Path.open(
             config_path + INTEGRATION_PATH + "test/test_homeworks_" + date + ".json"
         )
         data = json.load(f)
@@ -416,11 +419,11 @@ def get_homeworks_by_date(token, eleve, date, config_path):
     return None
 
 
-def get_homeworks(token, eleve, config_path, decode_html):
+def get_homeworks(token: Any, eleve: Any, config_path: Any, decode_html: Any) -> dict:
     """Get homeworks."""
     if DEBUG_ON:
         # Opening JSON file
-        f = open(config_path + INTEGRATION_PATH + "test/test_homeworks.json")
+        f = Path.open(config_path + INTEGRATION_PATH + "test/test_homeworks.json")
         json_resp = json.load(f)
     else:
         json_resp = get_response(
@@ -437,22 +440,21 @@ def get_homeworks(token, eleve, config_path, decode_html):
     data = json_resp["data"]
     homeworks = []
     for key in data.keys():
-        for idx, homework_json in enumerate(data[key]):
+        for homework_json in enumerate(data[key]):
             homeworks_by_date_json = get_homeworks_by_date(
                 token, eleve, key, config_path
             )
             for matiere in homeworks_by_date_json["matieres"]:
-                if "aFaire" in matiere:
-                    if matiere["id"] == homework_json["idDevoir"]:
-                        hw = get_homework(matiere, key, decode_html)
-                        homeworks.append(hw)
+                if "aFaire" in matiere and matiere["id"] == homework_json["idDevoir"]:
+                    hw = get_homework(matiere, key, decode_html)
+                    homeworks.append(hw)
     if homeworks is not None:
         homeworks.sort(key=operator.itemgetter("date"))
 
     return homeworks
 
 
-def get_homework(data, pour_le, clean_content):
+def get_homework(data: Any, pour_le: Any, clean_content: Any) -> dict:
     """Get homework information."""
     if "contenu" in data["aFaire"]:
         contenu = base64.b64decode(data["aFaire"]["contenu"]).decode("utf-8")
@@ -472,26 +474,29 @@ def get_homework(data, pour_le, clean_content):
     }
 
 
-def clean_html(raw_html):
+def clean_html(raw_html: Any) -> dict:
     """Clean html."""
-    cleantext = re.sub(CLEANR, "", raw_html)
-    return cleantext
+    return re.sub(CLEANR, "", raw_html)
 
 
 def get_grades_evaluations(
-    token, eleve, annee_scolaire, config_path, grades_dispaly=GRADES_TO_DISPLAY
-):
+    token: Any,
+    eleve: Any,
+    annee_scolaire: Any,
+    config: Any,
+    grades_dispaly: Any = GRADES_TO_DISPLAY,
+) -> dict:
     """Get grades."""
     if DEBUG_ON:
         # Opening JSON file
-        f = open(config_path + INTEGRATION_PATH + "test/test_grades.json")
+        f = Path.open(config.config_dir + INTEGRATION_PATH + "test/test_grades.json")
         json_resp = json.load(f)
     else:
         json_resp = get_response(
             token,
             f"{APIURL}/eleves/{eleve.eleve_id}/notes.awp?verbe=get&v={APIVERSION}",
             f"data={{'anneeScolaire': '{annee_scolaire}'}}",
-            f"{config_path + INTEGRATION_PATH}{eleve.eleve_id}_get_grades_evaluations.json",
+            f"{config.config_dir + INTEGRATION_PATH}{eleve.eleve_id}_get_grades_evaluations.json",
         )
 
     if "data" not in json_resp:
@@ -516,11 +521,13 @@ def get_grades_evaluations(
                 and "semestre" not in periode_json["periode"].lower()
             ):
                 continue
-            if datetime.now() < datetime.strptime(
+            if datetime.now(config.time_zone) < datetime.strptime(
                 periode_json["dateDebut"], "%Y-%m-%d"
-            ):
+            ).astimezone(config.time_zone):
                 continue
-            if datetime.now() > datetime.strptime(periode_json["dateFin"], "%Y-%m-%d"):
+            if datetime.now(config.time_zone) > datetime.strptime(
+                periode_json["dateFin"], "%Y-%m-%d"
+            ).astimezone(config.time_zone):
                 continue
             response["disciplines"] = get_disciplines_periode(periode_json)
             if "ensembleMatieres" in periode_json:
@@ -562,12 +569,13 @@ def get_grades_evaluations(
     return response
 
 
-def get_grade(data):
+def get_grade(data: Any) -> dict:
     """Get grade information."""
     elements_programme = []
     if "elementsProgramme" in data:
-        for element in data["elementsProgramme"]:
-            elements_programme.append(get_competence(element))
+        elements_programme = [
+            get_competence(element) for element in data["elementsProgramme"]
+        ]
 
     return {
         "date": data.get("date"),
@@ -589,47 +597,48 @@ def get_grade(data):
     }
 
 
-def get_disciplines_periode(data):
+def get_disciplines_periode(data: Any) -> dict:
     """Get periode information."""
     try:
         disciplines = []
-        if "ensembleMatieres" in data:
-            if "disciplines" in data["ensembleMatieres"]:
-                for discipline_json in data["ensembleMatieres"]["disciplines"]:
-                    if (
-                        "codeSousMatiere" in discipline_json
-                        and len(discipline_json["codeSousMatiere"]) > 0
-                    ):
-                        continue
-                    discipline = {
-                        "code": discipline_json.get("codeMatiere", "").lower(),
-                        "name": discipline_json.get("discipline", "").lower(),
-                        "moyenne": discipline_json.get("moyenne", "").replace(",", "."),
-                        "moyenneClasse": discipline_json.get(
-                            "moyenneClasse", ""
-                        ).replace(",", "."),
-                        "moyenneMin": discipline_json.get("moyenneMin", "").replace(
-                            ",", "."
-                        ),
-                        "moyenneMax": discipline_json.get("moyenneMax", "").replace(
-                            ",", "."
-                        ),
-                        "appreciations": discipline_json.get("appreciations", ""),
-                    }
-                    disciplines.append(discipline)
-        return disciplines
+        if "ensembleMatieres" in data and "disciplines" in data["ensembleMatieres"]:
+            for discipline_json in data["ensembleMatieres"]["disciplines"]:
+                if (
+                    "codeSousMatiere" in discipline_json
+                    and len(discipline_json["codeSousMatiere"]) > 0
+                ):
+                    continue
+                discipline = {
+                    "code": discipline_json.get("codeMatiere", "").lower(),
+                    "name": discipline_json.get("discipline", "").lower(),
+                    "moyenne": discipline_json.get("moyenne", "").replace(",", "."),
+                    "moyenneClasse": discipline_json.get("moyenneClasse", "").replace(
+                        ",", "."
+                    ),
+                    "moyenneMin": discipline_json.get("moyenneMin", "").replace(
+                        ",", "."
+                    ),
+                    "moyenneMax": discipline_json.get("moyenneMax", "").replace(
+                        ",", "."
+                    ),
+                    "appreciations": discipline_json.get("appreciations", ""),
+                }
+                disciplines.append(discipline)
     except Exception as ex:
         LOGGER.warning("get_periode: %s", ex)
         raise
+    else:
+        return disciplines
 
 
-def get_evaluation(data):
+def get_evaluation(data: Any) -> dict:
     """Get evaluation information."""
     try:
         elements_programme = []
         if "elementsProgramme" in data:
-            for element in data["elementsProgramme"]:
-                elements_programme.append(element)
+            elements_programme = [
+                get_competence(element) for element in data["elementsProgramme"]
+            ]
 
         return {
             "name": data.get("devoir"),
@@ -649,7 +658,7 @@ def get_evaluation(data):
         raise
 
 
-def get_competence(data):
+def get_competence(data: Any) -> dict:
     """Get grade information."""
     valeur = data.get("valeur")
     match valeur:
@@ -672,11 +681,11 @@ def get_competence(data):
     }
 
 
-def get_vie_scolaire(token, eleve, config_path):
+def get_vie_scolaire(token: Any, eleve: Any, config_path: Any) -> dict:
     """Get vie scolaire (absences, retards, etc.)."""
     if DEBUG_ON:
         # Opening JSON file
-        f = open(config_path + INTEGRATION_PATH + "test/test_vie_scolaire.json")
+        f = Path.open(config_path + INTEGRATION_PATH + "test/test_vie_scolaire.json")
         json_resp = json.load(f)
     else:
         json_resp = get_response(
@@ -737,8 +746,8 @@ def get_vie_scolaire(token, eleve, config_path):
     return response
 
 
-def get_vie_scolaire_element(viescolaire) -> dict:
-    """Vie scolaire format"""
+def get_vie_scolaire_element(viescolaire: Any) -> dict:
+    """Vie scolaire format."""
     try:
         return {
             "date": viescolaire["date"],
@@ -754,11 +763,18 @@ def get_vie_scolaire_element(viescolaire) -> dict:
         return {}
 
 
-def get_lessons(token, eleve, date_debut, date_fin, config_path, lunch_break_time):
+def get_lessons(
+    token: Any,
+    eleve: Any,
+    date_debut: Any,
+    date_fin: Any,
+    config: Any,
+    lunch_break_time: Any,
+) -> dict:
     """Get lessons."""
     if DEBUG_ON:
         # Opening JSON file
-        f = open(config_path + INTEGRATION_PATH + "test/test_lessons.json")
+        f = Path.open(config.config_dir + INTEGRATION_PATH + "test/test_lessons.json")
         json_resp = json.load(f)
     else:
         json_resp = get_response(
@@ -767,7 +783,7 @@ def get_lessons(token, eleve, date_debut, date_fin, config_path, lunch_break_tim
             f"data={{'dateDebut': '{date_debut}','dateFin': '{
                 date_fin
             }','avecTrous': false}}",
-            f"{config_path + INTEGRATION_PATH}{eleve.eleve_id}_get_lessons.json",
+            f"{config.config_dir + INTEGRATION_PATH}{eleve.eleve_id}_get_lessons.json",
         )
 
     if "data" not in json_resp:
@@ -777,7 +793,7 @@ def get_lessons(token, eleve, date_debut, date_fin, config_path, lunch_break_tim
     response = []
     data = json_resp["data"]
     for lesson_json in data:
-        lesson = get_lesson(lesson_json, lunch_break_time)
+        lesson = get_lesson(lesson_json, lunch_break_time, config)
         if not lesson["canceled"]:
             response.append(lesson)
     if response is not None:
@@ -786,10 +802,14 @@ def get_lessons(token, eleve, date_debut, date_fin, config_path, lunch_break_tim
     return response
 
 
-def get_lesson(data, lunch_break_time):
+def get_lesson(data: Any, lunch_break_time: Any, config: Any) -> dict:
     """Get lesson information."""
-    start_date = datetime.strptime(data["start_date"], "%Y-%m-%d %H:%M")
-    end_date = datetime.strptime(data["end_date"], "%Y-%m-%d %H:%M")
+    start_date = datetime.strptime(data["start_date"], "%Y-%m-%d %H:%M").astimezone(
+        config.time_zone
+    )
+    end_date = datetime.strptime(data["end_date"], "%Y-%m-%d %H:%M").astimezone(
+        config.time_zone
+    )
     return {
         "start": start_date,
         "end": end_date,
@@ -808,7 +828,7 @@ def get_lesson(data, lunch_break_time):
     }
 
 
-def get_sondages(token, config_path):
+def get_sondages(token: Any, config_path: Any) -> dict:
     """Get sondages."""
     return get_response(
         token,
@@ -818,7 +838,9 @@ def get_sondages(token, config_path):
     )
 
 
-def get_formulaires(token, account_type, id_entity, config_path):
+def get_formulaires(
+    token: Any, account_type: Any, id_entity: Any, config_path: Any
+) -> dict:
     """Get formulaires."""
     payload = (
         'data={"typeEntity": "' + account_type + '","idEntity":' + str(id_entity) + "}"
@@ -833,15 +855,10 @@ def get_formulaires(token, account_type, id_entity, config_path):
         LOGGER.warning("get_formulaires: [%s]", json_resp)
         return None
 
-    response = []
-    data = json_resp["data"]
-    for form_json in data:
-        response.append(get_formulaire(form_json))
-
-    return response
+    return [get_formulaire(form_json) for form_json in json_resp["data"]]
 
 
-def get_formulaire(data):
+def get_formulaire(data: Any) -> dict:
     """Get formulaire."""
     return {
         "titre": data["titre"],
@@ -849,7 +866,7 @@ def get_formulaire(data):
     }
 
 
-def get_classe(token, classe_id, config_path):
+def get_classe(token: Any, classe_id: Any, config_path: Any) -> dict:
     """Get classe."""
     json_resp = get_response(
         token,

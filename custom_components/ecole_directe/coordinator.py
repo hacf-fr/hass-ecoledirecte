@@ -212,7 +212,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         session.token,
                         eleve,
                         year_data,
-                        self.hass.config.config_dir,
+                        self.hass.config,
                         self.config_entry.options.get(
                             "notes_affichees", GRADES_TO_DISPLAY
                         ),
@@ -273,7 +273,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         eleve,
                         current_week_begin.strftime("%Y-%m-%d"),
                         current_week_plus_21.strftime("%Y-%m-%d"),
-                        self.hass.config.config_dir,
+                        self.hass.config,
                         lunch_break_time,
                     )
                     self.data[f"{eleve.get_fullname_lower()}_timetable_today"] = list(

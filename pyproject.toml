@@ -57,6 +57,15 @@ src = ["custom_components/ecole_directe"]
 [tool.ruff.lint]
 ignore = [
     "EXE002",
+    "BLE001",
+    "PLR0912",
+    "PLR0913",
+    "C901",
+    "TRY301",
+    "SIM118",
+    "PLR0915",
+
+
     "A005",   # It is just wrong
     "ANN101", # Missing type annotation for `self` in method
     "ANN401", # Dynamically typed expressions (typing.Any) are disallowed

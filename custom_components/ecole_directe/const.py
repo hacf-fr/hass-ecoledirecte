@@ -1,7 +1,8 @@
 """Constants for the Ecole Directe integration."""
 
-from homeassistant.const import Platform
 from logging import Logger, getLogger
+
+from homeassistant.const import Platform
 
 LOGGER: Logger = getLogger(__package__)
 
@@ -19,5 +20,6 @@ HOMEWORK_DESC_MAX_LENGTH = 125
 DEFAULT_ALLOW_NOTIFICATION = False
 DEFAULT_LUNCH_BREAK_TIME = "13:00"
 MAX_STATE_ATTRS_BYTES = 16384
+AUGUST = 8
 
 DEBUG_ON = False

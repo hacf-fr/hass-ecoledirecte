@@ -1,15 +1,15 @@
 """Module providing sensors to Home Assistant."""
 
+from datetime import datetime
 import operator
 
-from datetime import datetime
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.components.sensor import (
     SensorEntity,
 )
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.json import (
     json_bytes,
 )
@@ -17,8 +17,6 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
 
-from .ecole_directe_helper import EDEleve
-from .coordinator import EDDataUpdateCoordinator
 from .const import (
     DEBUG_ON,
     DEFAULT_LUNCH_BREAK_TIME,
@@ -26,6 +24,8 @@ from .const import (
     LOGGER,
     MAX_STATE_ATTRS_BYTES,
 )
+from .coordinator import EDDataUpdateCoordinator
+from .ecole_directe_helper import EDEleve
 
 
 async def async_setup_entry(
@@ -34,7 +34,6 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up a bridge from a config entry."""
-
     coordinator: EDDataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id][
         "coordinator"
     ]
@@ -126,12 +125,11 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
         self,
         coordinator,
         name: str,
-        eleve: EDEleve = None,
-        state: str = None,
-        device_class: str = None,
+        eleve: EDEleve | None = None,
+        state: str | None = None,
+        device_class: str | None = None,
     ) -> None:
         """Initialize the ED sensor."""
-
         super().__init__(coordinator)
 
         identifiant = self.coordinator.data["session"].identifiant
@@ -141,11 +139,10 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
                 self._name = identifiant
             else:
                 self._name = eleve.get_fullname_lower()
+        elif eleve is None:
+            self._name = name
         else:
-            if eleve is None:
-                self._name = name
-            else:
-                self._name = f"{eleve.get_fullname_lower()}_{name}"
+            self._name = f"{eleve.get_fullname_lower()}_{name}"
         self._state = state
         self._child_info = eleve
         self._attr_unique_id = f"ed_{identifiant}_{self._name}"
@@ -196,15 +193,15 @@ class EDChildSensor(EDGenericSensor):
         """Initialize the ED sensor."""
         super().__init__(coordinator, "", eleve, "len")
         self._attr_unique_id = f"ed_{eleve.get_fullname_lower()}_{eleve.eleve_id}]"
-        self._account_type = self.coordinator.data["session"]._account_type
+        self._account_type = self.coordinator.data["session"].account_type
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name of the sensor."""
         return f"{DOMAIN}_{self._name}"
 
     @property
-    def native_value(self):
+    def native_value(self) -> str:
         """Return the state of the sensor."""
         return self._child_info.get_fullname()
 
@@ -261,11 +258,9 @@ class EDHomeworksSensor(EDGenericSensor):
             if attributes is not None:
                 attributes.sort(key=operator.itemgetter("date"))
         else:
-            attributes.append(
-                {
-                    "Erreur": f"{self._child_info.get_fullname_lower()}_homework{self._suffix} n'existe pas."
-                }
-            )
+            attributes.append({
+                "Erreur": f"{self._child_info.get_fullname_lower()}_homework{self._suffix} n'existe pas."
+            })
 
         if is_too_big(attributes):
             attributes = []
@@ -566,7 +561,9 @@ class EDFormulairesSensor(EDGenericSensor):
 class EDMessagerieSensor(EDGenericSensor):
     """Representation of a ED sensor."""
 
-    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
+    def __init__(
+        self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve | None
+    ) -> None:
         """Initialize the ED sensor."""
         super().__init__(coordinator, "messagerie", eleve, "len")
 

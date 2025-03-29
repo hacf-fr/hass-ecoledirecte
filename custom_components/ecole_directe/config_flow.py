@@ -27,6 +27,9 @@ from .ecole_directe_helper import (
 )
 
 if TYPE_CHECKING:
+    from homeassistant.data_entry_flow import FlowResult
+
+if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigFlowResult
 
 STEP_USER_DATA_SCHEMA_UP = vol.Schema({
@@ -73,7 +76,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(self._user_inputs["username"])
                 self._abort_if_unique_id_configured()
 
-                session = await self.hass.async_add_executor_job(
+                await self.hass.async_add_executor_job(
                     check_ecoledirecte_session,
                     self._user_inputs["username"],
                     self._user_inputs["password"],
@@ -83,7 +86,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                 if not session:
                     raise InvalidAuthError
-
                 return self.async_create_entry(
                     title=self._user_inputs["username"], data=self._user_inputs
                 )
@@ -106,7 +108,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class CannotConnectError(HomeAssistantError):
     """Error to indicate we cannot connect."""
 
-
 class InvalidAuthError(HomeAssistantError):
     """Error to indicate there is invalid auth."""
 
@@ -127,6 +128,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="init",
+
             data_schema=vol.Schema({
                 vol.Optional(
                     "refresh_interval",

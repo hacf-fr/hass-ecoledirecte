@@ -33,17 +33,19 @@ CLEANR = re.compile("<.*?>")
 
 
 class RequestError(Exception):
-    """Request error from API"""
+    """Request error from API."""
 
-    def __init__(self, message):
-        super(RequestError, self).__init__(message)
+    def __init__(self, message: str) -> None:
+        """Initialize RequestError."""
+        super().__init__(message)
 
 
 class QCMError(Exception):
-    """QCM error on double autentication from API"""
+    """QCM error on double autentication from API."""
 
-    def __init__(self, message):
-        super(QCMError, self).__init__(message)
+    def __init__(self, message: str) -> None:
+        """Initialize QCMError."""
+        super().__init__(message)
 
 
 class EDSession:
@@ -779,19 +781,20 @@ class EDSession:
 
 
 class EDEleve:
-    """Student information"""
+    """Student information."""
 
     def __init__(
         self,
-        data=None,
-        establishment=None,
-        eleve_id=None,
+        data: Any | None=None,
+        establishment: Any | None=None,
+        eleve_id: Any | None =None,
         first_name: str | None = None,
         last_name: str | None = None,
         classe_id: str | None = None,
         classe_name: str | None = None,
         modules: list = [],
-    ):
+    )-> None:
+        """Initialize EDEleve."""
         if data is None:
             self.classe_id = classe_id
             self.classe_name: str = str({classe_name: ""})
@@ -813,25 +816,27 @@ class EDEleve:
                 if module["enable"]:
                     self.modules.append(module["code"])
 
-    def get_fullname_lower(self) -> str:
+    def get_fullname_lower(self) -> str | None:
         """Student fullname lowercase."""
         return f"{re.sub('[^A-Za-z]', '_', self.eleve_firstname.lower())}_{
             re.sub('[^A-Za-z]', '_', self.eleve_lastname.lower())
         }"
 
-    def get_fullname(self) -> str:
+    def get_fullname(self) -> str | None:
         """Student fullname."""
         return f"{self.eleve_firstname} {self.eleve_lastname}"
 
 
-def check_ecoledirecte_session(user, pwd, qcm, hass: HomeAssistant) -> bool:
-    """check if credentials to Ecole Directe are ok"""
+def check_ecoledirecte_session(data: Any, config_path: Any, hass: Any) -> bool:
+    """Check if credentials to Ecole Directe are ok."""
     try:
-        session = get_ecoledirecte_session(user, pwd, qcm, hass=hass)
+        session = get_ecoledirecte_session(data, config_path, hass)
+        if session is None:
+            raise InvalidAuthError
     except QCMError:
         return True
 
-    return session is not None
+    return True
 
 
 def get_ecoledirecte_session(user, pwd, qcm, hass: HomeAssistant) -> EDSession | None:
@@ -850,8 +855,9 @@ def get_grade(data):
 
     elements_programme = []
     if "elementsProgramme" in data:
-        for element in data["elementsProgramme"]:
-            elements_programme.append(get_competence(element))
+        elements_programme = [
+            get_competence(element) for element in data["elementsProgramme"]
+        ]
 
     return {
         "date": data.get("date"),
@@ -873,49 +879,48 @@ def get_grade(data):
     }
 
 
-def get_disciplines_periode(data):
-    """get periode information"""
-
+def get_disciplines_periode(data: Any) -> dict:
+    """Get periode information."""
     try:
         disciplines = []
-        if "ensembleMatieres" in data:
-            if "disciplines" in data["ensembleMatieres"]:
-                for discipline_json in data["ensembleMatieres"]["disciplines"]:
-                    if (
-                        "codeSousMatiere" in discipline_json
-                        and len(discipline_json["codeSousMatiere"]) > 0
-                    ):
-                        continue
-                    discipline = {
-                        "code": discipline_json.get("codeMatiere", "").lower(),
-                        "name": discipline_json.get("discipline", "").lower(),
-                        "moyenne": discipline_json.get("moyenne", "").replace(",", "."),
-                        "moyenneClasse": discipline_json.get(
-                            "moyenneClasse", ""
-                        ).replace(",", "."),
-                        "moyenneMin": discipline_json.get("moyenneMin", "").replace(
-                            ",", "."
-                        ),
-                        "moyenneMax": discipline_json.get("moyenneMax", "").replace(
-                            ",", "."
-                        ),
-                        "appreciations": discipline_json.get("appreciations", ""),
-                    }
-                    disciplines.append(discipline)
-        return disciplines
+        if "ensembleMatieres" in data and "disciplines" in data["ensembleMatieres"]:
+            for discipline_json in data["ensembleMatieres"]["disciplines"]:
+                if (
+                    "codeSousMatiere" in discipline_json
+                    and len(discipline_json["codeSousMatiere"]) > 0
+                ):
+                    continue
+                discipline = {
+                    "code": discipline_json.get("codeMatiere", "").lower(),
+                    "name": discipline_json.get("discipline", "").lower(),
+                    "moyenne": discipline_json.get("moyenne", "").replace(",", "."),
+                    "moyenneClasse": discipline_json.get("moyenneClasse", "").replace(
+                        ",", "."
+                    ),
+                    "moyenneMin": discipline_json.get("moyenneMin", "").replace(
+                        ",", "."
+                    ),
+                    "moyenneMax": discipline_json.get("moyenneMax", "").replace(
+                        ",", "."
+                    ),
+                    "appreciations": discipline_json.get("appreciations", ""),
+                }
+                disciplines.append(discipline)
     except Exception as ex:
         LOGGER.warning("get_periode: %s", ex)
         raise
+    else:
+        return disciplines
 
 
-def get_evaluation(data):
-    """get evaluation information"""
-
+def get_evaluation(data: Any) -> dict:
+    """Get evaluation information."""
     try:
         elements_programme = []
         if "elementsProgramme" in data:
-            for element in data["elementsProgramme"]:
-                elements_programme.append(element)
+            elements_programme = [
+                get_competence(element) for element in data["elementsProgramme"]
+            ]
 
         return {
             "name": data.get("devoir"),
@@ -935,9 +940,8 @@ def get_evaluation(data):
         raise
 
 
-def get_competence(data):
-    """get grade information"""
-
+def get_competence(data: Any) -> dict:
+    """Get grade information."""
     valeur = data.get("valeur")
     match valeur:
         case "1":

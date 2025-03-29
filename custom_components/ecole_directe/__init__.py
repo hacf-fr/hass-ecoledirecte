@@ -1,9 +1,4 @@
-"""
-Ecole Directe integration.
-
-For more details about this integration, please refer to
-https://github.com/hacf-fr/hass-ecoledirecte
-"""
+"""Ecole Directe integration."""
 
 from __future__ import annotations
 
@@ -12,7 +7,12 @@ from typing import TYPE_CHECKING
 
 from homeassistant.exceptions import ConfigEntryNotReady
 
-from .const import DEFAULT_REFRESH_INTERVAL, DOMAIN, LOGGER, PLATFORMS
+from .const import (
+    DEFAULT_REFRESH_INTERVAL,
+    DOMAIN,
+    LOGGER,
+    PLATFORMS,
+)
 from .coordinator import EDDataUpdateCoordinator
 
 if TYPE_CHECKING:

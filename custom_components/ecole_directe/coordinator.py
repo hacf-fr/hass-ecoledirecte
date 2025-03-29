@@ -47,7 +47,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             ),
         )
         self.config_entry = entry
-        self.timezone = dt_util.get_default_time_zone()
+        # self.timezone = dt_util.get_default_time_zone()
+        self.timezone = self.hass.config.time_zone
 
     async def _async_update_data(self):
         """Get the latest data from Ecole Directe and updates the state."""
@@ -66,7 +67,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
         if session is None:
             LOGGER.error("Unable to init ecole directe client")
-            return None
+            return {}
 
         self.data = {}
         self.data["session"] = session
@@ -159,9 +160,13 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         filter(
                             lambda homework: datetime.strptime(
                                 homework["date"], "%Y-%m-%d"
-                            ).date()
+                            )
+                            .astimezone(self.hass.config.time_zone)
+                            .date()
                             >= current_week_begin
-                            and datetime.strptime(homework["date"], "%Y-%m-%d").date()
+                            and datetime.strptime(homework["date"], "%Y-%m-%d")
+                            .astimezone(self.hass.config.time_zone)
+                            .date()
                             <= current_week_end,
                             homeworks,
                         )
@@ -170,9 +175,13 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         filter(
                             lambda homework: datetime.strptime(
                                 homework["date"], "%Y-%m-%d"
-                            ).date()
+                            )
+                            .astimezone(self.hass.config.time_zone)
+                            .date()
                             >= next_week_begin
-                            and datetime.strptime(homework["date"], "%Y-%m-%d").date()
+                            and datetime.strptime(homework["date"], "%Y-%m-%d")
+                            .astimezone(self.hass.config.time_zone)
+                            .date()
                             <= next_week_end,
                             homeworks,
                         )
@@ -181,7 +190,9 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         filter(
                             lambda homework: datetime.strptime(
                                 homework["date"], "%Y-%m-%d"
-                            ).date()
+                            )
+                            .astimezone(self.hass.config.time_zone)
+                            .date()
                             >= after_next_week_begin,
                             homeworks,
                         )
@@ -195,7 +206,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         session.get_grades_evaluations,
                         eleve,
                         year_data,
-                        self.hass.config.config_dir,
+                        self.hass.config,
                         self.config_entry.options.get(
                             "notes_affichees", GRADES_TO_DISPLAY
                         ),
@@ -241,17 +252,21 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     break_time = self.config_entry.options.get(
                         "lunch_break_time", DEFAULT_LUNCH_BREAK_TIME
                     )
-                    lunch_break_time = datetime.strptime(
-                        break_time,
-                        "%H:%M",
-                    ).time()
+                    lunch_break_time = (
+                        datetime.strptime(
+                            break_time,
+                            "%H:%M",
+                        )
+                        .astimezone(self.hass.config.time_zone)
+                        .time()
+                    )
 
                     lessons = await self.hass.async_add_executor_job(
                         session.get_lessons,
                         eleve,
                         current_week_begin.strftime("%Y-%m-%d"),
                         current_week_plus_21.strftime("%Y-%m-%d"),
-                        self.hass.config.config_dir,
+                        self.hass.config,
                         lunch_break_time,
                     )
                     self.data[f"{eleve.get_fullname_lower()}_timetable_today"] = list(
@@ -375,12 +390,12 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
     def compare_data(
         self,
-        previous_data,
-        data_key,
-        compare_keys,
-        event_type,
-        eleve: EDEleve | None,
-    ):
+        previous_data: Any,
+        data_key: Any,
+        compare_keys: Any,
+        event_type: str,
+        eleve: EDEleve,
+    ) -> None:
         """Compare data from previous session."""
         try:
             if (
@@ -410,7 +425,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 ex,
             )
 
-    def trigger_event(self, event_type, eleve: EDEleve | None, event_data):
+    def trigger_event(self, event_type: str, eleve: EDEleve, event_data: Any) -> None:
         """Trigger an event if there is new data."""
         name = "" if eleve is None else eleve.get_fullname()
 
@@ -422,7 +437,9 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         self.hass.bus.fire(EVENT_TYPE, event_data)
 
 
-def get_next_day_lessons(lessons, lessons_next_day, next_day):
+def get_next_day_lessons(
+    lessons: Any, lessons_next_day: Any, next_day: Any
+) -> Any | None:
     """Get next day lessons."""
     if len(lessons) == 0:
         return None

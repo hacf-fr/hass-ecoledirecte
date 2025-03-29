@@ -2,7 +2,6 @@
 
 from datetime import datetime
 import operator
-from typing import Any, Literal
 
 from homeassistant.components.sensor import (
     SensorEntity,
@@ -19,7 +18,7 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from .const import (
-    DEBUG_ON,
+    FAKE_ON,
     DEFAULT_LUNCH_BREAK_TIME,
     DOMAIN,
     LOGGER,
@@ -55,7 +54,7 @@ async def async_setup_entry(
 
         for eleve in coordinator.data["session"].eleves:
             sensors.append(EDChildSensor(coordinator, eleve))
-            if DEBUG_ON or "CAHIER_DE_TEXTES" in eleve.modules:
+            if FAKE_ON or "CAHIER_DE_TEXTES" in eleve.modules:
                 try:
                     sensors.append(EDHomeworksSensor(coordinator, eleve, ""))
                     sensors.append(EDHomeworksSensor(coordinator, eleve, "_1"))
@@ -63,7 +62,7 @@ async def async_setup_entry(
                     sensors.append(EDHomeworksSensor(coordinator, eleve, "_3"))
                 except Exception as e:
                     LOGGER.error("Error while creating homeworks sensors: %s", e)
-            if DEBUG_ON or "EDT" in eleve.modules:
+            if FAKE_ON or "EDT" in eleve.modules:
                 try:
                     sensors.append(EDLessonsSensor(coordinator, eleve, "today"))
                     sensors.append(EDLessonsSensor(coordinator, eleve, "tomorrow"))
@@ -73,7 +72,7 @@ async def async_setup_entry(
                     sensors.append(EDLessonsSensor(coordinator, eleve, "period_2"))
                 except Exception as e:
                     LOGGER.error("Error while creating lessons sensors: %s", e)
-            if DEBUG_ON or "NOTES" in eleve.modules:
+            if FAKE_ON or "NOTES" in eleve.modules:
                 try:
                     sensors.append(EDGradesSensor(coordinator, eleve))
                     sensors.append(EDEvaluationsSensor(coordinator, eleve))
@@ -92,7 +91,7 @@ async def async_setup_entry(
                 except Exception as e:
                     LOGGER.error("Error while creating moyennes sensors: %s", e)
 
-            if DEBUG_ON or "VIE_SCOLAIRE" in eleve.modules:
+            if FAKE_ON or "VIE_SCOLAIRE" in eleve.modules:
                 try:
                     sensors.append(EDAbsencesSensor(coordinator, eleve))
                     sensors.append(EDRetardsSensor(coordinator, eleve))
@@ -100,7 +99,7 @@ async def async_setup_entry(
                     sensors.append(EDSanctionsSensor(coordinator, eleve))
                 except Exception as e:
                     LOGGER.error("Error while creating VIE_SCOLAIRE sensors: %s", e)
-            if DEBUG_ON or "MESSAGERIE" in coordinator.data["session"].modules:
+            if FAKE_ON or "MESSAGERIE" in coordinator.data["session"].modules:
                 try:
                     sensors.append(EDMessagerieSensor(coordinator, eleve))
                 except Exception as e:
@@ -118,9 +117,9 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
         self,
         coordinator: Any,
         name: str,
-        eleve: EDEleve,
-        state: str,
-        device_class: str,
+        eleve: EDEleve | None = None,
+        state: str | None = None,
+        device_class: str | None = None,
     ) -> None:
         """Initialize the ED sensor."""
         super().__init__(coordinator)
@@ -131,15 +130,15 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
             if eleve is None:
                 self.name = identifiant
             else:
-                self.name = eleve.get_fullname_lower()
+                self._name = eleve.get_fullname_lower()
         elif eleve is None:
-            self.name = name
+            self._name = name
         else:
-            self.name = f"{eleve.get_fullname_lower()}_{name}"
-        self.state = state
-        self.child_info = eleve
-        self.attr_unique_id = f"ed_{identifiant}_{self.name}"
-        self.attr_device_info = DeviceInfo(
+            self._name = f"{eleve.get_fullname_lower()}_{name}"
+        self._state = state
+        self._child_info = eleve
+        self._attr_unique_id = f"ed_{identifiant}_{self._name}"
+        self._attr_device_info = DeviceInfo(
             name=identifiant,
             entry_type=DeviceEntryType.SERVICE,
             identifiers={(DOMAIN, f"ED - {identifiant}")},
@@ -185,8 +184,8 @@ class EDChildSensor(EDGenericSensor):
     def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
         super().__init__(coordinator, "", eleve, "len")
-        self.attr_unique_id = f"ed_{eleve.get_fullname_lower()}_{eleve.eleve_id}]"
-        self.account_type = self.coordinator.data["session"].account_type
+        self._attr_unique_id = f"ed_{eleve.get_fullname_lower()}_{eleve.eleve_id}]"
+        self._account_type = self.coordinator.data["session"].account_type
 
     @property
     def name(self) -> str:
@@ -194,7 +193,7 @@ class EDChildSensor(EDGenericSensor):
         return f"{DOMAIN}_{self.name}"
 
     @property
-    def native_value(self) -> str | None:
+    def native_value(self) -> str:
         """Return the state of the sensor."""
         return self.child_info.get_fullname()
 
@@ -251,11 +250,9 @@ class EDHomeworksSensor(EDGenericSensor):
             if attributes is not None:
                 attributes.sort(key=operator.itemgetter("date"))
         else:
-            attributes.append(
-                {
-                    "Erreur": f"{self.child_info.get_fullname_lower()}_homework{self._suffix} n'existe pas."
-                }
-            )
+            attributes.append({
+                "Erreur": f"{self._child_info.get_fullname_lower()}_homework{self._suffix} n'existe pas."
+            })
 
         if is_too_big(attributes):
             attributes = []
@@ -512,7 +509,9 @@ class EDFormulairesSensor(EDGenericSensor):
 class EDMessagerieSensor(EDGenericSensor):
     """Representation of a ED sensor."""
 
-    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
+    def __init__(
+        self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve | None
+    ) -> None:
         """Initialize the ED sensor."""
         super().__init__(coordinator, "messagerie", eleve, "len")
 

@@ -51,10 +51,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 
-async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle options update."""
     hass.data[DOMAIN][entry.entry_id]["coordinator"].update_interval = timedelta(
         minutes=entry.options.get("refresh_interval", DEFAULT_REFRESH_INTERVAL)
     )
-
-    return True

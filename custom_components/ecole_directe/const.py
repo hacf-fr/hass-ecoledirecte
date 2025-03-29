@@ -24,4 +24,4 @@ AUGUST = 8
 EDMFA = 250
 EDOK = 200
 
-DEBUG_ON = False
+FAKE_ON = False

@@ -18,7 +18,7 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from .const import (
-    DEBUG_ON,
+    FAKE_ON,
     DEFAULT_LUNCH_BREAK_TIME,
     DOMAIN,
     LOGGER,
@@ -54,7 +54,7 @@ async def async_setup_entry(
 
         for eleve in coordinator.data["session"].eleves:
             sensors.append(EDChildSensor(coordinator, eleve))
-            if DEBUG_ON or "CAHIER_DE_TEXTES" in eleve.modules:
+            if FAKE_ON or "CAHIER_DE_TEXTES" in eleve.modules:
                 try:
                     sensors.append(EDHomeworksSensor(coordinator, eleve, ""))
                     sensors.append(EDHomeworksSensor(coordinator, eleve, "_1"))
@@ -62,7 +62,7 @@ async def async_setup_entry(
                     sensors.append(EDHomeworksSensor(coordinator, eleve, "_3"))
                 except Exception as e:
                     LOGGER.error("Error while creating homeworks sensors: %s", e)
-            if DEBUG_ON or "EDT" in eleve.modules:
+            if FAKE_ON or "EDT" in eleve.modules:
                 try:
                     sensors.append(EDLessonsSensor(coordinator, eleve, "today"))
                     sensors.append(EDLessonsSensor(coordinator, eleve, "tomorrow"))
@@ -72,7 +72,7 @@ async def async_setup_entry(
                     sensors.append(EDLessonsSensor(coordinator, eleve, "period_2"))
                 except Exception as e:
                     LOGGER.error("Error while creating lessons sensors: %s", e)
-            if DEBUG_ON or "NOTES" in eleve.modules:
+            if FAKE_ON or "NOTES" in eleve.modules:
                 try:
                     sensors.append(EDGradesSensor(coordinator, eleve))
                     sensors.append(EDEvaluationsSensor(coordinator, eleve))
@@ -99,7 +99,7 @@ async def async_setup_entry(
                 except Exception as e:
                     LOGGER.error("Error while creating moyennes sensors: %s", e)
 
-            if DEBUG_ON or "VIE_SCOLAIRE" in eleve.modules:
+            if FAKE_ON or "VIE_SCOLAIRE" in eleve.modules:
                 try:
                     sensors.append(EDAbsencesSensor(coordinator, eleve))
                     sensors.append(EDRetardsSensor(coordinator, eleve))
@@ -107,7 +107,7 @@ async def async_setup_entry(
                     sensors.append(EDSanctionsSensor(coordinator, eleve))
                 except Exception as e:
                     LOGGER.error("Error while creating VIE_SCOLAIRE sensors: %s", e)
-            if DEBUG_ON or "MESSAGERIE" in coordinator.data["session"].modules:
+            if FAKE_ON or "MESSAGERIE" in coordinator.data["session"].modules:
                 try:
                     sensors.append(EDMessagerieSensor(coordinator, eleve))
                 except Exception as e:

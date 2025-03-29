@@ -12,7 +12,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     AUGUST,
-    DEBUG_ON,
+    FAKE_ON,
     DEFAULT_LUNCH_BREAK_TIME,
     DEFAULT_REFRESH_INTERVAL,
     EVENT_TYPE,
@@ -51,7 +51,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
     async def _async_update_data(self):
         """Get the latest data from Ecole Directe and updates the state."""
-        if DEBUG_ON:
+        if FAKE_ON:
             LOGGER.info("DEBUG MODE ON")
 
         previous_data = None if self.data is None else self.data.copy()
@@ -116,7 +116,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         "Error getting messages for family from ecole directe: %s", ex
                     )
 
-            if DEBUG_ON or "EDFORMS" in session.modules:
+            if FAKE_ON or "EDFORMS" in session.modules:
                 try:
                     self.data["formulaires"] = await self.hass.async_add_executor_job(
                         session.get_formulaires,
@@ -136,7 +136,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     )
 
         for eleve in session.eleves:
-            if DEBUG_ON or "CAHIER_DE_TEXTES" in eleve.modules:
+            if FAKE_ON or "CAHIER_DE_TEXTES" in eleve.modules:
                 try:
                     homeworks = await self.hass.async_add_executor_job(
                         session.get_homeworks,
@@ -189,7 +189,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
                 except Exception as ex:
                     LOGGER.warning("Error getting homeworks from ecole directe: %s", ex)
-            if DEBUG_ON or "NOTES" in eleve.modules:
+            if FAKE_ON or "NOTES" in eleve.modules:
                 try:
                     grades_evaluations = await self.hass.async_add_executor_job(
                         session.get_grades_evaluations,
@@ -236,7 +236,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 except Exception as ex:
                     LOGGER.warning("Error getting grades from ecole directe: %s", ex)
 
-            if DEBUG_ON or "EDT" in eleve.modules:
+            if FAKE_ON or "EDT" in eleve.modules:
                 try:
                     break_time = self.config_entry.options.get(
                         "lunch_break_time", DEFAULT_LUNCH_BREAK_TIME
@@ -301,7 +301,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 except Exception as ex:
                     LOGGER.warning("Error getting Lessons from ecole directe: %s", ex)
 
-            if DEBUG_ON or "VIE_SCOLAIRE" in eleve.modules:
+            if FAKE_ON or "VIE_SCOLAIRE" in eleve.modules:
                 try:
                     vie_scolaire = await self.hass.async_add_executor_job(
                         session.get_vie_scolaire,
@@ -357,7 +357,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     LOGGER.warning(
                         "Error getting vie scolaire from ecole directe: %s", ex
                     )
-            if DEBUG_ON or "MESSAGERIE" in eleve.modules:
+            if FAKE_ON or "MESSAGERIE" in eleve.modules:
                 try:
                     self.data[
                         f"{eleve.get_fullname_lower()}_messagerie"

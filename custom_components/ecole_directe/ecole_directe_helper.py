@@ -16,7 +16,7 @@ from homeassistant.components.persistent_notification import async_create
 from homeassistant.core import HomeAssistant
 
 from .const import (
-    DEBUG_ON,
+    FAKE_ON,
     EVENT_TYPE,
     GRADES_TO_DISPLAY,
     HOMEWORK_DESC_MAX_LENGTH,
@@ -339,9 +339,6 @@ class EDSession:
             data="data={}",
             timeout=120,
         )
-        cookies = self.session.cookies.get_dict()
-        LOGGER.debug("get_qcm_connexion headers: %s", self.session.headers)
-        LOGGER.debug("get_qcm_connexion cookies: %s", cookies)
         try:
             json_resp = response.json()
             with open(
@@ -395,7 +392,7 @@ class EDSession:
     def get_messages(self, id, eleve, annee_scolaire, config_path):
         """Get messages from Ecole Directe"""
 
-        if DEBUG_ON:
+        if FAKE_ON:
             # Opening JSON file
             f = open(config_path + INTEGRATION_PATH + "test/test_messages.json")
             json_resp = json.load(f)
@@ -403,7 +400,7 @@ class EDSession:
             payload = 'data={"anneeMessages":"' + annee_scolaire + '"}'
             if eleve is None:
                 json_resp = self.get_response(
-                    is_get=True,
+                    is_get=False,
                     url=f"{APIURL}/familles/{id}/messages.awp",
                     params={
                         "force": "false",
@@ -424,7 +421,7 @@ class EDSession:
                 )
             else:
                 json_resp = self.get_response(
-                    is_get=True,
+                    is_get=False,
                     url=f"{APIURL}/eleves/{eleve.eleve_id}/messages.awp",
                     payload=payload,
                     params={
@@ -452,7 +449,7 @@ class EDSession:
 
     def get_homeworks_by_date(self, eleve, date, config_path) -> dict:
         """get homeworks by date."""
-        if DEBUG_ON:
+        if FAKE_ON:
             # Opening JSON file
             f = open(
                 config_path + INTEGRATION_PATH + "test/test_homeworks_" + date + ".json"
@@ -461,7 +458,7 @@ class EDSession:
             return data["data"]
 
         json_resp = self.get_response(
-            is_get=True,
+            is_get=False,
             url=f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte/{date}.awp",
             params={"verbe": "get", "v": APIVERSION},
             payload=None,
@@ -474,13 +471,13 @@ class EDSession:
 
     def get_homeworks(self, eleve, config_path, decode_html):
         """get homeworks."""
-        if DEBUG_ON:
+        if FAKE_ON:
             # Opening JSON file
             f = open(config_path + INTEGRATION_PATH + "test/test_homeworks.json")
             json_resp = json.load(f)
         else:
             json_resp = self.get_response(
-                is_get=True,
+                is_get=False,
                 url=f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte.awp",
                 params={"verbe": "get", "v": APIVERSION},
                 payload=None,
@@ -536,13 +533,13 @@ class EDSession:
         grades_dispaly=GRADES_TO_DISPLAY,
     ):
         """Get grades."""
-        if DEBUG_ON:
+        if FAKE_ON:
             # Opening JSON file
             f = open(config_path + INTEGRATION_PATH + "test/test_grades.json")
             json_resp = json.load(f)
         else:
             json_resp = self.get_response(
-                is_get=True,
+                is_get=False,
                 url=f"{APIURL}/eleves/{eleve.eleve_id}/notes.awp",
                 params={"verbe": "get", "v": APIVERSION},
                 payload=f"data={{'anneeScolaire': '{annee_scolaire}'}}",
@@ -622,13 +619,13 @@ class EDSession:
     def get_vie_scolaire(self, eleve, config_path):
         """get vie scolaire (absences, retards, etc.)"""
 
-        if DEBUG_ON:
+        if FAKE_ON:
             # Opening JSON file
             f = open(config_path + INTEGRATION_PATH + "test/test_vie_scolaire.json")
             json_resp = json.load(f)
         else:
             json_resp = self.get_response(
-                is_get=True,
+                is_get=False,
                 url=f"{APIURL}/eleves/{eleve.eleve_id}/viescolaire.awp",
                 params={"verbe": "get", "v": APIVERSION},
                 payload="data={}",
@@ -688,13 +685,13 @@ class EDSession:
     def get_lessons(self, eleve, date_debut, date_fin, config_path, lunch_break_time):
         """get lessons"""
 
-        if DEBUG_ON:
+        if FAKE_ON:
             # Opening JSON file
             f = open(config_path + INTEGRATION_PATH + "test/test_lessons.json")
             json_resp = json.load(f)
         else:
             json_resp = self.get_response(
-                is_get=True,
+                is_get=False,
                 url=f"{APIURL}/E/{eleve.eleve_id}/emploidutemps.awp",
                 params={"verbe": "get", "v": APIVERSION},
                 payload=f"data={{'dateDebut': '{date_debut}','dateFin': '{

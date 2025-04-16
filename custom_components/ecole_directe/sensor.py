@@ -2,6 +2,7 @@
 
 from datetime import datetime
 import operator
+from typing import Any
 
 from homeassistant.components.sensor import (
     SensorEntity,
@@ -18,9 +19,9 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from .const import (
-    FAKE_ON,
     DEFAULT_LUNCH_BREAK_TIME,
     DOMAIN,
+    FAKE_ON,
     LOGGER,
     MAX_STATE_ATTRS_BYTES,
 )
@@ -123,7 +124,7 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
 
     def __init__(
         self,
-        coordinator,
+        coordinator: EDDataUpdateCoordinator,
         name: str,
         eleve: EDEleve | None = None,
         state: str | None = None,
@@ -143,8 +144,9 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
             self._name = name
         else:
             self._name = f"{eleve.get_fullname_lower()}_{name}"
-        self._state = state
         self._child_info = eleve
+
+        self._state = state
         self._attr_unique_id = f"ed_{identifiant}_{self._name}"
         self._attr_device_info = DeviceInfo(
             name=identifiant,
@@ -206,7 +208,7 @@ class EDChildSensor(EDGenericSensor):
         return self._child_info.get_fullname()
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, str]:
         """Return the state attributes."""
         return {
             "firstname": self._child_info.eleve_firstname,
@@ -237,6 +239,7 @@ class EDHomeworksSensor(EDGenericSensor):
             eleve,
             "len",
         )
+        self._child_info = eleve
         self._suffix = suffix
 
     @property
@@ -279,6 +282,7 @@ class EDGradesSensor(EDGenericSensor):
     def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
         super().__init__(coordinator, "grades", eleve, "len")
+        self._child_info = eleve
 
     @property
     def extra_state_attributes(self):
@@ -404,6 +408,7 @@ class EDMoyenneSensor(EDGenericSensor):
     def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
         super().__init__(coordinator, "moyenne_generale", eleve)
+        self._child_info = eleve
         self._state = self.coordinator.data[self._name]["moyenneGenerale"]
 
     @property
@@ -428,6 +433,7 @@ class EDEvaluationsSensor(EDGenericSensor):
     def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
         super().__init__(coordinator, "evaluations", eleve, "len")
+        self._child_info = eleve
 
     @property
     def extra_state_attributes(self):
@@ -451,6 +457,7 @@ class EDAbsencesSensor(EDGenericSensor):
     def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
         super().__init__(coordinator, "absences", eleve, "len")
+        self._child_info = eleve
 
     @property
     def extra_state_attributes(self):
@@ -474,6 +481,7 @@ class EDRetardsSensor(EDGenericSensor):
     def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
         super().__init__(coordinator, "retards", eleve, "len")
+        self._child_info = eleve
 
     @property
     def extra_state_attributes(self):
@@ -497,6 +505,7 @@ class EDSanctionsSensor(EDGenericSensor):
     def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
         super().__init__(coordinator, "sanctions", eleve, "len")
+        self._child_info = eleve
 
     @property
     def extra_state_attributes(self):
@@ -520,6 +529,7 @@ class EDEncouragementsSensor(EDGenericSensor):
     def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
         super().__init__(coordinator, "encouragements", eleve, "len")
+        self._child_info = eleve
 
     @property
     def extra_state_attributes(self):
@@ -570,7 +580,6 @@ class EDMessagerieSensor(EDGenericSensor):
     @property
     def extra_state_attributes(self):
         """Return the state attributes."""
-        attributes = []
         if self._child_info:
             messagerie = self.coordinator.data[
                 f"{self._child_info.get_fullname_lower()}_messagerie"
@@ -588,7 +597,7 @@ class EDMessagerieSensor(EDGenericSensor):
         }
 
 
-def is_too_big(obj):
-    """calculte is_too_big"""
+def is_too_big(obj: Any) -> bool:
+    """Calculate is_too_big."""
     bytes_result = json_bytes(obj)
     return len(bytes_result) > MAX_STATE_ATTRS_BYTES

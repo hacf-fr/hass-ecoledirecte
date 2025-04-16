@@ -1,23 +1,21 @@
 """Module to help communication with Ecole Directe API."""
 
+import asyncio
 import base64
-from datetime import datetime
+from datetime import datetime, time
 import json
 import operator
 from pathlib import Path
 import re
 from typing import Any
-import urllib
-from urllib.parse import urlparse
 
-import requests
+import anyio
+from ecoledirecte_api.client import EDClient, QCMException
 
-from homeassistant.components.persistent_notification import async_create
 from homeassistant.core import HomeAssistant
 
 from .const import (
     FAKE_ON,
-    EVENT_TYPE,
     GRADES_TO_DISPLAY,
     HOMEWORK_DESC_MAX_LENGTH,
     INTEGRATION_PATH,
@@ -25,25 +23,67 @@ from .const import (
     VIE_SCOLAIRE_TO_DISPLAY,
 )
 
-APIURL = "https://api.ecoledirecte.com/v3"
-APIVERSION = "4.75.0"
-
 # as per recommendation from @freylis, compile once only
 CLEANR = re.compile("<.*?>")
 
 
-class RequestError(Exception):
-    """Request error from API"""
+async def load_json_file(file_path: str) -> dict:
+    """Load JSON file."""
+    async with await anyio.open_file(file_path, "r") as f:
+        return json.loads(await f.read())
 
-    def __init__(self, message):
-        super(RequestError, self).__init__(message)
+
+async def save_json_file(json_content: Any, file_path: str) -> None:
+    """Save JSON file."""
+    async with await anyio.open_file(file_path, "w", encoding="utf-8") as f:
+        await f.write(json.dumps(json_content, indent=4, ensure_ascii=False))
 
 
-class QCMError(Exception):
-    """QCM error on double autentication from API"""
+class EDEleve:
+    """Student information."""
 
-    def __init__(self, message):
-        super(QCMError, self).__init__(message)
+    def __init__(
+        self,
+        modules: list[str],
+        data: Any = None,
+        establishment: str = "",
+        eleve_id: str | None = None,
+        first_name: str | None = None,
+        last_name: str | None = None,
+        classe_id: str | None = None,
+        classe_name: str | None = None,
+    ) -> None:
+        """Save student information."""
+        if data is None:
+            self.classe_id = classe_id
+            self.classe_name: str = str({classe_name: ""})
+            self.eleve_id: str = str({eleve_id: ""})
+            self.eleve_lastname: str = str({last_name: ""})
+            self.eleve_firstname: str = str({first_name: ""})
+            self.modules: list[str] = modules
+            self.establishment = establishment
+        else:
+            if "classe" in data:
+                self.classe_id = data["classe"]["id"]
+                self.classe_name = data["classe"]["libelle"]
+                self.eleve_id: str = data["id"]
+                self.eleve_lastname = data["nom"]
+                self.eleve_firstname = data["prenom"]
+            self.establishment = establishment
+            self.modules = []
+            for module in data["modules"]:
+                if module["enable"]:
+                    self.modules.append(module["code"])
+
+    def get_fullname_lower(self) -> str:
+        """Student fullname lowercase."""
+        return f"{re.sub('[^A-Za-z]', '_', self.eleve_firstname.lower())}_{
+            re.sub('[^A-Za-z]', '_', self.eleve_lastname.lower())
+        }"
+
+    def get_fullname(self) -> str:
+        """Student fullname."""
+        return f"{self.eleve_firstname} {self.eleve_lastname}"
 
 
 class EDSession:
@@ -53,393 +93,94 @@ class EDSession:
         self,
         user: str,
         pwd: str,
-        qcm: str,
+        qcm_path: str,
         hass: HomeAssistant,
     ) -> None:
         """Save some information needed to login the session."""
         self.hass = hass
         self.username = user
         self.password = pwd
-        self.qcm = qcm
+        self.qcm_path = qcm_path
         self.log_folder = self.hass.config.config_dir + INTEGRATION_PATH + "logs/"
+        self.test_folder = self.hass.config.config_dir + INTEGRATION_PATH + "test/"
         Path(self.log_folder).mkdir(parents=True, exist_ok=True)
-        self.loginUrl = f"{APIURL}/login.awp"
 
-        self.full_login_flow()
+    def save_question(self, qcm_json: Any) -> None:
+        """Save questions to file."""
+        with Path(self.qcm_path).open("w", encoding="utf-8") as file:
+            json.dump(qcm_json, file, indent=4, ensure_ascii=False)
+        LOGGER.debug("Saved question to file")
 
-    def full_login_flow(self) -> None:
-        """Login to a session."""
-        self.session: requests.Session = requests.Session()
-        self.session.headers.update({"accept": "application/json, text/plain, */*"})
-        self.session.headers.update({"accept-encoding": "gzip, deflate, br, zstd"})
-        self.session.headers.update({"accept-language": "fr-FR,fr;q=0.9"})
-        self.session.headers.update({"Connection": "keep-alive"})
-        self.session.headers.update({
-            "Content-Type": "application/x-www-form-urlencoded"
-        })
-        self.session.headers.update({"dnt": "1"})
-        self.session.headers.update({"Origin": "https://www.ecoledirecte.com"})
-        self.session.headers.update({"priority": "1"})
-        self.session.headers.update({"Referer": "https://www.ecoledirecte.com/"})
-        self.session.headers.update({
-            "sec-ch-ua": '"Chromium";v="134", "Not:A-Brand";v="24", "Google Chrome";v="134"'
-        })
-        self.session.headers.update({"sec-ch-ua-mobile": "?0"})
-        self.session.headers.update({"sec-ch-ua-platform": "Windows"})
-        self.session.headers.update({"Sec-fetch-dest": ""})
-        self.session.headers.update({"accept": "empty"})
-        self.session.headers.update({"Sec-fetch-mode": "cors"})
-        self.session.headers.update({"Sec-fetch-site": "same-site"})
-        self.session.headers.update({
-            "User-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
-        })
-
-        try:
-            login = self.login(None, None)
-
-            # Si connexion initiale
-            if login["code"] == 250:
-                with Path(self.hass.config.config_dir + "/" + self.qcm).open(
-                    "r",
-                    encoding="utf-8",
-                ) as fp:
-                    qcm_json = json.load(fp)
-
-                try_login = 5
-
-                while try_login > 0:
-                    # Obtenir le qcm de vérification et les propositions de réponse
-                    qcm = self.get_qcm_connexion()
-                    question = base64.b64decode(qcm["question"]).decode("utf-8")
-
-                    if qcm_json is not None and question in qcm_json:
-                        if len(qcm_json[question]) > 1:
-                            try_login -= 1
-                            continue
-                        reponse = base64.b64encode(
-                            bytes(qcm_json[question][0], "utf-8")
-                        ).decode("ascii")
-                        cn_et_cv = self.post_qcm_connexion(
-                            str(reponse),
-                        )
-                        # Si le quiz a été raté
-                        if not cn_et_cv:
-                            LOGGER.warning(
-                                "qcm raté pour la question [%s], vérifier le fichier %s. [%s]",
-                                question,
-                                self.qcm,
-                                cn_et_cv,
-                            )
-                            continue
-                        cn = cn_et_cv["cn"]
-                        cv = cn_et_cv["cv"]
-                        break
-                    else:
-                        rep = []
-                        propositions = qcm["propositions"]
-                        for proposition in propositions:
-                            rep.append(base64.b64decode(proposition).decode("utf-8"))
-
-                        qcm_json[question] = rep
-
-                        with Path(self.hass.config.config_dir + "/" + self.qcm).open(
-                            "w",
-                            encoding="utf-8",
-                        ) as f:
-                            json.dump(qcm_json, f, ensure_ascii=False, indent=4)
-                        event_data = {
-                            "device_id": "ED - " + self.username,
-                            "type": "new_qcm",
-                            "question": question,
-                        }
-                        self.hass.bus.fire(EVENT_TYPE, event_data)
-
-                        if self.qcm:
-                            async_create(
-                                self.hass,
-                                "Vérifiez le fichier "
-                                + self.qcm
-                                + ", et rechargez l'intégration Ecole Directe.",
-                                title="Ecole Directe",
-                            )
-                    try_login -= 1
-
-                if try_login == 0:
-                    raise QCMError(
-                        "Vérifiez le fichier qcm.json, et rechargez l'intégration Ecole Directe."
-                    )
-
-                LOGGER.debug("cn: [%s] - cv: [%s]", cn, cv)
-
-                # Renvoyer une requête de connexion avec la double-authentification réussie
-                login = self.login(cn, cv)
-
-                LOGGER.info(
-                    "Connection OK - identifiant: [{%s}]",
-                    login["data"]["accounts"][0]["identifiant"],
+    async def login(self) -> Any:
+        """Login to Ecole Directe."""
+        self.qcm = await load_json_file(self.qcm_path)
+        self.ed_client: EDClient = EDClient(
+            username=self.username,
+            password=self.password,
+            qcm_json=self.qcm,
+        )
+        self.ed_client.on_new_question(self.save_question)
+        login = await self.ed_client.login()
+        LOGGER.info(
+            "Connection OK - identifiant: [{%s}]",
+            login["data"]["accounts"][0]["identifiant"],
+        )
+        self.data = login["data"]
+        self.id = self.data["accounts"][0]["id"]
+        self.identifiant = self.data["accounts"][0]["identifiant"]
+        self.id_login = self.data["accounts"][0]["idLogin"]
+        self.account_type = self.data["accounts"][0]["typeCompte"]
+        self.modules = []
+        for module in self.data["accounts"][0]["modules"]:
+            if module["enable"]:
+                self.modules.append(module["code"])
+        self.eleves = []
+        if self.account_type == "E":
+            self.eleves.append(
+                EDEleve(
+                    self.modules,
+                    None,
+                    self.data["accounts"][0]["nomEtablissement"],
+                    self.id,
+                    self.data["accounts"][0]["prenom"],
+                    self.data["accounts"][0]["nom"],
+                    self.data["accounts"][0]["profile"]["classe"]["id"],
+                    self.data["accounts"][0]["profile"]["classe"]["libelle"],
                 )
-                self.data = login["data"]
-                self.id = self.data["accounts"][0]["id"]
-                self.identifiant = self.data["accounts"][0]["identifiant"]
-                self.id_login = self.data["accounts"][0]["idLogin"]
-                self.account_type = self.data["accounts"][0]["typeCompte"]
-                self.modules = []
-                for module in self.data["accounts"][0]["modules"]:
-                    if module["enable"]:
-                        self.modules.append(module["code"])
-                self.eleves = []
-                if self.account_type == "E":
-                    self.eleves.append(
-                        EDEleve(
-                            None,
-                            self.data["accounts"][0]["nomEtablissement"],
-                            self.id,
-                            self.data["accounts"][0]["prenom"],
-                            self.data["accounts"][0]["nom"],
-                            self.data["accounts"][0]["profile"]["classe"]["id"],
-                            self.data["accounts"][0]["profile"]["classe"]["libelle"],
-                            self.modules,
-                        )
+            )
+        elif "eleves" in self.data["accounts"][0]["profile"]:
+            for eleve in self.data["accounts"][0]["profile"]["eleves"]:
+                self.eleves.append(
+                    EDEleve(
+                        [],
+                        eleve,
+                        self.data["accounts"][0]["nomEtablissement"],
                     )
-                elif "eleves" in self.data["accounts"][0]["profile"]:
-                    for eleve in self.data["accounts"][0]["profile"]["eleves"]:
-                        self.eleves.append(
-                            EDEleve(
-                                eleve,
-                                self.data["accounts"][0]["nomEtablissement"],
-                            )
-                        )
+                )
 
-        except QCMError as err:
-            LOGGER.warning(err)
-            raise
-        except Exception as err:
-            LOGGER.critical(err)
-
-    def login(self, cn: str | None, cv: str | None) -> Any:
-        """Login to a session."""
-        # first call to get a cookie
-        if "x-gtk" in self.session.headers:
-            self.session.headers.pop("x-gtk")
-        response = self.session.get(
-            f"{APIURL}/login.awp",
-            params={"v": APIVERSION, "gtk": 1},
-            data=None,
-            timeout=120,
-        )
-
-        cookies = self.session.cookies.get_dict()
-        if "GTK" in cookies:
-            self.session.headers.update({"x-gtk": cookies["GTK"]})
-
-        if cn is not None and cv is not None:
-            payload = (
-                'data={"identifiant":"'
-                + self.username
-                + '", "motdepasse":"'
-                + self.password
-                + '", "isRelogin": false, "cn":"'
-                + cn
-                + '", "cv":"'
-                + cv
-                + '", "uuid": "", "fa": [{"cn": "'
-                + cn
-                + '", "cv": "'
-                + cv
-                + '"}]}'
-            )
-            file_name = self.log_folder + "post_login2.json"
-        else:
-            payload = (
-                'data={"identifiant":"'
-                + self.username
-                + '", "motdepasse":"'
-                + self.password
-                + '", "isRelogin": false}'
-            )
-            file_name = self.log_folder + "post_login.json"
-        # Post credentials to get a token
-        response = self.session.post(
-            f"{APIURL}/login.awp",
-            params={"v": APIVERSION},
-            data=payload,
-            timeout=120,
-        )
-
-        login = response.json()
-        with Path(file_name).open(
-            "w",
-            encoding="utf-8",
-        ) as f:
-            json.dump(login, f, ensure_ascii=False, indent=4)
-
-        self.token = response.headers["x-token"]
-        self.session.headers.update({"x-token": self.token})
-        return login
-
-    def get_response(self, is_get: bool, url, params, payload, file_name) -> Any:
-        """Send a request to API and return a json if possible or raise an error."""
-        if is_get:
-            LOGGER.debug(
-                "URL: [%s] - GET - params: [%s] - Payload: [%s] - file_name: [%s]",
-                url,
-                params,
-                payload,
-                file_name,
-            )
-            response = self.session.get(url, params=params, data=payload, timeout=120)
-        else:
-            if payload is None:
-                payload = "data={}"
-            LOGGER.debug(
-                "URL: [%s] - POST - params: [%s] - Payload: [%s] - file_name: [%s]",
-                url,
-                params,
-                payload,
-                file_name,
-            )
-            response = self.session.post(
-                url,
-                params=params,
-                data=payload,
-                timeout=120,
-            )
-
-        try:
-            resp_json = response.json()
-            with Path(self.log_folder + file_name).open(
-                "w",
-                encoding="utf-8",
-            ) as f:
-                json.dump(resp_json, f, ensure_ascii=False, indent=4)
-
-        except Exception as ex:
-            raise RequestError(f"Error with URL:[{url}]: {response.content}") from ex
-
-        if "code" not in resp_json:
-            raise RequestError(f"Error with URL:[{url}]: json:[{resp_json}]")
-
-        if resp_json["code"] == 250:
-            LOGGER.debug("%s", resp_json)
-            return resp_json
-
-        if resp_json["code"] != 200:
-            raise RequestError(
-                f"Error with URL:[{url}] - Code {resp_json['code']}: {resp_json['message']}"
-            )
-
-        LOGGER.debug("%s", resp_json)
-        return resp_json
-
-    def get_qcm_connexion(self) -> dict:
-        """Obtenir le QCM donné lors d'une connexion à partir d'un nouvel appareil."""
-        response = self.session.post(
-            url=f"{APIURL}/connexion/doubleauth.awp",
-            params={"verbe": "get", "v": APIVERSION},
-            data="data={}",
-            timeout=120,
-        )
-        try:
-            json_resp = response.json()
-            with open(
-                self.log_folder + "get_qcm_connexion.json",
-                "w",
-                encoding="utf-8",
-            ) as f:
-                json.dump(json_resp, f, ensure_ascii=False, indent=4)
-
-        except Exception as ex:
-            raise RequestError(
-                f"Error with URL:[{f'{APIURL}/connexion/doubleauth.awp'}]: {response.content}"
-            ) from ex
-
-        if json_resp["code"] != 200:
-            LOGGER.warning("get_qcm_connexion: [%s]", json_resp)
-            raise QCMError(json_resp)
-
-        if "data" in json_resp:
-            self.token = response.headers["x-token"]
-            self.session.headers.update({"x-token": self.token})
-            return json_resp["data"]
-
-        LOGGER.warning("get_qcm_connexion: [%s]", json_resp)
-        raise QCMError(json_resp)
-
-    def post_qcm_connexion(self, proposition) -> dict:
-        """Renvoyer la réponse du QCM donné."""
-        response = self.session.post(
-            url=f"{APIURL}/connexion/doubleauth.awp",
-            params={"verbe": "post", "v": APIVERSION},
-            data=f'data={{"choix": "{proposition}"}}',
-            timeout=120,
-        )
-        json_resp = response.json()
-        with open(
-            self.log_folder + "post_qcm_connexion.json",
-            "w",
-            encoding="utf-8",
-        ) as f:
-            json.dump(json_resp, f, ensure_ascii=False, indent=4)
-
-        if "data" in json_resp:
-            self.token = response.headers["x-token"]
-            LOGGER.debug("post_qcm_connexion token: %s", self.token)
-            self.session.headers.update({"x-token": self.token})
-            return json_resp["data"]
-        LOGGER.warning("post_qcm_connexion: [%s]", json_resp)
-        raise QCMError(json_resp)
-
-    def get_messages(self, id, eleve, annee_scolaire, config_path):
-        """Get messages from Ecole Directe"""
-
+    async def get_messages(
+        self,
+        family_id: str | None,
+        eleve: EDEleve | None,
+        annee_scolaire: str,
+    ) -> Any | None:
+        """Get messages from Ecole Directe."""
         if FAKE_ON:
-            # Opening JSON file
-            f = open(config_path + INTEGRATION_PATH + "test/test_messages.json")
-            json_resp = json.load(f)
+            json_resp = await load_json_file(self.test_folder + "test_messages.json")
+        elif eleve is None:
+            json_resp = await self.ed_client.get_messages(
+                family_id, None, annee_scolaire
+            )
+            await save_json_file(
+                json_resp, self.log_folder + "get_messages_famille.json"
+            )
         else:
-            payload = 'data={"anneeMessages":"' + annee_scolaire + '"}'
-            if eleve is None:
-                json_resp = self.get_response(
-                    is_get=False,
-                    url=f"{APIURL}/familles/{id}/messages.awp",
-                    params={
-                        "force": "false",
-                        "typeRecuperation": "received",
-                        "idClasseur": "0",
-                        "orderBy": "date",
-                        "order": "desc",
-                        "query": "",
-                        "onlyRead": "",
-                        "page": "0",
-                        "itemsPerPage": "100",
-                        "getAll": "0",
-                        "verbe": "get",
-                        "v": APIVERSION,
-                    },
-                    payload=payload,
-                    file_name="get_messages_famille.json",
-                )
-            else:
-                json_resp = self.get_response(
-                    is_get=False,
-                    url=f"{APIURL}/eleves/{eleve.eleve_id}/messages.awp",
-                    payload=payload,
-                    params={
-                        "force": "false",
-                        "typeRecuperation": "received",
-                        "idClasseur": "0",
-                        "orderBy": "date",
-                        "order": "desc",
-                        "query": "",
-                        "onlyRead": "",
-                        "page": "0",
-                        "itemsPerPage": "100",
-                        "getAll": "0",
-                        "verbe": "get",
-                        "v": APIVERSION,
-                    },
-                    file_name=f"{eleve.eleve_id}_get_messages_eleve.json",
-                )
+            json_resp = await self.ed_client.get_messages(
+                None, eleve.eleve_id, annee_scolaire
+            )
+            await save_json_file(
+                json_resp, self.log_folder + f"{eleve.eleve_id}_get_messages_eleve.json"
+            )
 
         if "data" not in json_resp:
             LOGGER.warning("get_messages: [%s]", json_resp)
@@ -447,67 +188,62 @@ class EDSession:
 
         return json_resp["data"]["pagination"]
 
-    def get_homeworks_by_date(self, eleve, date, config_path) -> dict:
-        """get homeworks by date."""
+    async def get_homeworks_by_date(self, eleve: EDEleve, date: str) -> dict:
+        """Get homeworks by date."""
         if FAKE_ON:
-            # Opening JSON file
-            f = open(
-                config_path + INTEGRATION_PATH + "test/test_homeworks_" + date + ".json"
+            json_resp = await load_json_file(
+                self.test_folder + "test_homeworks_" + date + ".json"
             )
-            data = json.load(f)
-            return data["data"]
+            return json_resp["data"]
 
-        json_resp = self.get_response(
-            is_get=False,
-            url=f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte/{date}.awp",
-            params={"verbe": "get", "v": APIVERSION},
-            payload=None,
-            file_name=f"{eleve.eleve_id}_get_homeworks_by_date_{date}.json",
+        json_resp = await self.ed_client.get_homeworks_by_date(
+            eleve.eleve_id,
+            date,
+        )
+        await save_json_file(
+            json_resp,
+            self.log_folder + f"{eleve.eleve_id}_get_homeworks_by_date_{date}.json",
         )
         if "data" in json_resp:
             return json_resp["data"]
         LOGGER.warning("get_homeworks_by_date: [%s]", json_resp)
         return {}
 
-    def get_homeworks(self, eleve, config_path, decode_html):
-        """get homeworks."""
+    async def get_homeworks(self, eleve: EDEleve, decode_html: bool) -> list[Any]:
+        """Get homeworks."""
         if FAKE_ON:
-            # Opening JSON file
-            f = open(config_path + INTEGRATION_PATH + "test/test_homeworks.json")
-            json_resp = json.load(f)
+            json_resp = await load_json_file(self.test_folder + "test_homeworks.json")
         else:
-            json_resp = self.get_response(
-                is_get=False,
-                url=f"{APIURL}/Eleves/{eleve.eleve_id}/cahierdetexte.awp",
-                params={"verbe": "get", "v": APIVERSION},
-                payload=None,
-                file_name=f"{eleve.eleve_id}_get_homeworks.json",
+            json_resp = await self.ed_client.get_homeworks(eleve_id=eleve.eleve_id)
+            await save_json_file(
+                json_resp,
+                self.log_folder + f"{eleve.eleve_id}_get_homeworks.json",
             )
 
+        homeworks = []
         if "data" not in json_resp:
             LOGGER.warning("get_homeworks: [%s]", json_resp)
-            return None
-
-        data = json_resp["data"]
-        homeworks = []
-        for key in data.keys():
-            for idx, homework_json in enumerate(data[key]):
-                homeworks_by_date_json = self.get_homeworks_by_date(
-                    eleve, key, config_path
-                )
-                for matiere in homeworks_by_date_json["matieres"]:
-                    if "aFaire" in matiere:
-                        if matiere["id"] == homework_json["idDevoir"]:
+        else:
+            data = json_resp["data"]
+            for key in data.keys():
+                for homework_json in data[key].items:
+                    homeworks_by_date_json = await self.get_homeworks_by_date(
+                        eleve, key
+                    )
+                    for matiere in homeworks_by_date_json["matieres"]:
+                        if (
+                            "aFaire" in matiere
+                            and matiere["id"] == homework_json["idDevoir"]
+                        ):
                             hw = self.get_homework(matiere, key, decode_html)
                             homeworks.append(hw)
-        if homeworks is not None:
-            homeworks.sort(key=operator.itemgetter("date"))
+            if homeworks is not None:
+                homeworks.sort(key=operator.itemgetter("date"))
 
         return homeworks
 
-    def get_homework(self, data, pour_le, clean_content):
-        """get homework information"""
-
+    def get_homework(self, data: dict, pour_le: str, clean_content: bool) -> dict:
+        """Get homework information."""
         if "contenu" in data["aFaire"]:
             contenu = base64.b64decode(data["aFaire"]["contenu"]).decode("utf-8")
         else:
@@ -525,25 +261,23 @@ class EDSession:
             "interrogation": data["aFaire"].get("interrogation"),
         }
 
-    def get_grades_evaluations(
+    async def get_grades_evaluations(
         self,
-        eleve,
-        annee_scolaire,
-        config_path,
-        grades_dispaly=GRADES_TO_DISPLAY,
-    ):
+        eleve: EDEleve,
+        annee_scolaire: str,
+        grades_display: int = GRADES_TO_DISPLAY,
+    ) -> dict:
         """Get grades."""
         if FAKE_ON:
-            # Opening JSON file
-            f = open(config_path + INTEGRATION_PATH + "test/test_grades.json")
-            json_resp = json.load(f)
+            json_resp = await load_json_file(self.test_folder + "test_grades.json")
         else:
-            json_resp = self.get_response(
-                is_get=False,
-                url=f"{APIURL}/eleves/{eleve.eleve_id}/notes.awp",
-                params={"verbe": "get", "v": APIVERSION},
-                payload=f"data={{'anneeScolaire': '{annee_scolaire}'}}",
-                file_name=f"{eleve.eleve_id}_get_grades_evaluations.json",
+            json_resp = await self.ed_client.get_grades_evaluations(
+                eleve_id=eleve.eleve_id,
+                annee_scolaire=annee_scolaire,
+            )
+            await save_json_file(
+                json_resp,
+                self.log_folder + f"{eleve.eleve_id}_get_grades_evaluations.json",
             )
 
         if "data" not in json_resp:
@@ -561,7 +295,7 @@ class EDSession:
         if "periodes" in data:
             data["periodes"].sort(key=operator.itemgetter("dateDebut"))
             for periode_json in data["periodes"]:
-                if periode_json["cloture"] == True:
+                if periode_json["cloture"]:
                     continue
                 if (
                     "trimestre" not in periode_json["periode"].lower()
@@ -604,32 +338,31 @@ class EDSession:
             for grade_json in data["notes"]:
                 if grade_json["noteSur"] == "0":
                     index1 += 1
-                    if index1 > grades_dispaly:
+                    if index1 > grades_display:
                         continue
                     evaluation = get_evaluation(grade_json)
                     response["evaluations"].append(evaluation)
                 else:
                     index2 += 1
-                    if index2 > grades_dispaly:
+                    if index2 > grades_display:
                         continue
                     grade = get_grade(grade_json)
                     response["grades"].append(grade)
         return response
 
-    def get_vie_scolaire(self, eleve, config_path):
-        """get vie scolaire (absences, retards, etc.)"""
-
+    async def get_vie_scolaire(self, eleve: EDEleve) -> dict:
+        """Get vie scolaire (absences, retards, etc.)."""
         if FAKE_ON:
-            # Opening JSON file
-            f = open(config_path + INTEGRATION_PATH + "test/test_vie_scolaire.json")
-            json_resp = json.load(f)
+            json_resp = await load_json_file(
+                self.test_folder + "test_vie_scolaire.json"
+            )
         else:
-            json_resp = self.get_response(
-                is_get=False,
-                url=f"{APIURL}/eleves/{eleve.eleve_id}/viescolaire.awp",
-                params={"verbe": "get", "v": APIVERSION},
-                payload="data={}",
-                file_name=f"{eleve.eleve_id}_get_vie_scolaire.json",
+            json_resp = await self.ed_client.get_vie_scolaire(
+                eleve_id=eleve.eleve_id,
+            )
+            await save_json_file(
+                json_resp,
+                self.log_folder + f"{eleve.eleve_id}_get_vie_scolaire.json",
             )
 
         if "data" not in json_resp:
@@ -682,172 +415,100 @@ class EDSession:
 
         return response
 
-    def get_lessons(self, eleve, date_debut, date_fin, config_path, lunch_break_time):
-        """get lessons"""
-
+    async def get_lessons(
+        self, eleve: EDEleve, date_debut: str, date_fin: str, lunch_break_time: time
+    ) -> list[Any]:
+        """Get lessons."""
         if FAKE_ON:
-            # Opening JSON file
-            f = open(config_path + INTEGRATION_PATH + "test/test_lessons.json")
-            json_resp = json.load(f)
+            json_resp = await load_json_file(self.test_folder + "test_lessons.json")
         else:
-            json_resp = self.get_response(
-                is_get=False,
-                url=f"{APIURL}/E/{eleve.eleve_id}/emploidutemps.awp",
-                params={"verbe": "get", "v": APIVERSION},
-                payload=f"data={{'dateDebut': '{date_debut}','dateFin': '{
-                    date_fin
-                }','avecTrous': false}}",
-                file_name=f"{eleve.eleve_id}_get_lessons.json",
+            json_resp = await self.ed_client.get_lessons(
+                eleve_id=eleve.eleve_id,
+                date_debut=date_debut,
+                date_fin=date_fin,
+            )
+            await save_json_file(
+                json_resp,
+                self.log_folder + f"{eleve.eleve_id}_get_lessons.json",
             )
 
+        response = []
         if "data" not in json_resp:
             LOGGER.warning("get_lessons: [%s]", json_resp)
-            return None
-
-        response = []
-        data = json_resp["data"]
-        for lesson_json in data:
-            lesson = get_lesson(lesson_json, lunch_break_time)
-            if not lesson["canceled"]:
-                response.append(lesson)
-        if response is not None:
-            response.sort(key=operator.itemgetter("start"))
+        else:
+            data = json_resp["data"]
+            for lesson_json in data:
+                lesson = get_lesson(lesson_json, lunch_break_time)
+                if not lesson["canceled"]:
+                    response.append(lesson)
+            if response is not None:
+                response.sort(key=operator.itemgetter("start"))
 
         return response
 
-    def get_sondages(self):
-        """Get sondages"""
+    async def get_sondages(self) -> dict:
+        """Get sondages."""
+        json_resp = await self.ed_client.get_sondages()
+        await save_json_file(
+            json_resp,
+            self.log_folder + "get_sondages.json",
+        )
+        return json_resp
 
-        return self.get_response(
-            is_get=True,
-            url=f"{APIURL}/rdt/sondages.awp?v={APIVERSION}",
-            params={"v": APIVERSION},
-            payload=None,
-            file_name="get_sondages.json",
+    async def get_formulaires(self, account_type: str, id_entity: str) -> list[Any]:
+        """Get formulaires."""
+        json_resp = await self.ed_client.get_formulaires(account_type, id_entity)
+        await save_json_file(
+            json_resp,
+            self.log_folder + "get_formulaires.json",
         )
 
-    def get_formulaires(self, account_type, id_entity):
-        """Get formulaires"""
-
-        payload = (
-            'data={"typeEntity": "'
-            + account_type
-            + '","idEntity":'
-            + str(id_entity)
-            + "}"
-        )
-        json_resp = self.get_response(
-            is_get=False,
-            url=f"{APIURL}/edforms.awp",
-            params={"verbe": "list", "v": APIVERSION},
-            payload=payload,
-            file_name="get_formulaires.json",
-        )
+        response = []
         if "data" not in json_resp:
             LOGGER.warning("get_formulaires: [%s]", json_resp)
-            return None
-
-        response = []
-        data = json_resp["data"]
-        for form_json in data:
-            response.append(get_formulaire(form_json))
+        else:
+            data = json_resp["data"]
+            for form_json in data:
+                response.append(get_formulaire(form_json))
 
         return response
 
-    def get_classe(self, classe_id):
-        """Get classe"""
-
-        json_resp = self.get_response(
-            is_get=True,
-            url=f"{APIURL}/Classes/{classe_id}/viedelaclasse.awp",
-            params={"verbe": "get", "v": APIVERSION},
-            payload="data={}",
-            file_name=f"get_classe_{classe_id}.json",
-        )
-        LOGGER.warning("get_classe: [%s]", json_resp)
-
-        json_resp = self.get_response(
-            is_get=True,
-            url=f"{APIURL}/R/{classe_id}/viedelaclasse.awp",
-            params={"verbe": "get", "v": APIVERSION},
-            payload="data={}",
-            file_name=f"get_classeV2_{classe_id}.json",
-        )
-        LOGGER.warning("get_classeV2: [%s]", json_resp)
-
-        return None
+    async def get_classe(self, classe_id: str) -> None:
+        """Get classe."""
+        await self.ed_client.get_classe(classe_id=classe_id)
 
 
-class EDEleve:
-    """Student information"""
-
-    def __init__(
-        self,
-        data=None,
-        establishment=None,
-        eleve_id=None,
-        first_name: str | None = None,
-        last_name: str | None = None,
-        classe_id: str | None = None,
-        classe_name: str | None = None,
-        modules: list = [],
-    ):
-        if data is None:
-            self.classe_id = classe_id
-            self.classe_name: str = str({classe_name: ""})
-            self.eleve_id = eleve_id
-            self.eleve_lastname: str = str({last_name: ""})
-            self.eleve_firstname: str = str({first_name: ""})
-            self.modules = modules
-            self.establishment = establishment
-        else:
-            if "classe" in data:
-                self.classe_id = data["classe"]["id"]
-                self.classe_name = data["classe"]["libelle"]
-            self.eleve_id = data["id"]
-            self.eleve_lastname = data["nom"]
-            self.eleve_firstname = data["prenom"]
-            self.establishment = establishment
-            self.modules = []
-            for module in data["modules"]:
-                if module["enable"]:
-                    self.modules.append(module["code"])
-
-    def get_fullname_lower(self) -> str:
-        """Student fullname lowercase."""
-        return f"{re.sub('[^A-Za-z]', '_', self.eleve_firstname.lower())}_{
-            re.sub('[^A-Za-z]', '_', self.eleve_lastname.lower())
-        }"
-
-    def get_fullname(self) -> str:
-        """Student fullname."""
-        return f"{self.eleve_firstname} {self.eleve_lastname}"
-
-
-def check_ecoledirecte_session(user, pwd, qcm, hass: HomeAssistant) -> bool:
-    """check if credentials to Ecole Directe are ok"""
+async def check_ecoledirecte_session(
+    user: str, pwd: str, qcm_file_name: str, hass: HomeAssistant
+) -> bool:
+    """Check if credentials to Ecole Directe are ok."""
     try:
-        session = get_ecoledirecte_session(user, pwd, qcm, hass=hass)
-    except QCMError:
+        session = await get_ecoledirecte_session(user, pwd, qcm_file_name, hass=hass)
+    except QCMException:
         return True
-
     return session is not None
 
 
-def get_ecoledirecte_session(user, pwd, qcm, hass: HomeAssistant) -> EDSession | None:
+async def get_ecoledirecte_session(
+    user: str, pwd: str, qcm_file_name: str, hass: HomeAssistant
+) -> EDSession | None:
     """Return ecole directe session connecting to Ecole Directe."""
     try:
-        return EDSession(user, pwd, qcm, hass)
-    except QCMError:
+        session = EDSession(
+            user, pwd, hass.config.config_dir + "/" + qcm_file_name, hass
+        )
+        await session.login()
+    except QCMException:
         raise
     except Exception as err:
         LOGGER.critical(err)
         return None
+    else:
+        return session
 
 
-def get_grade(data):
-    """get grade information"""
-
+def get_grade(data: Any) -> dict:
+    """Get grade information."""
     elements_programme = []
     if "elementsProgramme" in data:
         for element in data["elementsProgramme"]:
@@ -873,44 +534,41 @@ def get_grade(data):
     }
 
 
-def get_disciplines_periode(data):
-    """get periode information"""
-
+def get_disciplines_periode(data: Any) -> list:
+    """Get periode information."""
+    disciplines = []
     try:
-        disciplines = []
-        if "ensembleMatieres" in data:
-            if "disciplines" in data["ensembleMatieres"]:
-                for discipline_json in data["ensembleMatieres"]["disciplines"]:
-                    if (
-                        "codeSousMatiere" in discipline_json
-                        and len(discipline_json["codeSousMatiere"]) > 0
-                    ):
-                        continue
-                    discipline = {
-                        "code": discipline_json.get("codeMatiere", "").lower(),
-                        "name": discipline_json.get("discipline", "").lower(),
-                        "moyenne": discipline_json.get("moyenne", "").replace(",", "."),
-                        "moyenneClasse": discipline_json.get(
-                            "moyenneClasse", ""
-                        ).replace(",", "."),
-                        "moyenneMin": discipline_json.get("moyenneMin", "").replace(
-                            ",", "."
-                        ),
-                        "moyenneMax": discipline_json.get("moyenneMax", "").replace(
-                            ",", "."
-                        ),
-                        "appreciations": discipline_json.get("appreciations", ""),
-                    }
-                    disciplines.append(discipline)
-        return disciplines
+        if "ensembleMatieres" in data and "disciplines" in data["ensembleMatieres"]:
+            for discipline_json in data["ensembleMatieres"]["disciplines"]:
+                if (
+                    "codeSousMatiere" in discipline_json
+                    and len(discipline_json["codeSousMatiere"]) > 0
+                ):
+                    continue
+                discipline = {
+                    "code": discipline_json.get("codeMatiere", "").lower(),
+                    "name": discipline_json.get("discipline", "").lower(),
+                    "moyenne": discipline_json.get("moyenne", "").replace(",", "."),
+                    "moyenneClasse": discipline_json.get("moyenneClasse", "").replace(
+                        ",", "."
+                    ),
+                    "moyenneMin": discipline_json.get("moyenneMin", "").replace(
+                        ",", "."
+                    ),
+                    "moyenneMax": discipline_json.get("moyenneMax", "").replace(
+                        ",", "."
+                    ),
+                    "appreciations": discipline_json.get("appreciations", ""),
+                }
+                disciplines.append(discipline)
     except Exception as ex:
         LOGGER.warning("get_periode: %s", ex)
         raise
+    return disciplines
 
 
-def get_evaluation(data):
-    """get evaluation information"""
-
+def get_evaluation(data: Any) -> dict:
+    """Get evaluation information."""
     try:
         elements_programme = []
         if "elementsProgramme" in data:
@@ -935,9 +593,8 @@ def get_evaluation(data):
         raise
 
 
-def get_competence(data):
-    """get grade information"""
-
+def get_competence(data: Any) -> dict:
+    """Get grade information."""
     valeur = data.get("valeur")
     match valeur:
         case "1":
@@ -959,8 +616,8 @@ def get_competence(data):
     }
 
 
-def get_vie_scolaire_element(viescolaire) -> dict:
-    """vie scolaire format"""
+def get_vie_scolaire_element(viescolaire: Any) -> dict:
+    """Vie scolaire format."""
     try:
         return {
             "date": viescolaire["date"],
@@ -976,9 +633,8 @@ def get_vie_scolaire_element(viescolaire) -> dict:
         return {}
 
 
-def get_lesson(data, lunch_break_time):
-    """get lesson information"""
-
+def get_lesson(data: Any, lunch_break_time: time) -> dict:
+    """Get lesson information."""
     start_date = datetime.strptime(data["start_date"], "%Y-%m-%d %H:%M")
     end_date = datetime.strptime(data["end_date"], "%Y-%m-%d %H:%M")
     return {
@@ -999,8 +655,8 @@ def get_lesson(data, lunch_break_time):
     }
 
 
-def get_formulaire(data):
-    """Get formulaire"""
+def get_formulaire(data: Any) -> dict:
+    """Get formulaire."""
     return {
         "titre": data["titre"],
         "created": data["created"],

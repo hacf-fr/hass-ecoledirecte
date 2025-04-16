@@ -73,11 +73,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(self._user_inputs["username"])
                 self._abort_if_unique_id_configured()
 
-                session = await self.hass.async_add_executor_job(
-                    check_ecoledirecte_session,
+                session = await check_ecoledirecte_session(
                     self._user_inputs["username"],
                     self._user_inputs["password"],
-                    self.hass.config,
+                    self._user_inputs["qcm_filename"],
                     self.hass,
                 )
 

@@ -2,20 +2,18 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, tzinfo
+from datetime import date, datetime, timedelta, tzinfo
 from typing import TYPE_CHECKING, Any
-
-import pytz
 
 from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .const import (
     AUGUST,
-    FAKE_ON,
     DEFAULT_LUNCH_BREAK_TIME,
     DEFAULT_REFRESH_INTERVAL,
     EVENT_TYPE,
+    FAKE_ON,
     GRADES_TO_DISPLAY,
     LOGGER,
 )
@@ -26,7 +24,6 @@ from .ecole_directe_helper import (
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
-    from homeassistant.const import Platform
     from homeassistant.core import HomeAssistant
 
 
@@ -49,15 +46,14 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         self.config_entry = entry
         self.timezone = dt_util.get_default_time_zone()
 
-    async def _async_update_data(self):
+    async def _async_update_data(self) -> dict[str, Any] | None:
         """Get the latest data from Ecole Directe and updates the state."""
         if FAKE_ON:
             LOGGER.info("DEBUG MODE ON")
 
         previous_data = None if self.data is None else self.data.copy()
 
-        session = await self.hass.async_add_executor_job(
-            get_ecoledirecte_session,
+        session = await get_ecoledirecte_session(
             self.config_entry.data["username"],
             self.config_entry.data["password"],
             self.config_entry.data["qcm_filename"],
@@ -94,7 +90,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         if session.account_type == "P":  # professor ???
             try:
                 for classe in session.data["accounts"][0]["profile"]["classes"]:
-                    session.get_classe(
+                    await session.get_classe(
                         classe["id"],
                     )
             except Exception as ex:
@@ -103,12 +99,10 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         if session.account_type == "1":  # famille
             if "MESSAGERIE" in session.modules:
                 try:
-                    self.data["messagerie"] = await self.hass.async_add_executor_job(
-                        session.get_messages,
+                    self.data["messagerie"] = await session.get_messages(
                         session.id,
                         None,
                         year_data,
-                        self.hass.config.config_dir,
                     )
 
                 except Exception as ex:
@@ -118,8 +112,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
             if FAKE_ON or "EDFORMS" in session.modules:
                 try:
-                    self.data["formulaires"] = await self.hass.async_add_executor_job(
-                        session.get_formulaires,
+                    self.data["formulaires"] = await session.get_formulaires(
                         session.account_type,
                         session.id,
                     )
@@ -138,10 +131,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         for eleve in session.eleves:
             if FAKE_ON or "CAHIER_DE_TEXTES" in eleve.modules:
                 try:
-                    homeworks = await self.hass.async_add_executor_job(
-                        session.get_homeworks,
+                    homeworks = await session.get_homeworks(
                         eleve,
-                        self.hass.config.config_dir,
                         self.config_entry.options.get("decode_html", False),
                     )
 
@@ -159,7 +150,9 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         filter(
                             lambda homework: datetime.strptime(
                                 homework["date"], "%Y-%m-%d"
-                            ).date()
+                            )
+                            .astimezone(self.timezone)
+                            .date()
                             >= current_week_begin
                             and datetime.strptime(homework["date"], "%Y-%m-%d").date()
                             <= current_week_end,
@@ -191,11 +184,9 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     LOGGER.warning("Error getting homeworks from ecole directe: %s", ex)
             if FAKE_ON or "NOTES" in eleve.modules:
                 try:
-                    grades_evaluations = await self.hass.async_add_executor_job(
-                        session.get_grades_evaluations,
+                    grades_evaluations = await session.get_grades_evaluations(
                         eleve,
                         year_data,
-                        self.hass.config.config_dir,
                         self.config_entry.options.get(
                             "notes_affichees", GRADES_TO_DISPLAY
                         ),
@@ -246,12 +237,10 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         "%H:%M",
                     ).time()
 
-                    lessons = await self.hass.async_add_executor_job(
-                        session.get_lessons,
+                    lessons = await session.get_lessons(
                         eleve,
                         current_week_begin.strftime("%Y-%m-%d"),
                         current_week_plus_21.strftime("%Y-%m-%d"),
-                        self.hass.config.config_dir,
                         lunch_break_time,
                     )
                     self.data[f"{eleve.get_fullname_lower()}_timetable_today"] = list(
@@ -303,11 +292,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
             if FAKE_ON or "VIE_SCOLAIRE" in eleve.modules:
                 try:
-                    vie_scolaire = await self.hass.async_add_executor_job(
-                        session.get_vie_scolaire,
-                        eleve,
-                        self.hass.config.config_dir,
-                    )
+                    vie_scolaire = await session.get_vie_scolaire(eleve)
                     if "absences" in vie_scolaire:
                         self.data[f"{eleve.get_fullname_lower()}_absences"] = (
                             vie_scolaire["absences"]
@@ -361,12 +346,10 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 try:
                     self.data[
                         f"{eleve.get_fullname_lower()}_messagerie"
-                    ] = await self.hass.async_add_executor_job(
-                        session.get_messages,
+                    ] = await session.get_messages(
                         session.id,
                         eleve,
                         year_data,
-                        self.hass.config.config_dir,
                     )
                 except Exception as ex:
                     LOGGER.warning("Error getting messages from ecole directe: %s", ex)
@@ -375,12 +358,12 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
     def compare_data(
         self,
-        previous_data,
-        data_key,
-        compare_keys,
-        event_type,
+        previous_data: dict | None,
+        data_key: str,
+        compare_keys: list[str],
+        event_type: str,
         eleve: EDEleve | None,
-    ):
+    ) -> None:
         """Compare data from previous session."""
         try:
             if (
@@ -410,19 +393,21 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 ex,
             )
 
-    def trigger_event(self, event_type, eleve: EDEleve | None, event_data):
+    def trigger_event(self, event_type: str, eleve: EDEleve | None, data: Any) -> None:
         """Trigger an event if there is new data."""
         name = "" if eleve is None else eleve.get_fullname()
 
         event_data = {
             "child_name": name,
             "type": event_type,
-            "data": event_data,
+            "data": data,
         }
         self.hass.bus.fire(EVENT_TYPE, event_data)
 
 
-def get_next_day_lessons(lessons, lessons_next_day, next_day):
+def get_next_day_lessons(
+    lessons: list, lessons_next_day: list, next_day: date
+) -> list | None:
     """Get next day lessons."""
     if len(lessons) == 0:
         return None

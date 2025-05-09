@@ -1,9 +1,9 @@
 """Module to help communication with Ecole Directe API."""
 
-import asyncio
 import base64
 from datetime import datetime, time
 import json
+import logging
 import operator
 from pathlib import Path
 import re
@@ -19,12 +19,13 @@ from .const import (
     GRADES_TO_DISPLAY,
     HOMEWORK_DESC_MAX_LENGTH,
     INTEGRATION_PATH,
-    LOGGER,
     VIE_SCOLAIRE_TO_DISPLAY,
 )
 
 # as per recommendation from @freylis, compile once only
 CLEANR = re.compile("<.*?>")
+
+LOGGER = logging.getLogger(__name__)
 
 
 async def load_json_file(file_path: str) -> dict:

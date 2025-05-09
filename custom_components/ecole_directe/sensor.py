@@ -1,6 +1,7 @@
 """Module providing sensors to Home Assistant."""
 
 from datetime import datetime
+import logging
 import operator
 from typing import Any
 
@@ -22,11 +23,12 @@ from .const import (
     DEFAULT_LUNCH_BREAK_TIME,
     DOMAIN,
     FAKE_ON,
-    LOGGER,
     MAX_STATE_ATTRS_BYTES,
 )
 from .coordinator import EDDataUpdateCoordinator
 from .ecole_directe_helper import EDEleve
+
+LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(

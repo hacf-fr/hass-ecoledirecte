@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta, tzinfo
+import logging
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordinator
@@ -15,7 +16,6 @@ from .const import (
     EVENT_TYPE,
     FAKE_ON,
     GRADES_TO_DISPLAY,
-    LOGGER,
 )
 from .ecole_directe_helper import (
     EDEleve,
@@ -25,6 +25,8 @@ from .ecole_directe_helper import (
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
+
+LOGGER = logging.getLogger(__name__)
 
 
 class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):

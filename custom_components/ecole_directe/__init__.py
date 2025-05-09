@@ -8,16 +8,19 @@ https://github.com/hacf-fr/hass-ecoledirecte
 from __future__ import annotations
 
 from datetime import timedelta
+import logging
 from typing import TYPE_CHECKING
 
 from homeassistant.exceptions import ConfigEntryNotReady
 
-from .const import DEFAULT_REFRESH_INTERVAL, DOMAIN, LOGGER, PLATFORMS
+from .const import DEFAULT_REFRESH_INTERVAL, DOMAIN, PLATFORMS
 from .coordinator import EDDataUpdateCoordinator
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
+
+LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -20,7 +21,6 @@ from .const import (
     DOMAIN,
     FILENAME_QCM,
     GRADES_TO_DISPLAY,
-    LOGGER,
 )
 from .ecole_directe_helper import (
     check_ecoledirecte_session,
@@ -38,6 +38,8 @@ STEP_USER_DATA_SCHEMA_UP = vol.Schema({
         default=DEFAULT_ALLOW_NOTIFICATION,
     ): bool,
 })
+
+LOGGER = logging.getLogger(__name__)
 
 
 @config_entries.HANDLERS.register(DOMAIN)

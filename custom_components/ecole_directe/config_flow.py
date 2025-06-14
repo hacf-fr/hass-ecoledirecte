@@ -67,10 +67,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     + self._user_inputs["qcm_filename"]
                 )
                 if not Path(path).is_file():
-                    async with await anyio.open_file(
-                        file=path, mode="w", encoding="utf-8"
-                    ) as f:
-                        json.dump({}, f, ensure_ascii=False, indent=4)
+                    async with await anyio.open_file(path, "w", encoding="utf-8") as f:
+                        await f.write(json.dumps({}, indent=4, ensure_ascii=False))
 
                 await self.async_set_unique_id(self._user_inputs["username"])
                 self._abort_if_unique_id_configured()

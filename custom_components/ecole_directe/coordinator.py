@@ -52,13 +52,6 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
         previous_data = None if self.data is None else self.data.copy()
 
-        # session = await get_ecoledirecte_session(
-        #     self.config_entry.data["username"],
-        #     self.config_entry.data["password"],
-        #     self.config_entry.data["qcm_filename"],
-        #     self.hass,
-        # )
-
         async with EDSession(
             self.config_entry.data["username"],
             self.config_entry.data["password"],

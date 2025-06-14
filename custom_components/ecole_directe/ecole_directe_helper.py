@@ -16,6 +16,7 @@ from ecoledirecte_api.client import EDClient, QCMException
 from homeassistant.core import HomeAssistant
 
 from .const import (
+    EVENT_TYPE,
     FAKE_ON,
     GRADES_TO_DISPLAY,
     HOMEWORK_DESC_MAX_LENGTH,
@@ -125,14 +126,19 @@ class EDSession:
         if self.ed_client is not None:
             await self.ed_client.close()
 
-    def save_question(self, qcm_json: Any) -> None:
+    async def save_question(self, qcm_json: Any) -> None:
         """Save questions to file."""
-        with Path(self.qcm_path).open("w", encoding="utf-8") as file:
-            json.dump(qcm_json, file, indent=4, ensure_ascii=False)
+        await save_json_file(qcm_json, self.qcm_path)
+        event_data = {
+            "child_name": None,
+            "type": "new_qcm",
+        }
+        self.hass.bus.fire(EVENT_TYPE, event_data)
         LOGGER.debug("Saved question to file")
 
     async def login(self) -> Any:
         """Login to Ecole Directe."""
+        LOGGER.debug("loading QCM file")
         self.qcm = await load_json_file(self.qcm_path)
         self.ed_client: EDClient = EDClient(
             username=self.username,

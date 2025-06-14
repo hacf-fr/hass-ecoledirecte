@@ -9,6 +9,6 @@
     "documentation": "https://github.com/hacf-fr/hass-ecoledirecte",
     "iot_class": "cloud_polling",
     "issue_tracker": "https://github.com/hacf-fr/hass-ecoledirecte/issues",
-    "requirements": ["ecoledirecte>=0.1.14"],
+    "requirements": ["ecoledirecte>=0.1.16"],
     "version": "0.0.0"
 }

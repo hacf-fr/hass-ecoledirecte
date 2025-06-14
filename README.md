@@ -11,19 +11,12 @@
 
 ## Installation
 
-
 ### Installation via l'interface utilisateur via HACS
 
-1. Depuis [HACS](https://hacs.xyz/) (Home Assistant Community Store), sélectionner `Intégrations`. Puis ouvrez le menu en haut à droite et utiliser l'option `Dépôts personnalisés` pour ajouter le dépôt de l'intégration.
-
-2. Ajoutez l'adresse <https://github.com/hacf-fr/hass-ecoledirecte> avec pour catégorie `Intégration`, et faire `AJOUTER`. Le dépôt apparaît dans la liste.
-
-3. La carte de ce `nouveau dépôt` va s'afficher, cliquez sur celle-ci puis `Télécharger` en bas à droite.
-
-4. Laisser le choix de la dernière version et utiliser l'option `Télécharger`.
-
+1. Cliquez sur ce lien : [HACS: Ecole Directe](https://my.home-assistant.io/redirect/hacs_repository/?owner=hacf-fr&repository=hass-ecoledirecte)
+2. Cliquez sur le bouton `Open link`.
+3. Cliquez sur le bouton `Télécharger` en bas à droite, puis une deuxième fois sur `Télécharger`.
 5. Il faut ensuite redémarrer Home Assistant.
-
 
 ### Installation manuelle
 Copier le répertoire ecole_directe de la dernière release dans le répertoire custom_components de votre répertoire config. Redémarrer Home Assistant
@@ -31,7 +24,7 @@ Copier le répertoire ecole_directe de la dernière release dans le répertoire 
 ## Configuration
 
 Cliquer sur ce bouton:  
-[![Open your Home Assistant instance and start setting up a new integration of a specific brand.](https://my.home-assistant.io/badges/brand.svg)](https://my.home-assistant.io/redirect/brand/?brand=ecole_directe)  
+[![Open your Home Assistant instance and start setting up a new integration of a specific brand.](https://my.home-assistant.io/badges/brand.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=ecole_directe)
 
 Ou aller dans :  
 Paramètres > Appareils et services > Intégrations > Ajouter une intégration, et chercher "Ecole Directe"

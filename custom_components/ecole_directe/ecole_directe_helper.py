@@ -7,7 +7,8 @@ import logging
 import operator
 from pathlib import Path
 import re
-from typing import Any
+from types import TracebackType
+from typing import Any, Self
 
 import anyio
 from ecoledirecte_api.client import EDClient, QCMException
@@ -105,6 +106,24 @@ class EDSession:
         self.log_folder = self.hass.config.config_dir + INTEGRATION_PATH + "logs/"
         self.test_folder = self.hass.config.config_dir + INTEGRATION_PATH + "test/"
         Path(self.log_folder).mkdir(parents=True, exist_ok=True)
+
+    async def __aenter__(self) -> Self:
+        """Enter the session context."""
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        """Exit the session context."""
+        await self.close()
+
+    async def close(self) -> None:
+        """Close the session."""
+        if self.ed_client is not None:
+            await self.ed_client.close()
 
     def save_question(self, qcm_json: Any) -> None:
         """Save questions to file."""
@@ -485,28 +504,13 @@ async def check_ecoledirecte_session(
 ) -> bool:
     """Check if credentials to Ecole Directe are ok."""
     try:
-        session = await get_ecoledirecte_session(user, pwd, qcm_file_name, hass=hass)
+        async with EDSession(
+            user, pwd, hass.config.config_dir + "/" + qcm_file_name, hass
+        ) as session:
+            await session.login()
     except QCMException:
         return True
     return session is not None
-
-
-async def get_ecoledirecte_session(
-    user: str, pwd: str, qcm_file_name: str, hass: HomeAssistant
-) -> EDSession | None:
-    """Return ecole directe session connecting to Ecole Directe."""
-    try:
-        session = EDSession(
-            user, pwd, hass.config.config_dir + "/" + qcm_file_name, hass
-        )
-        await session.login()
-    except QCMException:
-        raise
-    except Exception as err:
-        LOGGER.critical(err)
-        return None
-    else:
-        return session
 
 
 def get_grade(data: Any) -> dict:

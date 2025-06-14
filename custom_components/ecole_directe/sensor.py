@@ -360,6 +360,7 @@ class EDLessonsSensor(EDGenericSensor):
             self._end_at = None
             self._lunch_break_start_at = None
             self._lunch_break_end_at = None
+            self._date = None
             canceled_counter = 0
             for lesson in lessons:
                 index = lessons.index(lesson)
@@ -369,6 +370,7 @@ class EDLessonsSensor(EDGenericSensor):
                     and lesson["canceled"]
                 ):
                     attributes.append(lesson)
+                    self._date = lesson["start"].strftime("%Y-%m-%d")
                 if lesson["canceled"] is False and self._start_at is None:
                     self._start_at = lesson["start"].strftime("%H:%M")
                 if lesson["canceled"]:
@@ -400,6 +402,7 @@ class EDLessonsSensor(EDGenericSensor):
         if single_day:
             result["lunch_break_start_at"] = self._lunch_break_start_at
             result["lunch_break_end_at"] = self._lunch_break_end_at
+            result["date"] = self._date
 
         return result
 

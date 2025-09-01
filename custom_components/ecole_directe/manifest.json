@@ -1,14 +1,16 @@
 {
-    "domain": "ecole_directe",
-    "name": "Ecole Directe",
-    "codeowners": [
-        "@hacf-fr",
-        "@giga77"
-    ],
-    "config_flow": true,
-    "documentation": "https://github.com/hacf-fr/hass-ecoledirecte",
-    "iot_class": "cloud_polling",
-    "issue_tracker": "https://github.com/hacf-fr/hass-ecoledirecte/issues",
-    "requirements": ["ecoledirecte>=0.1.16"],
-    "version": "0.0.0"
+  "domain": "ecole_directe",
+  "name": "Ecole Directe",
+  "codeowners": [
+    "@hacf-fr",
+    "@giga77"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/hacf-fr/hass-ecoledirecte",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/hacf-fr/hass-ecoledirecte/issues",
+  "requirements": [
+    "ecoledirecte>=0.1.17"
+  ],
+  "version": "v0.0.0"
 }

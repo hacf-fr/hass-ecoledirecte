@@ -69,9 +69,13 @@ class EDEleve:
             if "classe" in data:
                 self.classe_id = data["classe"]["id"]
                 self.classe_name = data["classe"]["libelle"]
-                self.eleve_id: str = data["id"]
-                self.eleve_lastname = data["nom"]
-                self.eleve_firstname = data["prenom"]
+            else:
+                self.classe_id = ""
+                self.classe_name = ""
+            self.eleve_id: str = data["id"]
+            self.eleve_lastname = data["nom"]
+            self.eleve_firstname = data["prenom"]
+
             self.establishment = establishment
             self.modules = []
             for module in data["modules"]:

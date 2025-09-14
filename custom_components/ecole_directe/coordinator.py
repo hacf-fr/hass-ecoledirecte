@@ -131,8 +131,24 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         LOGGER.warning(
                             "Error getting formulaires from ecole directe: %s", ex
                         )
+            
+            # START: MODIFIED FOR WALLET BALANCE (SINGLE CALL)
+            all_balances = None
+            try:
+                all_balances = await session.get_all_wallet_balances()
+            except Exception as ex:
+                LOGGER.warning("Error getting all wallet balances from ecole directe: %s", ex)
+            # END: MODIFIED FOR WALLET BALANCE (SINGLE CALL)
 
             for eleve in session.eleves:
+                # START: DISTRIBUTE WALLET BALANCE DATA
+                wallet_key = f"{eleve.get_fullname_lower()}_wallet"
+                if all_balances and eleve.eleve_id in all_balances:
+                    self.data[wallet_key] = all_balances[eleve.eleve_id]
+                else:
+                    self.data[wallet_key] = None
+                # END: DISTRIBUTE WALLET BALANCE DATA
+
                 if FAKE_ON or "CAHIER_DE_TEXTES" in eleve.modules:
                     try:
                         homeworks = await session.get_homeworks(
@@ -210,7 +226,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                                 f"{eleve.get_fullname_lower()}_{discipline['name']}"
                             ] = discipline
 
-                        if grades_evaluations["moyenne_generale"]:
+                        if "moyenne_generale" in grades_evaluations and grades_evaluations["moyenne_generale"]:
                             self.data[
                                 f"{eleve.get_fullname_lower()}_moyenne_generale"
                             ] = grades_evaluations["moyenne_generale"]

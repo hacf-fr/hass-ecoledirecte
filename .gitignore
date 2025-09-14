@@ -11,7 +11,7 @@ __pycache__
 coverage.xml
 .ruff_cache
 *.bat
-
+Zone.Identifier
 
 # Home Assistant configuration
 config/*

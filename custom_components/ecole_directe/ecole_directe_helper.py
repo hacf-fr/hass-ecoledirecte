@@ -72,7 +72,7 @@ class EDEleve:
             else:
                 self.classe_id = ""
                 self.classe_name = ""
-            self.eleve_id: str = data["id"]
+            self.eleve_id: str = str(data["id"])
             self.eleve_lastname = data["nom"]
             self.eleve_firstname = data["prenom"]
 
@@ -476,6 +476,35 @@ class EDSession:
                 response.sort(key=operator.itemgetter("start"))
 
         return response
+
+    async def get_all_wallet_balances(self) -> dict | None:
+        """Get all wallet balances from Ecole Directe."""
+        if FAKE_ON:
+            # You can create a fake response file for testing
+            # json_resp = await load_json_file(self.test_folder + "test_wallet.json")
+            return {
+                "4108": {"solde": 64.3, "libelle": "Restauration Noah"}
+            }
+
+        json_resp = await self.ed_client.get_all_wallet_balances()
+        await save_json_file(
+            json_resp,
+            self.log_folder + "get_all_wallet_balances.json",
+        )
+        
+        balances = {}
+        if "data" in json_resp and "comptes" in json_resp["data"]:
+            for compte in json_resp["data"]["comptes"]:
+                if compte.get("typeCompte") == "portemonnaie" and compte.get("idEleve"):
+                    eleve_id = str(compte["idEleve"])
+                    balances[eleve_id] = {
+                        "solde": compte.get("solde"),
+                        "libelle": compte.get("libelle")
+                    }
+            return balances
+            
+        LOGGER.warning("get_all_wallet_balances: No data found in response: [%s]", json_resp)
+        return None
 
     async def get_sondages(self) -> dict:
         """Get sondages."""

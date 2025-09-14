@@ -6,6 +6,7 @@ import operator
 from typing import Any
 
 from homeassistant.components.sensor import (
+    SensorDeviceClass,
     SensorEntity,
 )
 from homeassistant.config_entries import ConfigEntry
@@ -57,6 +58,13 @@ async def async_setup_entry(
 
         for eleve in coordinator.data["session"].eleves:
             sensors.append(EDChildSensor(coordinator, eleve))
+            # START: ADDED FOR WALLET SENSOR
+            try:
+                # We add the sensor regardless of modules, as it's often not listed.
+                sensors.append(EDWalletSensor(coordinator, eleve))
+            except Exception as e:
+                LOGGER.error("Error while creating wallet sensor: %s", e)
+            # END: ADDED FOR WALLET SENSOR
             if FAKE_ON or "CAHIER_DE_TEXTES" in eleve.modules:
                 try:
                     sensors.append(EDHomeworksSensor(coordinator, eleve, ""))
@@ -82,18 +90,19 @@ async def async_setup_entry(
                 except Exception as e:
                     LOGGER.error("Error while creating grades sensors: %s", e)
                 try:
-                    disciplines = coordinator.data[
-                        f"{eleve.get_fullname_lower()}_disciplines"
-                    ]
-                    for discipline in disciplines:
-                        sensors.append(
-                            EDDisciplineSensor(
-                                coordinator,
-                                eleve,
-                                discipline["name"],
-                                discipline["moyenne"],
+                    if f"{eleve.get_fullname_lower()}_disciplines" in coordinator.data:
+                        disciplines = coordinator.data[
+                            f"{eleve.get_fullname_lower()}_disciplines"
+                        ]
+                        for discipline in disciplines:
+                            sensors.append(
+                                EDDisciplineSensor(
+                                    coordinator,
+                                    eleve,
+                                    discipline["name"],
+                                    discipline["moyenne"],
+                                )
                             )
-                        )
                     if (
                         f"{eleve.get_fullname_lower()}_moyenne_generale"
                         in coordinator.data
@@ -226,6 +235,58 @@ class EDChildSensor(EDGenericSensor):
     def available(self) -> bool:
         """Return if entity is available."""
         return self.coordinator.last_update_success
+
+
+# START: NEW SENSOR CLASS FOR WALLET
+class EDWalletSensor(EDGenericSensor):
+    """Representation of an ED wallet sensor."""
+
+    def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
+        """Initialize the ED sensor."""
+        super().__init__(coordinator, "wallet", eleve)
+        self._child_info = eleve
+        self._attr_device_class = SensorDeviceClass.MONETARY
+        self._attr_native_unit_of_measurement = "EUR"
+        self._attr_icon = "mdi:wallet"
+
+    @property
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        key = f"{self._child_info.get_fullname_lower()}_wallet"
+        wallet_data = self.coordinator.data.get(key)
+        # Use the descriptive name from the API, e.g., "Restauration Noah"
+        if wallet_data and wallet_data.get("libelle"):
+            return wallet_data["libelle"]
+        # Fallback name
+        return f"{DOMAIN}_{self._child_info.get_fullname_lower()}_solde_cantine"
+
+
+    @property
+    def unique_id(self) -> str:
+        """Return the unique ID of the sensor."""
+        return f"ed_{self.coordinator.data['session'].identifiant}_{self._child_info.get_fullname_lower()}_wallet"
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        key = f"{self._child_info.get_fullname_lower()}_wallet"
+        wallet_data = self.coordinator.data.get(key)
+        if wallet_data is not None:
+            return wallet_data.get("solde")
+        return None
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        key = f"{self._child_info.get_fullname_lower()}_wallet"
+        return (
+            self.coordinator.last_update_success
+            and key in self.coordinator.data
+            and self.coordinator.data[key] is not None
+        )
+
+
+# END: NEW SENSOR CLASS FOR WALLET
 
 
 class EDHomeworksSensor(EDGenericSensor):

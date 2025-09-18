@@ -53,8 +53,8 @@ async def async_setup_entry(
                 sensors.append(EDFormulairesSensor(coordinator))
             if "MESSAGERIE" in coordinator.data["session"].modules:
                 sensors.append(EDMessagerieSensor(coordinator, None))
-        except Exception as e:
-            LOGGER.error("Error while creating generic sensors: %s", e)
+        except Exception:
+            LOGGER.exception("Error while creating generic sensors: %s")
 
         for eleve in coordinator.data["session"].eleves:
             sensors.append(EDChildSensor(coordinator, eleve))
@@ -62,8 +62,8 @@ async def async_setup_entry(
             try:
                 # We add the sensor regardless of modules, as it's often not listed.
                 sensors.append(EDWalletSensor(coordinator, eleve))
-            except Exception as e:
-                LOGGER.error("Error while creating wallet sensor: %s", e)
+            except Exception:
+                LOGGER.exception("Error while creating wallet sensor: %s")
             # END: ADDED FOR WALLET SENSOR
             if FAKE_ON or "CAHIER_DE_TEXTES" in eleve.modules:
                 try:
@@ -71,8 +71,8 @@ async def async_setup_entry(
                     sensors.append(EDHomeworksSensor(coordinator, eleve, "_1"))
                     sensors.append(EDHomeworksSensor(coordinator, eleve, "_2"))
                     sensors.append(EDHomeworksSensor(coordinator, eleve, "_3"))
-                except Exception as e:
-                    LOGGER.error("Error while creating homeworks sensors: %s", e)
+                except Exception:
+                    LOGGER.exception("Error while creating homeworks sensors: %s")
             if FAKE_ON or "EDT" in eleve.modules:
                 try:
                     sensors.append(EDLessonsSensor(coordinator, eleve, "today"))
@@ -81,14 +81,14 @@ async def async_setup_entry(
                     sensors.append(EDLessonsSensor(coordinator, eleve, "period"))
                     sensors.append(EDLessonsSensor(coordinator, eleve, "period_1"))
                     sensors.append(EDLessonsSensor(coordinator, eleve, "period_2"))
-                except Exception as e:
-                    LOGGER.error("Error while creating lessons sensors: %s", e)
+                except Exception:
+                    LOGGER.exception("Error while creating lessons sensors: %s")
             if FAKE_ON or "NOTES" in eleve.modules:
                 try:
                     sensors.append(EDGradesSensor(coordinator, eleve))
                     sensors.append(EDEvaluationsSensor(coordinator, eleve))
-                except Exception as e:
-                    LOGGER.error("Error while creating grades sensors: %s", e)
+                except Exception:
+                    LOGGER.exception("Error while creating grades sensors: %s")
                 try:
                     if f"{eleve.get_fullname_lower()}_disciplines" in coordinator.data:
                         disciplines = coordinator.data[
@@ -108,8 +108,8 @@ async def async_setup_entry(
                         in coordinator.data
                     ):
                         sensors.append(EDMoyenneSensor(coordinator, eleve))
-                except Exception as e:
-                    LOGGER.error("Error while creating moyennes sensors: %s", e)
+                except Exception:
+                    LOGGER.exception("Error while creating moyennes sensors: %s")
 
             if FAKE_ON or "VIE_SCOLAIRE" in eleve.modules:
                 try:
@@ -117,17 +117,17 @@ async def async_setup_entry(
                     sensors.append(EDRetardsSensor(coordinator, eleve))
                     sensors.append(EDEncouragementsSensor(coordinator, eleve))
                     sensors.append(EDSanctionsSensor(coordinator, eleve))
-                except Exception as e:
-                    LOGGER.error("Error while creating VIE_SCOLAIRE sensors: %s", e)
+                except Exception:
+                    LOGGER.exception("Error while creating VIE_SCOLAIRE sensors: %s")
             if FAKE_ON or "MESSAGERIE" in coordinator.data["session"].modules:
                 try:
                     sensors.append(EDMessagerieSensor(coordinator, eleve))
-                except Exception as e:
-                    LOGGER.error(
-                        "Error while creating student messagerie sensors: %s", e
+                except Exception:
+                    LOGGER.exception(
+                        "Error while creating student messagerie sensors: %s"
                     )
 
-        async_add_entities(sensors, False)
+        async_add_entities(sensors, update_before_add=False)
 
 
 class EDGenericSensor(CoordinatorEntity, SensorEntity):
@@ -171,23 +171,23 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
             self._attr_device_class = device_class
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name of the sensor."""
         return f"{DOMAIN}_{self._name}"
 
     @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return the state of the sensor."""
         if self._name not in self.coordinator.data:
             return "unavailable"
-        elif self._state == "len":
+        if self._state == "len":
             return len(self.coordinator.data[self._name])
-        elif self._state is not None:
+        if self._state is not None:
             return self._state
         return self.coordinator.data[self._name]
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         return {"updated_at": self.coordinator.last_update_success_time}
 
@@ -260,14 +260,13 @@ class EDWalletSensor(EDGenericSensor):
         # Fallback name
         return f"{DOMAIN}_{self._child_info.get_fullname_lower()}_solde_cantine"
 
-
     @property
     def unique_id(self) -> str:
         """Return the unique ID of the sensor."""
         return f"ed_{self.coordinator.data['session'].identifiant}_{self._child_info.get_fullname_lower()}_wallet"
 
     @property
-    def native_value(self):
+    def native_value(self) -> Any:
         """Return the state of the sensor."""
         key = f"{self._child_info.get_fullname_lower()}_wallet"
         wallet_data = self.coordinator.data.get(key)
@@ -293,7 +292,7 @@ class EDHomeworksSensor(EDGenericSensor):
     """Representation of a ED sensor."""
 
     def __init__(
-        self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve, suffix
+        self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve, suffix: str
     ) -> None:
         """Initialize the ED sensor."""
         super().__init__(
@@ -306,7 +305,7 @@ class EDHomeworksSensor(EDGenericSensor):
         self._suffix = suffix
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
         todo_counter = 0
@@ -348,7 +347,7 @@ class EDGradesSensor(EDGenericSensor):
         self._child_info = eleve
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
         grades = self.coordinator.data[
@@ -367,13 +366,13 @@ class EDDisciplineSensor(EDGenericSensor):
     """Representation of a ED sensor."""
 
     def __init__(
-        self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve, nom, note
+        self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve, nom: str, note: Any
     ) -> None:
         """Initialize the ED sensor."""
         super().__init__(coordinator, nom, eleve, note)
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         discipline = self.coordinator.data[self._name]
 
@@ -405,7 +404,7 @@ class EDLessonsSensor(EDGenericSensor):
         self._lunch_break_end_at = None
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
         lessons = self.coordinator.data[self._name]
@@ -481,7 +480,7 @@ class EDMoyenneSensor(EDGenericSensor):
         self._state = self.coordinator.data[self._name]["moyenneGenerale"]
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         moyenne = self.coordinator.data[
             f"{self._child_info.get_fullname_lower()}_moyenne_generale"
@@ -505,7 +504,7 @@ class EDEvaluationsSensor(EDGenericSensor):
         self._child_info = eleve
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
         evaluations = self.coordinator.data[
@@ -529,7 +528,7 @@ class EDAbsencesSensor(EDGenericSensor):
         self._child_info = eleve
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
         absences = self.coordinator.data[
@@ -553,7 +552,7 @@ class EDRetardsSensor(EDGenericSensor):
         self._child_info = eleve
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
         retards = self.coordinator.data[
@@ -577,7 +576,7 @@ class EDSanctionsSensor(EDGenericSensor):
         self._child_info = eleve
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
         sanctions = self.coordinator.data[
@@ -601,7 +600,7 @@ class EDEncouragementsSensor(EDGenericSensor):
         self._child_info = eleve
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
         encouragements = self.coordinator.data[
@@ -624,7 +623,7 @@ class EDFormulairesSensor(EDGenericSensor):
         super().__init__(coordinator, "formulaires", None, "len")
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
         forms = self.coordinator.data["formulaires"]
@@ -647,7 +646,7 @@ class EDMessagerieSensor(EDGenericSensor):
         super().__init__(coordinator, "messagerie", eleve, "len")
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         if self._child_info:
             messagerie = self.coordinator.data[

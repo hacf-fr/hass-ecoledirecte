@@ -131,13 +131,15 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         LOGGER.warning(
                             "Error getting formulaires from ecole directe: %s", ex
                         )
-            
+
             # START: MODIFIED FOR WALLET BALANCE (SINGLE CALL)
             all_balances = None
             try:
                 all_balances = await session.get_all_wallet_balances()
             except Exception as ex:
-                LOGGER.warning("Error getting all wallet balances from ecole directe: %s", ex)
+                LOGGER.warning(
+                    "Error getting all wallet balances from ecole directe: %s", ex
+                )
             # END: MODIFIED FOR WALLET BALANCE (SINGLE CALL)
 
             for eleve in session.eleves:
@@ -226,7 +228,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                                 f"{eleve.get_fullname_lower()}_{discipline['name']}"
                             ] = discipline
 
-                        if "moyenne_generale" in grades_evaluations and grades_evaluations["moyenne_generale"]:
+                        if "moyenne_generale" in grades_evaluations:
                             self.data[
                                 f"{eleve.get_fullname_lower()}_moyenne_generale"
                             ] = grades_evaluations["moyenne_generale"]

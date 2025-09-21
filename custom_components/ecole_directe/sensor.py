@@ -108,8 +108,8 @@ async def async_setup_entry(
                         in coordinator.data
                     ):
                         sensors.append(EDMoyenneSensor(coordinator, eleve))
-                except Exception as e:
-                    LOGGER.exception("Error while creating moyennes sensors: %s", e)
+                except Exception:
+                    LOGGER.exception("Error while creating moyennes sensors")
 
             if FAKE_ON or "VIE_SCOLAIRE" in eleve.modules:
                 try:
@@ -323,9 +323,11 @@ class EDHomeworksSensor(EDGenericSensor):
             if attributes is not None:
                 attributes.sort(key=operator.itemgetter("date"))
         else:
-            attributes.append({
-                "Erreur": f"{self._child_info.get_fullname_lower()}_homework{self._suffix} n'existe pas."
-            })
+            attributes.append(
+                {
+                    "Erreur": f"{self._child_info.get_fullname_lower()}_homework{self._suffix} n'existe pas."
+                }
+            )
 
         if is_too_big(attributes):
             attributes = []

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, tzinfo
 import logging
+from datetime import date, datetime, timedelta, tzinfo
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordinator
@@ -63,8 +63,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             except QCMException:
                 LOGGER.exception("Unable to init ecole directe client")
                 return None
-            except Exception as err:
-                LOGGER.critical(err)
+            except Exception:
+                LOGGER.critical("Unknow error")
                 return None
 
             self.data = {}
@@ -219,14 +219,15 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                                 "notes_affichees", GRADES_TO_DISPLAY
                             ),
                         )
-                        disciplines = grades_evaluations["disciplines"]
-                        self.data[f"{eleve.get_fullname_lower()}_disciplines"] = (
-                            disciplines
-                        )
-                        for discipline in disciplines:
-                            self.data[
-                                f"{eleve.get_fullname_lower()}_{discipline['name']}"
-                            ] = discipline
+                        if "disciplines" in grades_evaluations:
+                            disciplines = grades_evaluations["disciplines"]
+                            self.data[f"{eleve.get_fullname_lower()}_disciplines"] = (
+                                disciplines
+                            )
+                            for discipline in disciplines:
+                                self.data[
+                                    f"{eleve.get_fullname_lower()}_{discipline['name']}"
+                                ] = discipline
 
                         if "moyenne_generale" in grades_evaluations:
                             self.data[

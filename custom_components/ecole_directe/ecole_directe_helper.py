@@ -1,18 +1,17 @@
 """Module to help communication with Ecole Directe API."""
 
 import base64
-from datetime import datetime, time
 import json
 import logging
 import operator
-from pathlib import Path
 import re
+from datetime import datetime, time
+from pathlib import Path
 from types import TracebackType
 from typing import Any, Self
 
 import anyio
 from ecoledirecte_api.client import EDClient, QCMException
-
 from homeassistant.core import HomeAssistant
 
 from .const import (

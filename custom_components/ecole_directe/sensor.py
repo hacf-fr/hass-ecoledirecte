@@ -1,8 +1,8 @@
 """Module providing sensors to Home Assistant."""
 
-from datetime import datetime
 import logging
 import operator
+from datetime import datetime
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -54,7 +54,7 @@ async def async_setup_entry(
             if "MESSAGERIE" in coordinator.data["session"].modules:
                 sensors.append(EDMessagerieSensor(coordinator, None))
         except Exception:
-            LOGGER.exception("Error while creating generic sensors: %s")
+            LOGGER.exception("Error while creating generic sensors")
 
         for eleve in coordinator.data["session"].eleves:
             sensors.append(EDChildSensor(coordinator, eleve))
@@ -108,8 +108,8 @@ async def async_setup_entry(
                         in coordinator.data
                     ):
                         sensors.append(EDMoyenneSensor(coordinator, eleve))
-                except Exception:
-                    LOGGER.exception("Error while creating moyennes sensors: %s")
+                except Exception as e:
+                    LOGGER.exception("Error while creating moyennes sensors: %s", e)
 
             if FAKE_ON or "VIE_SCOLAIRE" in eleve.modules:
                 try:

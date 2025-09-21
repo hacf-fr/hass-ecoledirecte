@@ -17,3 +17,4 @@ Zone.Identifier
 config/*
 !config/configuration.yaml
 /custom_components/ecole_directe/logs
+/custom_components/ecole_directe/test

@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Any
 
 import anyio
 import voluptuous as vol
-
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError
@@ -29,15 +28,17 @@ from .ecole_directe_helper import (
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigFlowResult
 
-STEP_USER_DATA_SCHEMA_UP = vol.Schema({
-    vol.Required("username"): str,
-    vol.Required("password"): str,
-    vol.Optional("qcm_filename", default=FILENAME_QCM): str,
-    vol.Optional(
-        "allow_notification",
-        default=DEFAULT_ALLOW_NOTIFICATION,
-    ): bool,
-})
+STEP_USER_DATA_SCHEMA_UP = vol.Schema(
+    {
+        vol.Required("username"): str,
+        vol.Required("password"): str,
+        vol.Optional("qcm_filename", default=FILENAME_QCM): str,
+        vol.Optional(
+            "allow_notification",
+            default=DEFAULT_ALLOW_NOTIFICATION,
+        ): bool,
+    }
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -126,28 +127,30 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema({
-                vol.Optional(
-                    "refresh_interval",
-                    default=self.config_entry.options.get(
-                        "refresh_interval", DEFAULT_REFRESH_INTERVAL
-                    ),
-                ): int,
-                vol.Optional(
-                    "lunch_break_time",
-                    default=self.config_entry.options.get(
-                        "lunch_break_time", DEFAULT_LUNCH_BREAK_TIME
-                    ),
-                ): str,
-                vol.Optional(
-                    "decode_html",
-                    default=self.config_entry.options.get("decode_html", False),
-                ): bool,
-                vol.Optional(
-                    "notes_affichees",
-                    default=self.config_entry.options.get(
-                        "notes_affichees", GRADES_TO_DISPLAY
-                    ),
-                ): int,
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        "refresh_interval",
+                        default=self.config_entry.options.get(
+                            "refresh_interval", DEFAULT_REFRESH_INTERVAL
+                        ),
+                    ): int,
+                    vol.Optional(
+                        "lunch_break_time",
+                        default=self.config_entry.options.get(
+                            "lunch_break_time", DEFAULT_LUNCH_BREAK_TIME
+                        ),
+                    ): str,
+                    vol.Optional(
+                        "decode_html",
+                        default=self.config_entry.options.get("decode_html", False),
+                    ): bool,
+                    vol.Optional(
+                        "notes_affichees",
+                        default=self.config_entry.options.get(
+                            "notes_affichees", GRADES_TO_DISPLAY
+                        ),
+                    ): int,
+                }
+            ),
         )

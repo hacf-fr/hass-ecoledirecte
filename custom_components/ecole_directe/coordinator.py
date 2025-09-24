@@ -273,7 +273,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
                         lessons = await session.get_lessons(
                             eleve,
-                            current_week_begin.strftime("%Y-%m-%d"),
+                            today.strftime("%Y-%m-%d"),
                             current_week_plus_21.strftime("%Y-%m-%d"),
                             lunch_break_time,
                         )
@@ -304,8 +304,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         self.data[f"{eleve.get_fullname_lower()}_timetable_period"] = (
                             list(
                                 filter(
-                                    lambda lesson: lesson["start"].date()
-                                    >= current_week_begin
+                                    lambda lesson: lesson["start"].date() >= today
                                     and lesson["start"].date() <= current_week_end,
                                     lessons,
                                 )

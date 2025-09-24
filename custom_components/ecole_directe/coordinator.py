@@ -6,6 +6,7 @@ import logging
 from datetime import date, datetime, timedelta, tzinfo
 from typing import TYPE_CHECKING, Any
 
+from ecoledirecte_api.client import QCMException
 from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
@@ -17,7 +18,7 @@ from .const import (
     FAKE_ON,
     GRADES_TO_DISPLAY,
 )
-from .ecole_directe_helper import EDEleve, EDSession, QCMException
+from .ecole_directe_helper import EDEleve, EDSession
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry

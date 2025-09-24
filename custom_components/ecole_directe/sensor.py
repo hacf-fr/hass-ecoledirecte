@@ -107,7 +107,7 @@ async def async_setup_entry(
                         f"{eleve.get_fullname_lower()}_moyenne_generale"
                         in coordinator.data
                     ):
-                        sensors.append(EDMoyenneSensor(coordinator, eleve))
+                        sensors.append(EDMoyenneGeneraleSensor(coordinator, eleve))
                 except Exception:
                     LOGGER.exception("Error while creating moyennes sensors")
 
@@ -139,7 +139,6 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
         name: str,
         eleve: EDEleve | None = None,
         state: str | None = None,
-        device_class: str | None = None,
     ) -> None:
         """Initialize the ED sensor."""
         super().__init__(coordinator)
@@ -167,9 +166,6 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
             model=f"ED - {identifiant}",
         )
 
-        if device_class is not None:
-            self._attr_device_class = device_class
-
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
@@ -189,7 +185,7 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
-        return {"updated_at": self.coordinator.last_update_success_time}
+        return {}
 
     @property
     def available(self) -> bool:
@@ -216,11 +212,16 @@ class EDChildSensor(EDGenericSensor):
     @property
     def native_value(self) -> str:
         """Return the state of the sensor."""
+        if self._child_info is None:
+            return "unavailable"
         return self._child_info.get_fullname()
 
     @property
     def extra_state_attributes(self) -> dict[str, str]:
         """Return the state attributes."""
+        if self._child_info is None:
+            return {}
+
         return {
             "firstname": self._child_info.eleve_firstname,
             "lastname": self._child_info.eleve_lastname,
@@ -228,7 +229,6 @@ class EDChildSensor(EDGenericSensor):
             "class_name": self._child_info.classe_name,
             "establishment": self._child_info.establishment,
             "via_parent_account": self._account_type == "1",
-            "updated_at": self.coordinator.last_update_success_time,
         }
 
     @property
@@ -323,18 +323,15 @@ class EDHomeworksSensor(EDGenericSensor):
             if attributes is not None:
                 attributes.sort(key=operator.itemgetter("date"))
         else:
-            attributes.append(
-                {
-                    "Erreur": f"{self._child_info.get_fullname_lower()}_homework{self._suffix} n'existe pas."
-                }
-            )
+            attributes.append({
+                "Erreur": f"{self._child_info.get_fullname_lower()}_homework{self._suffix} n'existe pas."
+            })
 
         if is_too_big(attributes):
             attributes = []
             LOGGER.warning("[%s] attributes are too big! %s", self._name, attributes)
 
         return {
-            "updated_at": self.coordinator.last_update_success_time,
             "homework": attributes,
             "todo_counter": todo_counter,
         }
@@ -352,14 +349,14 @@ class EDGradesSensor(EDGenericSensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
-        grades = self.coordinator.data[
-            f"{self._child_info.get_fullname_lower()}_grades"
-        ]
-        for grade in grades:
-            attributes.append(grade)
+        if f"{self._child_info.get_fullname_lower()}_grades" in self.coordinator.data:
+            grades = self.coordinator.data[
+                f"{self._child_info.get_fullname_lower()}_grades"
+            ]
+            for grade in grades:
+                attributes.append(grade)
 
         return {
-            "updated_at": self.coordinator.last_update_success_time,
             "grades": attributes,
         }
 
@@ -379,7 +376,6 @@ class EDDisciplineSensor(EDGenericSensor):
         discipline = self.coordinator.data[self._name]
 
         return {
-            "updated_at": self.coordinator.last_update_success_time,
             "code": discipline["code"],
             "nom": discipline["name"],
             "moyenneClasse": discipline["moyenneClasse"],
@@ -409,55 +405,57 @@ class EDLessonsSensor(EDGenericSensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
-        lessons = self.coordinator.data[self._name]
-        canceled_counter = None
         single_day = self._suffix in ["today", "tomorrow", "next_day"]
-        lunch_break_time = datetime.strptime(
-            DEFAULT_LUNCH_BREAK_TIME,
-            "%H:%M",
-        ).time()
+        if self._name in self.coordinator.data:
+            lessons = self.coordinator.data[self._name]
+            canceled_counter = None
+            lunch_break_time = datetime.strptime(
+                DEFAULT_LUNCH_BREAK_TIME,
+                "%H:%M",
+            ).time()
 
-        if lessons is not None:
-            self._start_at = None
-            self._end_at = None
-            self._lunch_break_start_at = None
-            self._lunch_break_end_at = None
-            self._date = None
-            canceled_counter = 0
-            for lesson in lessons:
-                index = lessons.index(lesson)
+            if lessons is not None:
+                self._start_at = None
+                self._end_at = None
+                self._lunch_break_start_at = None
+                self._lunch_break_end_at = None
+                self._date = None
+                canceled_counter = 0
+                for lesson in lessons:
+                    index = lessons.index(lesson)
 
-                if not (
-                    lesson["start_time"] == lessons[index - 1]["start_time"]
-                    and lesson["canceled"]
-                ):
-                    attributes.append(lesson)
-                    self._date = lesson["start"].strftime("%Y-%m-%d")
-                if lesson["canceled"]:
-                    canceled_counter += 1
-                if single_day and lesson["canceled"] is False:
-                    start = lesson["start"].strftime("%H:%M")
-                    if self._start_at is None or start < self._start_at:
-                        self._start_at = start
-                    end = lesson["end"].strftime("%H:%M")
-                    if self._end_at is None or end > self._end_at:
-                        self._end_at = end
-                    if (
-                        datetime.strptime(lesson["end_time"], "%H:%M").time()
-                        < lunch_break_time
+                    if not (
+                        lesson["start_time"] == lessons[index - 1]["start_time"]
+                        and lesson["canceled"]
                     ):
-                        self._lunch_break_start_at = lesson["end"]
-                    if (
-                        self._lunch_break_end_at is None
-                        and datetime.strptime(lesson["start_time"], "%H:%M").time()
-                        >= lunch_break_time
-                    ):
-                        self._lunch_break_end_at = lesson["start"]
-        if is_too_big(attributes):
-            LOGGER.warning("[%s] attributes are too big! %s", self._name, attributes)
-            attributes = []
+                        attributes.append(lesson)
+                        self._date = lesson["start"].strftime("%Y-%m-%d")
+                    if lesson["canceled"]:
+                        canceled_counter += 1
+                    if single_day and lesson["canceled"] is False:
+                        start = lesson["start"].strftime("%H:%M")
+                        if self._start_at is None or start < self._start_at:
+                            self._start_at = start
+                        end = lesson["end"].strftime("%H:%M")
+                        if self._end_at is None or end > self._end_at:
+                            self._end_at = end
+                        if (
+                            datetime.strptime(lesson["end_time"], "%H:%M").time()
+                            < lunch_break_time
+                        ):
+                            self._lunch_break_start_at = lesson["end"]
+                        if (
+                            self._lunch_break_end_at is None
+                            and datetime.strptime(lesson["start_time"], "%H:%M").time()
+                            >= lunch_break_time
+                        ):
+                            self._lunch_break_end_at = lesson["start"]
+            if is_too_big(attributes):
+                LOGGER.warning(
+                    "[%s] attributes are too big! %s", self._name, attributes
+                )
+                attributes = []
         result = {
-            "updated_at": self.coordinator.last_update_success_time,
             "lessons": attributes,
             "canceled_lessons_counter": canceled_counter,
         }
@@ -472,24 +470,34 @@ class EDLessonsSensor(EDGenericSensor):
         return result
 
 
-class EDMoyenneSensor(EDGenericSensor):
+class EDMoyenneGeneraleSensor(EDGenericSensor):
     """Representation of a ED sensor."""
 
     def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
         super().__init__(coordinator, "moyenne_generale", eleve)
         self._child_info = eleve
-        self._state = self.coordinator.data[self._name]["moyenneGenerale"]
+        if "moyenneGenerale" in self.coordinator.data[self._name]:
+            self._state = self.coordinator.data[self._name]["moyenneGenerale"]
+        else:
+            self._state = "N/A"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
+        if (
+            f"{self._child_info.get_fullname_lower()}_moyenne_generale"
+            not in self.coordinator.data
+        ):
+            return {}
         moyenne = self.coordinator.data[
             f"{self._child_info.get_fullname_lower()}_moyenne_generale"
         ]
 
+        if moyenne is None or moyenne == {}:
+            return {}
+
         return {
-            "updated_at": self.coordinator.last_update_success_time,
             "moyenneClasse": moyenne["moyenneClasse"],
             "moyenneMin": moyenne["moyenneMin"],
             "moyenneMax": moyenne["moyenneMax"],
@@ -509,14 +517,17 @@ class EDEvaluationsSensor(EDGenericSensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
-        evaluations = self.coordinator.data[
+        if (
             f"{self._child_info.get_fullname_lower()}_evaluations"
-        ]
-        for evaluation in evaluations:
-            attributes.append(evaluation)
+            in self.coordinator.data
+        ):
+            evaluations = self.coordinator.data[
+                f"{self._child_info.get_fullname_lower()}_evaluations"
+            ]
+            for evaluation in evaluations:
+                attributes.append(evaluation)
 
         return {
-            "updated_at": self.coordinator.last_update_success_time,
             "evaluations": attributes,
         }
 
@@ -533,14 +544,14 @@ class EDAbsencesSensor(EDGenericSensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
-        absences = self.coordinator.data[
-            f"{self._child_info.get_fullname_lower()}_absences"
-        ]
-        for absence in absences:
-            attributes.append(absence)
+        if f"{self._child_info.get_fullname_lower()}_absences" in self.coordinator.data:
+            absences = self.coordinator.data[
+                f"{self._child_info.get_fullname_lower()}_absences"
+            ]
+            for absence in absences:
+                attributes.append(absence)
 
         return {
-            "updated_at": self.coordinator.last_update_success_time,
             "absences": attributes,
         }
 
@@ -557,14 +568,14 @@ class EDRetardsSensor(EDGenericSensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
-        retards = self.coordinator.data[
-            f"{self._child_info.get_fullname_lower()}_retards"
-        ]
-        for retard in retards:
-            attributes.append(retard)
+        if f"{self._child_info.get_fullname_lower()}_retards" in self.coordinator.data:
+            retards = self.coordinator.data[
+                f"{self._child_info.get_fullname_lower()}_retards"
+            ]
+            for retard in retards:
+                attributes.append(retard)
 
         return {
-            "updated_at": self.coordinator.last_update_success_time,
             "delays": attributes,
         }
 
@@ -581,14 +592,17 @@ class EDSanctionsSensor(EDGenericSensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
-        sanctions = self.coordinator.data[
+        if (
             f"{self._child_info.get_fullname_lower()}_sanctions"
-        ]
-        for sanction in sanctions:
-            attributes.append(sanction)
+            in self.coordinator.data
+        ):
+            sanctions = self.coordinator.data[
+                f"{self._child_info.get_fullname_lower()}_sanctions"
+            ]
+            for sanction in sanctions:
+                attributes.append(sanction)
 
         return {
-            "updated_at": self.coordinator.last_update_success_time,
             "sanctions": attributes,
         }
 
@@ -605,14 +619,17 @@ class EDEncouragementsSensor(EDGenericSensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
-        encouragements = self.coordinator.data[
+        if (
             f"{self._child_info.get_fullname_lower()}_encouragements"
-        ]
-        for encouragement in encouragements:
-            attributes.append(encouragement)
+            in self.coordinator.data
+        ):
+            encouragements = self.coordinator.data[
+                f"{self._child_info.get_fullname_lower()}_encouragements"
+            ]
+            for encouragement in encouragements:
+                attributes.append(encouragement)
 
         return {
-            "updated_at": self.coordinator.last_update_success_time,
             "encouragements": attributes,
         }
 
@@ -628,12 +645,12 @@ class EDFormulairesSensor(EDGenericSensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
-        forms = self.coordinator.data["formulaires"]
-        for form in forms:
-            attributes.append(form)
+        if "formulaires" in self.coordinator.data:
+            forms = self.coordinator.data["formulaires"]
+            for form in forms:
+                attributes.append(form)
 
         return {
-            "updated_at": self.coordinator.last_update_success_time,
             "formulaires": attributes,
         }
 
@@ -650,15 +667,27 @@ class EDMessagerieSensor(EDGenericSensor):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
-        if self._child_info:
+        messagerie = {}
+        if (
+            self._child_info
+            and f"{self._child_info.get_fullname_lower()}_messagerie"
+            in self.coordinator.data
+        ):
             messagerie = self.coordinator.data[
                 f"{self._child_info.get_fullname_lower()}_messagerie"
             ]
-        else:
+        elif "messagerie" in self.coordinator.data:
             messagerie = self.coordinator.data["messagerie"]
+        else:
+            messagerie = {
+                "messagesRecusCount": 0,
+                "messagesEnvoyesCount": 0,
+                "messagesArchivesCount": 0,
+                "messagesRecusNotReadCount": 0,
+                "messagesDraftCount": 0,
+            }
 
         return {
-            "updated_at": self.coordinator.last_update_success_time,
             "reçus": messagerie["messagesRecusCount"],
             "envoyés": messagerie["messagesEnvoyesCount"],
             "archivés": messagerie["messagesArchivesCount"],

@@ -468,9 +468,7 @@ class EDSession:
         else:
             data = json_resp["data"]
             for lesson_json in data:
-                lesson = get_lesson(lesson_json, lunch_break_time)
-                if not lesson["canceled"]:
-                    response.append(lesson)
+                response.append(get_lesson(lesson_json, lunch_break_time))
             if response is not None:
                 response.sort(key=operator.itemgetter("start"))
 

@@ -7,8 +7,8 @@ https://github.com/hacf-fr/hass-ecoledirecte
 
 from __future__ import annotations
 
-from datetime import timedelta
 import logging
+from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from homeassistant.exceptions import ConfigEntryNotReady

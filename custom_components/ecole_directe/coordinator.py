@@ -39,12 +39,13 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             hass=hass,
             logger=LOGGER,
             name=entry.title,
+            config_entry=entry,
             update_interval=timedelta(
                 minutes=entry.options.get("refresh_interval", DEFAULT_REFRESH_INTERVAL)
             ),
         )
-        self.config_entry = entry
         self.timezone = dt_util.get_default_time_zone()
+        LOGGER.debug("timezone: %s", self.timezone)
 
     async def _async_update_data(self) -> dict[str, Any] | None:
         """Get the latest data from Ecole Directe and updates the state."""
@@ -65,7 +66,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 LOGGER.exception("Unable to init ecole directe client")
                 return None
             except Exception:
-                LOGGER.critical("Unknow error")
+                LOGGER.critical("Unknow error on login")
                 return None
 
             self.data = {}
@@ -137,6 +138,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             all_balances = None
             try:
                 all_balances = await session.get_all_wallet_balances()
+                if all_balances and f"{session.id}" in all_balances:
+                    self.data["wallets"] = all_balances[f"{session.id}"]
             except Exception as ex:
                 LOGGER.warning(
                     "Error getting all wallet balances from ecole directe: %s", ex
@@ -145,11 +148,9 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
             for eleve in session.eleves:
                 # START: DISTRIBUTE WALLET BALANCE DATA
-                wallet_key = f"{eleve.get_fullname_lower()}_wallet"
                 if all_balances and eleve.eleve_id in all_balances:
-                    self.data[wallet_key] = all_balances[eleve.eleve_id]
-                else:
-                    self.data[wallet_key] = None
+                    wallets_key = f"{eleve.get_fullname_lower()}_wallets"
+                    self.data[wallets_key] = all_balances[eleve.eleve_id]
                 # END: DISTRIBUTE WALLET BALANCE DATA
 
                 if FAKE_ON or "CAHIER_DE_TEXTES" in eleve.modules:

@@ -13,6 +13,7 @@ from typing import Any, Self
 import anyio
 from ecoledirecte_api.client import EDClient, QCMException
 from homeassistant.core import HomeAssistant
+from unidecode import unidecode
 
 from .const import (
     EVENT_TYPE,
@@ -83,8 +84,8 @@ class EDEleve:
 
     def get_fullname_lower(self) -> str:
         """Student fullname lowercase."""
-        return f"{re.sub('[^A-Za-z]', '_', self.eleve_firstname.lower())}_{
-            re.sub('[^A-Za-z]', '_', self.eleve_lastname.lower())
+        return f"{unidecode(self.eleve_firstname.lower())}_{
+            unidecode(self.eleve_lastname.lower())
         }"
 
     def get_fullname(self) -> str:
@@ -489,12 +490,16 @@ class EDSession:
         balances = {}
         if "data" in json_resp and "comptes" in json_resp["data"]:
             for compte in json_resp["data"]["comptes"]:
-                if compte.get("typeCompte") == "portemonnaie" and compte.get("idEleve"):
-                    eleve_id = str(compte["idEleve"])
-                    balances[eleve_id] = {
-                        "solde": compte.get("solde"),
-                        "libelle": compte.get("libelle"),
-                    }
+                if compte.get("id"):
+                    compte_id = str(compte["id"])
+                    if compte_id not in balances:
+                        balances[compte_id] = []
+                    balances[compte_id].append(
+                        {
+                            "solde": compte.get("solde"),
+                            "libelle": compte.get("libelle"),
+                        }
+                    )
             return balances
 
         LOGGER.warning(
@@ -702,3 +707,8 @@ def get_formulaire(data: Any) -> dict:
         "titre": data["titre"],
         "created": data["created"],
     }
+
+
+def get_unique_id(data: str) -> str:
+    """Get unique id."""
+    return unidecode(data).lower().replace(" ", "_")

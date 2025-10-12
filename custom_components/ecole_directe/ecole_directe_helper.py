@@ -84,9 +84,7 @@ class EDEleve:
 
     def get_fullname_lower(self) -> str:
         """Student fullname lowercase."""
-        return f"{unidecode(self.eleve_firstname.lower())}_{
-            unidecode(self.eleve_lastname.lower())
-        }"
+        return get_unique_id(f"{self.get_fullname()}")
 
     def get_fullname(self) -> str:
         """Student fullname."""

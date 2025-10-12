@@ -23,10 +23,10 @@ Copier le répertoire ecole_directe de la dernière release dans le répertoire 
 
 ## Configuration
 
-Cliquer sur ce bouton:  
+Cliquer sur ce bouton:
 [![Open your Home Assistant instance and start setting up a new integration of a specific brand.](https://my.home-assistant.io/badges/brand.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=ecole_directe)
 
-Ou aller dans :  
+Ou aller dans :
 Paramètres > Appareils et services > Intégrations > Ajouter une intégration, et chercher "Ecole Directe"
 
 Utiliser votre identifiant et mot de passe :
@@ -62,15 +62,21 @@ Les entités sont mises à jour toutes les 30 minutes.
 | Entité | Description |
 |--------|-------------|
 | `sensor.ecole_directe_PRENOM_NOM` | informations basique de l'enfant |
-| `[...]_homework` | devoirs |
+| `[...]_homeworks` | devoirs |
+| `[...]_homeworks_today` | devoirs du jour |
+| `[...]_homeworks_tomorrow` | devoirs du lendemain |
+| `[...]_homeworks_next_day` | devoirs du jour ouvré suivant (ex: si on consulte le vendredi, il doit y avoir les devoirs du lundi )|
+| `[...]_homeworks_1` | devoirs de la semaine en cours |
+| `[...]_homeworks_2` | devoirs de la semaine suivante |
+| `[...]_homeworks_3` | devoirs de la semaine suivante suivante :D |
 | `[...]_grades` | notes |
 | `[...]_evaluations` | evaluations |
 | `[...]_timetable_today` | emploi du temps du jour |
 | `[...]_timetable_tomorrow` | emploi du temps du lendemain |
 | `[...]_timetable_next_day` | emploi du temps du jour ouvré suivant (ex: si on consulte le vendredi, il doit y avoir l'emploi du temps du lundi )|
-| `[...]_timetable_period` | emploi du temps de la semaine en cours |
-| `[...]_timetable_period_1` | emploi du temps de la semaine suivante |
-| `[...]_timetable_period_2` | emploi du temps de la semaine suivante suivante :D |
+| `[...]_timetable_1` | emploi du temps de la semaine en cours |
+| `[...]_timetable_2` | emploi du temps de la semaine suivante |
+| `[...]_timetable_3` | emploi du temps de la semaine suivante suivante :D |
 | `[...]_absences` | absences |
 | `[...]_retards` | retards |
 | `[...]_sanctions` | sanctions |

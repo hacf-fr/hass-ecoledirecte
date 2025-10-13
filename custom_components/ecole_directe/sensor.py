@@ -27,7 +27,7 @@ from .const import (
     MAX_STATE_ATTRS_BYTES,
 )
 from .coordinator import EDDataUpdateCoordinator
-from .ecole_directe_helper import EDEleve
+from .ecole_directe_helper import EDEleve, get_unique_id
 
 LOGGER = logging.getLogger(__name__)
 
@@ -87,9 +87,9 @@ async def async_setup_entry(
                     sensors.append(EDHomeworksSensor(coordinator, eleve, "_1"))
                     sensors.append(EDHomeworksSensor(coordinator, eleve, "_2"))
                     sensors.append(EDHomeworksSensor(coordinator, eleve, "_3"))
-                    sensors.append(EDHomeworksSensor(coordinator, eleve, "today"))
-                    sensors.append(EDHomeworksSensor(coordinator, eleve, "tomorrow"))
-                    sensors.append(EDHomeworksSensor(coordinator, eleve, "next_day"))
+                    sensors.append(EDHomeworksSensor(coordinator, eleve, "_today"))
+                    sensors.append(EDHomeworksSensor(coordinator, eleve, "_tomorrow"))
+                    sensors.append(EDHomeworksSensor(coordinator, eleve, "_next_day"))
                     sensors.append(EDHomeworksSensor(coordinator, eleve, ""))
                 except Exception:
                     LOGGER.exception("Error while creating homeworks sensors")
@@ -98,9 +98,9 @@ async def async_setup_entry(
                     sensors.append(EDLessonsSensor(coordinator, eleve, "_1"))
                     sensors.append(EDLessonsSensor(coordinator, eleve, "_2"))
                     sensors.append(EDLessonsSensor(coordinator, eleve, "_3"))
-                    sensors.append(EDLessonsSensor(coordinator, eleve, "today"))
-                    sensors.append(EDLessonsSensor(coordinator, eleve, "tomorrow"))
-                    sensors.append(EDLessonsSensor(coordinator, eleve, "next_day"))
+                    sensors.append(EDLessonsSensor(coordinator, eleve, "_today"))
+                    sensors.append(EDLessonsSensor(coordinator, eleve, "_tomorrow"))
+                    sensors.append(EDLessonsSensor(coordinator, eleve, "_next_day"))
                 except Exception:
                     LOGGER.exception("Error while creating lessons sensors")
             if FAKE_ON or "NOTES" in eleve.modules:
@@ -167,8 +167,7 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
             f"ED - {identifiant}" if eleve is None else f"ED - {eleve.get_fullname()}"
         )
 
-        self._key = key
-        self._name = name
+        self._key = get_unique_id(key)
         self._child_info = eleve
         self._state = state
         self.unique_id = (
@@ -176,6 +175,9 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
             if eleve is None
             else f"ed_{eleve.get_fullname_lower()}_{self._key}"
         )
+        self._attr_name = name
+        self._attr_has_entity_name = True
+
         self._attr_device_info = DeviceInfo(
             name=device,
             entry_type=DeviceEntryType.SERVICE,
@@ -183,11 +185,6 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
             manufacturer="Ecole Directe",
             model=device,
         )
-
-    @property
-    def name(self) -> str:
-        """Return the name of the sensor."""
-        return self._name
 
     @property
     def native_value(self) -> Any:
@@ -242,6 +239,7 @@ class EDChildSensor(EDGenericSensor):
         return {
             "firstname": self._child_info.eleve_firstname,
             "lastname": self._child_info.eleve_lastname,
+            "nickname": self._child_info.eleve_firstname,
             "full_name": self._child_info.get_fullname(),
             "class_name": self._child_info.classe_name,
             "establishment": self._child_info.establishment,
@@ -284,7 +282,7 @@ class EDWalletSensor(EDGenericSensor):
         wallet = next(
             item
             for item in self.coordinator.data[self._key]
-            if item.get("libelle") == self._name
+            if item.get("libelle") == self._attr_name
         )
         if wallet is None:
             return "unavailable"
@@ -312,6 +310,26 @@ class EDHomeworksSensor(EDGenericSensor):
             eleve,
             "len",
         )
+        self._suffix = suffix
+
+    @property
+    def name(self) -> str | None:
+        """Return the name of the sensor."""
+        name = self._attr_name
+        match self._suffix:
+            case "_1":
+                name = f"{self._attr_name} - Semaine en cours"
+            case "_2":
+                name = f"{self._attr_name} - Semaine suivante"
+            case "_3":
+                name = f"{self._attr_name} - Semaine après suivante"
+            case "_today":
+                name = f"{self._attr_name} - Aujourd'hui"
+            case "_tomorrow":
+                name = f"{self._attr_name} - Demain"
+            case "_next_day":
+                name = f"{self._attr_name} - Jour suivant"
+        return name
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -333,7 +351,7 @@ class EDHomeworksSensor(EDGenericSensor):
 
         if is_too_big(attributes):
             attributes = []
-            LOGGER.warning("[%s] attributes are too big! %s", self._name, attributes)
+            LOGGER.warning("[%s] attributes are too big!", self._attr_name)
 
         return {
             "homework": attributes,
@@ -373,7 +391,13 @@ class EDDisciplineSensor(EDGenericSensor):
         self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve, nom: str, note: Any
     ) -> None:
         """Initialize the ED sensor."""
-        super().__init__(coordinator, nom, nom, eleve, note)
+        super().__init__(
+            coordinator,
+            f"{eleve.get_fullname_lower()}_{get_unique_id(nom)}",
+            nom,
+            eleve,
+            note,
+        )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -400,7 +424,7 @@ class EDLessonsSensor(EDGenericSensor):
         super().__init__(
             coordinator,
             key=f"{eleve.get_fullname_lower()}_timetable" + suffix,
-            name="timetable_" + suffix,
+            name="Emploi du temps",
             eleve=eleve,
             state="len",
         )
@@ -409,6 +433,25 @@ class EDLessonsSensor(EDGenericSensor):
         self._end_at = None
         self._lunch_break_start_at = None
         self._lunch_break_end_at = None
+
+    @property
+    def name(self) -> str | None:
+        """Return the name of the sensor."""
+        name = self._attr_name
+        match self._suffix:
+            case "_1":
+                name = f"{self._attr_name} - Semaine en cours"
+            case "_2":
+                name = f"{self._attr_name} - Semaine suivante"
+            case "_3":
+                name = f"{self._attr_name} - Semaine après suivante"
+            case "_today":
+                name = f"{self._attr_name} - Aujourd'hui"
+            case "_tomorrow":
+                name = f"{self._attr_name} - Demain"
+            case "_next_day":
+                name = f"{self._attr_name} - Jour suivant"
+        return name
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -461,7 +504,7 @@ class EDLessonsSensor(EDGenericSensor):
                             self._lunch_break_end_at = lesson["start"]
             if is_too_big(attributes):
                 LOGGER.warning(
-                    "[%s] attributes are too big! %s", self._name, attributes
+                    "[%s] attributes are too big! %s", self._attr_name, attributes
                 )
                 attributes = []
         result = {

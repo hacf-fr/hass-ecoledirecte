@@ -18,7 +18,7 @@ from .const import (
     FAKE_ON,
     GRADES_TO_DISPLAY,
 )
-from .ecole_directe_helper import EDEleve, EDSession
+from .ecole_directe_helper import EDEleve, EDSession, get_unique_id
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -173,9 +173,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         self.data[f"{eleve.get_fullname_lower()}_homeworks_today"] = (
                             list(
                                 filter(
-                                    lambda homework: datetime.strptime(
-                                        homework["date"], "%Y-%m-%d"
-                                    )
+                                    lambda homework: homework["date"]
                                     .astimezone(self.timezone)
                                     .date()
                                     == today,
@@ -185,9 +183,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         )
                         homeworks_tomorrow = list(
                             filter(
-                                lambda homework: datetime.strptime(
-                                    homework["date"], "%Y-%m-%d"
-                                )
+                                lambda homework: homework["date"]
                                 .astimezone(self.timezone)
                                 .date()
                                 == tomorrow,
@@ -208,39 +204,29 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
                         self.data[f"{eleve.get_fullname_lower()}_homeworks_1"] = list(
                             filter(
-                                lambda homework: datetime.strptime(
-                                    homework["date"], "%Y-%m-%d"
-                                )
+                                lambda homework: homework["date"]
                                 .astimezone(self.timezone)
                                 .date()
                                 >= current_week_begin
-                                and datetime.strptime(homework["date"], "%Y-%m-%d")
-                                .astimezone(self.timezone)
-                                .date()
+                                and homework["date"].astimezone(self.timezone).date()
                                 <= current_week_end,
                                 homeworks,
                             )
                         )
                         self.data[f"{eleve.get_fullname_lower()}_homeworks_2"] = list(
                             filter(
-                                lambda homework: datetime.strptime(
-                                    homework["date"], "%Y-%m-%d"
-                                )
+                                lambda homework: homework["date"]
                                 .astimezone(self.timezone)
                                 .date()
                                 >= next_week_begin
-                                and datetime.strptime(homework["date"], "%Y-%m-%d")
-                                .astimezone(self.timezone)
-                                .date()
+                                and homework["date"].astimezone(self.timezone).date()
                                 <= next_week_end,
                                 homeworks,
                             )
                         )
                         self.data[f"{eleve.get_fullname_lower()}_homeworks_3"] = list(
                             filter(
-                                lambda homework: datetime.strptime(
-                                    homework["date"], "%Y-%m-%d"
-                                )
+                                lambda homework: homework["date"]
                                 .astimezone(self.timezone)
                                 .date()
                                 >= after_next_week_begin,
@@ -268,7 +254,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             )
                             for discipline in disciplines:
                                 self.data[
-                                    f"{eleve.get_fullname_lower()}_{discipline['name']}"
+                                    f"{eleve.get_fullname_lower()}_{get_unique_id(discipline['name'])}"
                                 ] = discipline
 
                         if "moyenne_generale" in grades_evaluations:

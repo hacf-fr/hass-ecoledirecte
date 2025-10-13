@@ -280,7 +280,7 @@ class EDSession:
         if clean_content:
             contenu = re.sub(CLEANR, "", contenu)
         return {
-            "date": pour_le,
+            "date": datetime.strptime(pour_le, "%Y-%m-%d"),
             "subject": data.get("matiere"),
             "short_description": contenu[0:HOMEWORK_DESC_MAX_LENGTH],
             "description": contenu,

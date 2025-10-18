@@ -505,5 +505,5 @@ def get_next_day_list(
                 my_list,
             )
         )
-        return get_next_day_list(my_list, list_next_day, next_day)
+        return get_next_day_list(my_list, list_next_day, next_day, field)
     return list_next_day

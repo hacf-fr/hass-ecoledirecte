@@ -170,13 +170,11 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
         self._key = get_unique_id(key)
         self._child_info = eleve
         self._state = state
-        self.unique_id = (
-            f"ed_{identifiant}_{self._key}"
-            if eleve is None
-            else f"ed_{eleve.get_fullname_lower()}_{self._key}"
-        )
         self._attr_name = name
         self._attr_has_entity_name = True
+        self.unique_id = (
+            f"ed_{identifiant}_{self._key}" if eleve is None else f"ed_{self._key}"
+        )
 
         self._attr_device_info = DeviceInfo(
             name=device,
@@ -305,30 +303,32 @@ class EDHomeworksSensor(EDGenericSensor):
         """Initialize the ED sensor."""
         super().__init__(
             coordinator,
-            f"{eleve.get_fullname_lower()}_homeworks" + suffix,
+            f"{eleve.get_fullname_lower()}_homeworks{suffix}",
             "Devoirs",
             eleve,
             "len",
         )
         self._suffix = suffix
+        self._attr_name = self.name
+        self.unique_id = f"ed_{eleve.get_fullname_lower()}_homeworks{suffix}"
 
     @property
     def name(self) -> str | None:
         """Return the name of the sensor."""
-        name = self._attr_name
+        name = "Devoirs"
         match self._suffix:
             case "_1":
-                name = f"{self._attr_name} - Semaine en cours"
+                name = "Devoirs - Semaine en cours"
             case "_2":
-                name = f"{self._attr_name} - Semaine suivante"
+                name = "Devoirs - Semaine suivante"
             case "_3":
-                name = f"{self._attr_name} - Semaine après suivante"
+                name = "Devoirs - Semaine après suivante"
             case "_today":
-                name = f"{self._attr_name} - Aujourd'hui"
+                name = "Devoirs - Aujourd'hui"
             case "_tomorrow":
-                name = f"{self._attr_name} - Demain"
+                name = "Devoirs - Demain"
             case "_next_day":
-                name = f"{self._attr_name} - Jour suivant"
+                name = "Devoirs - Jour suivant"
         return name
 
     @property
@@ -351,6 +351,9 @@ class EDHomeworksSensor(EDGenericSensor):
 
         if is_too_big(attributes):
             attributes = []
+            attributes.append({
+                "Erreur": "Les attributs sont trop volumineux. Essayez de désactiver le HTML."
+            })
             LOGGER.warning("[%s] attributes are too big!", self._attr_name)
 
         return {
@@ -423,7 +426,7 @@ class EDLessonsSensor(EDGenericSensor):
         """Initialize the ED sensor."""
         super().__init__(
             coordinator,
-            key=f"{eleve.get_fullname_lower()}_timetable" + suffix,
+            key=f"{eleve.get_fullname_lower()}_timetable{suffix}",
             name="Emploi du temps",
             eleve=eleve,
             state="len",
@@ -437,20 +440,20 @@ class EDLessonsSensor(EDGenericSensor):
     @property
     def name(self) -> str | None:
         """Return the name of the sensor."""
-        name = self._attr_name
+        name = "Emploi du temps"
         match self._suffix:
             case "_1":
-                name = f"{self._attr_name} - Semaine en cours"
+                name = "Emploi du temps - Semaine en cours"
             case "_2":
-                name = f"{self._attr_name} - Semaine suivante"
+                name = "Emploi du temps - Semaine suivante"
             case "_3":
-                name = f"{self._attr_name} - Semaine après suivante"
+                name = "Emploi du temps - Semaine après suivante"
             case "_today":
-                name = f"{self._attr_name} - Aujourd'hui"
+                name = "Emploi du temps - Aujourd'hui"
             case "_tomorrow":
-                name = f"{self._attr_name} - Demain"
+                name = "Emploi du temps - Demain"
             case "_next_day":
-                name = f"{self._attr_name} - Jour suivant"
+                name = "Emploi du temps - Jour suivant"
         return name
 
     @property
@@ -507,6 +510,10 @@ class EDLessonsSensor(EDGenericSensor):
                     "[%s] attributes are too big! %s", self._attr_name, attributes
                 )
                 attributes = []
+                attributes.append({
+                    "Erreur": "Les attributs sont trop volumineux. Essayez de désactiver le HTML."
+                })
+
         result = {
             "lessons": attributes,
             "canceled_lessons_counter": canceled_counter,

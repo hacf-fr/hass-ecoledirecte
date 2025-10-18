@@ -198,11 +198,10 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
-        return {
-            "nickname": ""
-            if self._child_info is None
-            else self._child_info.eleve_firstname
-        }
+        if self._child_info is None:
+            return {}
+
+        return {"nickname": self._child_info.eleve_firstname}
 
     @property
     def available(self) -> bool:
@@ -355,15 +354,19 @@ class EDHomeworksSensor(EDGenericSensor):
 
         if is_too_big(attributes):
             attributes = []
-            attributes.append({
-                "Erreur": "Les attributs sont trop volumineux. Essayez de désactiver le HTML."
-            })
+            attributes.append(
+                {
+                    "Erreur": "Les attributs sont trop volumineux. Essayez de désactiver le HTML."
+                }
+            )
             LOGGER.warning("[%s] attributes are too big!", self._attr_name)
         result = super().extra_state_attributes
-        result.update({
-            "homework": attributes,
-            "todo_counter": todo_counter,
-        })
+        result.update(
+            {
+                "homework": attributes,
+                "todo_counter": todo_counter,
+            }
+        )
         return result
 
 
@@ -414,14 +417,16 @@ class EDDisciplineSensor(EDGenericSensor):
         attributes.append({"code": discipline["code"]})
 
         result = super().extra_state_attributes
-        result.update({
-            "code": discipline["code"],
-            "nom": discipline["name"],
-            "moyenneClasse": discipline["moyenneClasse"],
-            "moyenneMin": discipline["moyenneMin"],
-            "moyenneMax": discipline["moyenneMax"],
-            "appreciations": discipline["appreciations"],
-        })
+        result.update(
+            {
+                "code": discipline["code"],
+                "nom": discipline["name"],
+                "moyenneClasse": discipline["moyenneClasse"],
+                "moyenneMin": discipline["moyenneMin"],
+                "moyenneMax": discipline["moyenneMax"],
+                "appreciations": discipline["appreciations"],
+            }
+        )
         return result
 
 
@@ -518,15 +523,19 @@ class EDLessonsSensor(EDGenericSensor):
                     "[%s] attributes are too big! %s", self._attr_name, attributes
                 )
                 attributes = []
-                attributes.append({
-                    "Erreur": "Les attributs sont trop volumineux. Essayez de désactiver le HTML."
-                })
+                attributes.append(
+                    {
+                        "Erreur": "Les attributs sont trop volumineux. Essayez de désactiver le HTML."
+                    }
+                )
 
         result = super().extra_state_attributes
-        result.update({
-            "lessons": attributes,
-            "canceled_lessons_counter": canceled_counter,
-        })
+        result.update(
+            {
+                "lessons": attributes,
+                "canceled_lessons_counter": canceled_counter,
+            }
+        )
 
         if single_day:
             result["lunch_break_start_at"] = self._lunch_break_start_at
@@ -563,12 +572,14 @@ class EDMoyenneGeneraleSensor(EDGenericSensor):
         if moyenne is None or moyenne == {}:
             return result
 
-        result.update({
-            "moyenneClasse": moyenne["moyenneClasse"],
-            "moyenneMin": moyenne["moyenneMin"],
-            "moyenneMax": moyenne["moyenneMax"],
-            "dateCalcul": moyenne["dateCalcul"],
-        })
+        result.update(
+            {
+                "moyenneClasse": moyenne["moyenneClasse"],
+                "moyenneMin": moyenne["moyenneMin"],
+                "moyenneMax": moyenne["moyenneMax"],
+                "dateCalcul": moyenne["dateCalcul"],
+            }
+        )
 
         return result
 
@@ -596,9 +607,11 @@ class EDEvaluationsSensor(EDGenericSensor):
                 attributes.append(evaluation)
 
         result = super().extra_state_attributes
-        result.update({
-            "evaluations": attributes,
-        })
+        result.update(
+            {
+                "evaluations": attributes,
+            }
+        )
         return result
 
 
@@ -624,9 +637,11 @@ class EDAbsencesSensor(EDGenericSensor):
             for absence in absences:
                 attributes.append(absence)
         result = super().extra_state_attributes
-        result.update({
-            "absences": attributes,
-        })
+        result.update(
+            {
+                "absences": attributes,
+            }
+        )
         return result
 
 
@@ -652,9 +667,11 @@ class EDRetardsSensor(EDGenericSensor):
             for retard in retards:
                 attributes.append(retard)
         result = super().extra_state_attributes
-        result.update({
-            "delays": attributes,
-        })
+        result.update(
+            {
+                "delays": attributes,
+            }
+        )
         return result
 
 
@@ -681,9 +698,11 @@ class EDSanctionsSensor(EDGenericSensor):
                 attributes.append(sanction)
 
         result = super().extra_state_attributes
-        result.update({
-            "sanctions": attributes,
-        })
+        result.update(
+            {
+                "sanctions": attributes,
+            }
+        )
         return result
 
 
@@ -709,9 +728,11 @@ class EDEncouragementsSensor(EDGenericSensor):
             for encouragement in encouragements:
                 attributes.append(encouragement)
         result = super().extra_state_attributes
-        result.update({
-            "encouragements": attributes,
-        })
+        result.update(
+            {
+                "encouragements": attributes,
+            }
+        )
         return result
 
 
@@ -732,9 +753,11 @@ class EDFormulairesSensor(EDGenericSensor):
                 attributes.append(form)
 
         result = super().extra_state_attributes
-        result.update({
-            "formulaires": attributes,
-        })
+        result.update(
+            {
+                "formulaires": attributes,
+            }
+        )
         return result
 
 
@@ -779,13 +802,15 @@ class EDMessagerieSensor(EDGenericSensor):
             }
 
         result = super().extra_state_attributes
-        result.update({
-            "reçus": messagerie["messagesRecusCount"],
-            "envoyés": messagerie["messagesEnvoyesCount"],
-            "archivés": messagerie["messagesArchivesCount"],
-            "non lu": messagerie["messagesRecusNotReadCount"],
-            "brouillons": messagerie["messagesDraftCount"],
-        })
+        result.update(
+            {
+                "reçus": messagerie["messagesRecusCount"],
+                "envoyés": messagerie["messagesEnvoyesCount"],
+                "archivés": messagerie["messagesArchivesCount"],
+                "non lu": messagerie["messagesRecusNotReadCount"],
+                "brouillons": messagerie["messagesDraftCount"],
+            }
+        )
         return result
 
 

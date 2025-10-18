@@ -284,10 +284,8 @@ class EDSession:
             "subject": data.get("matiere"),
             "short_description": contenu[0:HOMEWORK_DESC_MAX_LENGTH],
             "description": contenu,
-            "done": data["aFaire"].get("effectue"),
-            "background_color": "#FFFFFF",
-            "files": [],
-            "interrogation": data["aFaire"].get("interrogation"),
+            "done": data["aFaire"].get("effectue", False),
+            "interrogation": data.get("interrogation", False),
         }
 
     async def get_grades_evaluations(

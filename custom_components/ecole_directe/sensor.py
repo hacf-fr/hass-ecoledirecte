@@ -198,7 +198,11 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
-        return {}
+        return {
+            "nickname": ""
+            if self._child_info is None
+            else self._child_info.eleve_firstname
+        }
 
     @property
     def available(self) -> bool:
@@ -355,11 +359,12 @@ class EDHomeworksSensor(EDGenericSensor):
                 "Erreur": "Les attributs sont trop volumineux. Essayez de désactiver le HTML."
             })
             LOGGER.warning("[%s] attributes are too big!", self._attr_name)
-
-        return {
+        result = super().extra_state_attributes
+        result.update({
             "homework": attributes,
             "todo_counter": todo_counter,
-        }
+        })
+        return result
 
 
 class EDGradesSensor(EDGenericSensor):
@@ -381,10 +386,9 @@ class EDGradesSensor(EDGenericSensor):
             grades = self.coordinator.data[self._key]
             for grade in grades:
                 attributes.append(grade)
-
-        return {
-            "grades": attributes,
-        }
+        result = super().extra_state_attributes
+        result.update({"grades": attributes})
+        return result
 
 
 class EDDisciplineSensor(EDGenericSensor):
@@ -406,15 +410,19 @@ class EDDisciplineSensor(EDGenericSensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         discipline = self.coordinator.data[self._key]
+        attributes = []
+        attributes.append({"code": discipline["code"]})
 
-        return {
+        result = super().extra_state_attributes
+        result.update({
             "code": discipline["code"],
             "nom": discipline["name"],
             "moyenneClasse": discipline["moyenneClasse"],
             "moyenneMin": discipline["moyenneMin"],
             "moyenneMax": discipline["moyenneMax"],
             "appreciations": discipline["appreciations"],
-        }
+        })
+        return result
 
 
 class EDLessonsSensor(EDGenericSensor):
@@ -514,10 +522,11 @@ class EDLessonsSensor(EDGenericSensor):
                     "Erreur": "Les attributs sont trop volumineux. Essayez de désactiver le HTML."
                 })
 
-        result = {
+        result = super().extra_state_attributes
+        result.update({
             "lessons": attributes,
             "canceled_lessons_counter": canceled_counter,
-        }
+        })
 
         if single_day:
             result["lunch_break_start_at"] = self._lunch_break_start_at
@@ -549,16 +558,19 @@ class EDMoyenneGeneraleSensor(EDGenericSensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         moyenne = self.coordinator.data[self._key]
+        result = super().extra_state_attributes
 
         if moyenne is None or moyenne == {}:
-            return {}
+            return result
 
-        return {
+        result.update({
             "moyenneClasse": moyenne["moyenneClasse"],
             "moyenneMin": moyenne["moyenneMin"],
             "moyenneMax": moyenne["moyenneMax"],
             "dateCalcul": moyenne["dateCalcul"],
-        }
+        })
+
+        return result
 
 
 class EDEvaluationsSensor(EDGenericSensor):
@@ -583,9 +595,11 @@ class EDEvaluationsSensor(EDGenericSensor):
             for evaluation in evaluations:
                 attributes.append(evaluation)
 
-        return {
+        result = super().extra_state_attributes
+        result.update({
             "evaluations": attributes,
-        }
+        })
+        return result
 
 
 class EDAbsencesSensor(EDGenericSensor):
@@ -609,9 +623,11 @@ class EDAbsencesSensor(EDGenericSensor):
             absences = self.coordinator.data[self._key]
             for absence in absences:
                 attributes.append(absence)
-        return {
+        result = super().extra_state_attributes
+        result.update({
             "absences": attributes,
-        }
+        })
+        return result
 
 
 class EDRetardsSensor(EDGenericSensor):
@@ -635,10 +651,11 @@ class EDRetardsSensor(EDGenericSensor):
             retards = self.coordinator.data[self._key]
             for retard in retards:
                 attributes.append(retard)
-
-        return {
+        result = super().extra_state_attributes
+        result.update({
             "delays": attributes,
-        }
+        })
+        return result
 
 
 class EDSanctionsSensor(EDGenericSensor):
@@ -663,9 +680,11 @@ class EDSanctionsSensor(EDGenericSensor):
             for sanction in sanctions:
                 attributes.append(sanction)
 
-        return {
+        result = super().extra_state_attributes
+        result.update({
             "sanctions": attributes,
-        }
+        })
+        return result
 
 
 class EDEncouragementsSensor(EDGenericSensor):
@@ -689,10 +708,11 @@ class EDEncouragementsSensor(EDGenericSensor):
             encouragements = self.coordinator.data[self._key]
             for encouragement in encouragements:
                 attributes.append(encouragement)
-
-        return {
+        result = super().extra_state_attributes
+        result.update({
             "encouragements": attributes,
-        }
+        })
+        return result
 
 
 class EDFormulairesSensor(EDGenericSensor):
@@ -711,9 +731,11 @@ class EDFormulairesSensor(EDGenericSensor):
             for form in forms:
                 attributes.append(form)
 
-        return {
+        result = super().extra_state_attributes
+        result.update({
             "formulaires": attributes,
-        }
+        })
+        return result
 
 
 class EDMessagerieSensor(EDGenericSensor):
@@ -756,13 +778,15 @@ class EDMessagerieSensor(EDGenericSensor):
                 "messagesDraftCount": 0,
             }
 
-        return {
+        result = super().extra_state_attributes
+        result.update({
             "reçus": messagerie["messagesRecusCount"],
             "envoyés": messagerie["messagesEnvoyesCount"],
             "archivés": messagerie["messagesArchivesCount"],
             "non lu": messagerie["messagesRecusNotReadCount"],
             "brouillons": messagerie["messagesDraftCount"],
-        }
+        })
+        return result
 
 
 def is_too_big(obj: Any) -> bool:

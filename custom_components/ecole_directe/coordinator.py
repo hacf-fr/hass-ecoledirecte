@@ -300,7 +300,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
                         lessons = await session.get_lessons(
                             eleve,
-                            current_week_begin.strftime("%Y-%m-%d"),
+                            today.strftime("%Y-%m-%d"),
                             current_week_plus_21.strftime("%Y-%m-%d"),
                             lunch_break_time,
                         )
@@ -340,7 +340,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                                 lambda lesson: lesson["start"]
                                 .astimezone(self.timezone)
                                 .date()
-                                >= current_week_begin
+                                >= today
                                 and lesson["start"].astimezone(self.timezone).date()
                                 <= current_week_end,
                                 lessons,

@@ -126,7 +126,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             previous_data,
                             "formulaires",
                             ["created", "titre"],
-                            "new_formulaires",
+                            "new_formulaire",
                             None,
                         )
                     except Exception as ex:
@@ -166,7 +166,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             previous_data,
                             f"{eleve.get_fullname_lower()}_homeworks",
                             ["date", "matiere", "short_description"],
-                            "new_homework",
+                            "new_devoir",
                             eleve,
                         )
 
@@ -269,7 +269,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             previous_data,
                             f"{eleve.get_fullname_lower()}_notes",
                             ["date", "matiere", "commentaire"],
-                            "new_grade",
+                            "new_note",
                             eleve,
                         )
 
@@ -280,7 +280,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             previous_data,
                             f"{eleve.get_fullname_lower()}_evaluations",
                             ["date", "matiere", "devoir"],
-                            "new_evaluations",
+                            "new_evaluation",
                             eleve,
                         )
                     except Exception as ex:

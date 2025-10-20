@@ -85,9 +85,10 @@ Les entités sont mises à jour toutes les 30 minutes.
 Il y a des événements qui sont déclenché sous certaines conditions. Ils peuvent être utiliser comme déclencheur dans des automatisations.
 | Evénement | Description |
 |--------|-------------|
-| `new_formulaires` | nouveau formulaire |
-| `new_homework` | nouveau devoir |
-| `new_grade` | nouvelle note |
+| `new_formulaire` | nouveau formulaire |
+| `new_devoir` | nouveau devoir |
+| `new_note` | nouvelle note |
+| `new_evaluation` | nouvelle evaluation |
 | `new_absence` | nouvelle absence |
 | `new_retard` | nouveau retard |
 | `new_sanction` | nouvelle sanction |

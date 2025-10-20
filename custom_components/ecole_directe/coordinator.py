@@ -126,7 +126,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             previous_data,
                             "formulaires",
                             ["created", "titre"],
-                            "new_formulaires",
+                            "new_formulaire",
                             None,
                         )
                     except Exception as ex:
@@ -165,8 +165,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         self.compare_data(
                             previous_data,
                             f"{eleve.get_fullname_lower()}_homeworks",
-                            ["date", "subject", "short_description"],
-                            "new_homework",
+                            ["date", "matiere", "short_description"],
+                            "new_devoir",
                             eleve,
                         )
 
@@ -262,14 +262,14 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                                 f"{eleve.get_fullname_lower()}_moyenne_generale"
                             ] = grades_evaluations["moyenne_generale"]
 
-                        self.data[f"{eleve.get_fullname_lower()}_grades"] = (
-                            grades_evaluations["grades"]
+                        self.data[f"{eleve.get_fullname_lower()}_notes"] = (
+                            grades_evaluations["notes"]
                         )
                         self.compare_data(
                             previous_data,
-                            f"{eleve.get_fullname_lower()}_grades",
-                            ["date", "subject", "comment"],
-                            "new_grade",
+                            f"{eleve.get_fullname_lower()}_notes",
+                            ["date", "matiere", "commentaire"],
+                            "new_note",
                             eleve,
                         )
 
@@ -279,8 +279,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         self.compare_data(
                             previous_data,
                             f"{eleve.get_fullname_lower()}_evaluations",
-                            ["date", "subject", "name"],
-                            "new_evaluations",
+                            ["date", "matiere", "devoir"],
+                            "new_evaluation",
                             eleve,
                         )
                     except Exception as ex:

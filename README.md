@@ -57,26 +57,26 @@ max: 10
 
 ## Utilisation
 
-Cette intégration fournit plusieurs entités, toujours préfixées avec `ecole_directe_PRENOM_NOM` (où `PRENOM` et `NOM` sont remplacé).
+Cette intégration fournit plusieurs entités, toujours préfixées avec `ed_PRENOM_NOM` (où `PRENOM` et `NOM` sont remplacé).
 Les entités sont mises à jour toutes les 30 minutes.
 | Entité | Description |
 |--------|-------------|
-| `sensor.ecole_directe_PRENOM_NOM` | informations basique de l'enfant |
-| `[...]_homeworks` | devoirs |
-| `[...]_homeworks_today` | devoirs du jour |
-| `[...]_homeworks_tomorrow` | devoirs du lendemain |
-| `[...]_homeworks_next_day` | devoirs du jour ouvré suivant (ex: si on consulte le vendredi, il doit y avoir les devoirs du lundi )|
-| `[...]_homeworks_1` | devoirs de la semaine en cours |
-| `[...]_homeworks_2` | devoirs de la semaine suivante |
-| `[...]_homeworks_3` | devoirs de la semaine suivante suivante :D |
-| `[...]_grades` | notes |
+| `sensor.ed_PRENOM_NOM` | informations basique de l'enfant |
+| `[...]_devoirs` | devoirs |
+| `[...]_devoirs_aujourd_hui` | devoirs du jour |
+| `[...]_devoirs_demain` | devoirs du lendemain |
+| `[...]_devoirs_jour_suivant` | devoirs du jour ouvré suivant (ex: si on consulte le vendredi, il doit y avoir les devoirs du lundi )|
+| `[...]_devoirs_semaine_en_cours` | devoirs de la semaine en cours |
+| `[...]_devoirs_semaine_suivante` | devoirs de la semaine suivante |
+| `[...]_devoirs_semaine_apres_suivante` | devoirs de la semaine suivante suivante :D |
+| `[...]_notes` | notes |
 | `[...]_evaluations` | evaluations |
-| `[...]_timetable_today` | emploi du temps du jour |
-| `[...]_timetable_tomorrow` | emploi du temps du lendemain |
-| `[...]_timetable_next_day` | emploi du temps du jour ouvré suivant (ex: si on consulte le vendredi, il doit y avoir l'emploi du temps du lundi )|
-| `[...]_timetable_1` | emploi du temps de la semaine en cours |
-| `[...]_timetable_2` | emploi du temps de la semaine suivante |
-| `[...]_timetable_3` | emploi du temps de la semaine suivante suivante :D |
+| `[...]_emploi_du_temps_aujourd_hui` | emploi du temps du jour |
+| `[...]_emploi_du_temps_demain` | emploi du temps du lendemain |
+| `[...]_emploi_du_temps_jour_suivant` | emploi du temps du jour ouvré suivant (ex: si on consulte le vendredi, il doit y avoir l'emploi du temps du lundi )|
+| `[...]_emploi_du_temps_semaine_en_cours` | emploi du temps de la semaine en cours |
+| `[...]_emploi_du_temps_semaine_suivante` | emploi du temps de la semaine suivante |
+| `[...]_emploi_du_temps_semaine_apres_suivante` | emploi du temps de la semaine suivante suivante :D |
 | `[...]_absences` | absences |
 | `[...]_retards` | retards |
 | `[...]_sanctions` | sanctions |

@@ -69,7 +69,7 @@ Les entités sont mises à jour toutes les 30 minutes.
 | `[...]_homeworks_1` | devoirs de la semaine en cours |
 | `[...]_homeworks_2` | devoirs de la semaine suivante |
 | `[...]_homeworks_3` | devoirs de la semaine suivante suivante :D |
-| `[...]_grades` | notes |
+| `[...]_notes` | notes |
 | `[...]_evaluations` | evaluations |
 | `[...]_timetable_today` | emploi du temps du jour |
 | `[...]_timetable_tomorrow` | emploi du temps du lendemain |

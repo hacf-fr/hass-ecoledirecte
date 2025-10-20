@@ -170,11 +170,11 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
         self._key = get_unique_id(key)
         self._child_info = eleve
         self._state = state
-        self._attr_name = name
-        self._attr_has_entity_name = True
         self.unique_id = (
             f"ed_{identifiant}_{self._key}" if eleve is None else f"ed_{self._key}"
         )
+        self._attr_name = name
+        self._attr_has_entity_name = True
 
         self._attr_device_info = DeviceInfo(
             name=device,
@@ -201,7 +201,7 @@ class EDGenericSensor(CoordinatorEntity, SensorEntity):
         if self._child_info is None:
             return {}
 
-        return {"nickname": self._child_info.eleve_firstname}
+        return {"prenom": self._child_info.eleve_firstname}
 
     @property
     def available(self) -> bool:
@@ -219,7 +219,7 @@ class EDChildSensor(EDGenericSensor):
         super().__init__(
             coordinator=coordinator,
             key=eleve.get_fullname_lower(),
-            name=f"{eleve.eleve_firstname} Profil Ecole Directe",
+            name=f"Profil {eleve.eleve_firstname}",
             eleve=eleve,
         )
         self._account_type = self.coordinator.data["session"].account_type
@@ -238,12 +238,11 @@ class EDChildSensor(EDGenericSensor):
             return {}
 
         return {
-            "firstname": self._child_info.eleve_firstname,
-            "lastname": self._child_info.eleve_lastname,
-            "nickname": self._child_info.eleve_firstname,
-            "full_name": self._child_info.get_fullname(),
-            "class_name": self._child_info.classe_name,
-            "establishment": self._child_info.establishment,
+            "prenom": self._child_info.eleve_firstname,
+            "nom": self._child_info.eleve_lastname,
+            "nom complet": self._child_info.get_fullname(),
+            "classe": self._child_info.classe_name,
+            "etablissement": self._child_info.establishment,
             "via_parent_account": self._account_type == "1",
         }
 
@@ -313,7 +312,7 @@ class EDHomeworksSensor(EDGenericSensor):
         )
         self._suffix = suffix
         self._attr_name = self.name
-        self.unique_id = f"ed_{eleve.get_fullname_lower()}_homeworks{suffix}"
+        self.unique_id = f"ed_{eleve.get_fullname_lower()}_devoirs{suffix}"
 
     @property
     def name(self) -> str | None:
@@ -344,7 +343,7 @@ class EDHomeworksSensor(EDGenericSensor):
         if self._key in self.coordinator.data:
             homeworks = self.coordinator.data[self._key]
             for homework in homeworks:
-                if not homework["done"]:
+                if not homework["effectue"]:
                     todo_counter += 1
                 attributes.append(homework)
             if attributes is not None:
@@ -356,15 +355,15 @@ class EDHomeworksSensor(EDGenericSensor):
             attributes = []
             attributes.append(
                 {
-                    "Erreur": "Les attributs sont trop volumineux. Essayez de désactiver le HTML."
+                    "Erreur": "Les attributs sont trop volumineux. Essayez de désactiver les tags HTML. https://www.hacf.fr/ecole-directe/#retrait-des-tags-html"
                 }
             )
-            LOGGER.warning("[%s] attributes are too big!", self._attr_name)
+            LOGGER.warning("[%s] Les attributs sont trop volumineux!", self._attr_name)
         result = super().extra_state_attributes
         result.update(
             {
-                "homework": attributes,
-                "todo_counter": todo_counter,
+                "Devoirs": attributes,
+                "A faire": todo_counter,
             }
         )
         return result
@@ -376,7 +375,7 @@ class EDGradesSensor(EDGenericSensor):
     def __init__(self, coordinator: EDDataUpdateCoordinator, eleve: EDEleve) -> None:
         """Initialize the ED sensor."""
         super().__init__(
-            coordinator, f"{eleve.get_fullname_lower()}_grades", "Notes", eleve, "len"
+            coordinator, f"{eleve.get_fullname_lower()}_notes", "Notes", eleve, "len"
         )
 
     @property
@@ -390,7 +389,7 @@ class EDGradesSensor(EDGenericSensor):
             for grade in grades:
                 attributes.append(grade)
         result = super().extra_state_attributes
-        result.update({"grades": attributes})
+        result.update({"notes": attributes})
         return result
 
 
@@ -408,6 +407,7 @@ class EDDisciplineSensor(EDGenericSensor):
             eleve,
             note,
         )
+        self.unique_id = f"ed_{eleve.get_fullname_lower()}_{get_unique_id(nom)}"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -419,12 +419,12 @@ class EDDisciplineSensor(EDGenericSensor):
         result = super().extra_state_attributes
         result.update(
             {
-                "code": discipline["code"],
-                "nom": discipline["name"],
-                "moyenneClasse": discipline["moyenneClasse"],
-                "moyenneMin": discipline["moyenneMin"],
-                "moyenneMax": discipline["moyenneMax"],
-                "appreciations": discipline["appreciations"],
+                "Code": discipline["code"],
+                "Nom": discipline["name"],
+                "Moyenne classe": discipline["moyenneClasse"],
+                "Moyenne minimum": discipline["moyenneMin"],
+                "Moyenne maximum": discipline["moyenneMax"],
+                "Appréciations": discipline["appreciations"],
             }
         )
         return result
@@ -445,6 +445,8 @@ class EDLessonsSensor(EDGenericSensor):
             state="len",
         )
         self._suffix = suffix
+        self._attr_name = self.name
+        self.unique_id = f"ed_{eleve.get_fullname_lower()}_edt{suffix}"
         self._start_at = None
         self._end_at = None
         self._lunch_break_start_at = None
@@ -494,13 +496,13 @@ class EDLessonsSensor(EDGenericSensor):
 
                     if not (
                         lesson["start_time"] == lessons[index - 1]["start_time"]
-                        and lesson["canceled"]
+                        and lesson["is_annule"]
                     ):
                         attributes.append(lesson)
                         self._date = lesson["start"].strftime("%Y-%m-%d")
-                    if lesson["canceled"]:
+                    if lesson["is_annule"]:
                         canceled_counter += 1
-                    if single_day and lesson["canceled"] is False:
+                    if single_day and lesson["is_annule"] is False:
                         start = lesson["start"].strftime("%H:%M")
                         if self._start_at is None or start < self._start_at:
                             self._start_at = start
@@ -520,29 +522,31 @@ class EDLessonsSensor(EDGenericSensor):
                             self._lunch_break_end_at = lesson["start"]
             if is_too_big(attributes):
                 LOGGER.warning(
-                    "[%s] attributes are too big! %s", self._attr_name, attributes
+                    "[%s] Les attributs sont trop volumineux! %s",
+                    self._attr_name,
+                    attributes,
                 )
                 attributes = []
                 attributes.append(
                     {
-                        "Erreur": "Les attributs sont trop volumineux. Essayez de désactiver le HTML."
+                        "Erreur": "Les attributs sont trop volumineux. Essayez de désactiver les tags HTML. https://www.hacf.fr/ecole-directe/#retrait-des-tags-html"
                     }
                 )
 
         result = super().extra_state_attributes
         result.update(
             {
-                "lessons": attributes,
-                "canceled_lessons_counter": canceled_counter,
+                "Emploi du temps": attributes,
+                "Cours annulés": canceled_counter,
             }
         )
 
         if single_day:
-            result["lunch_break_start_at"] = self._lunch_break_start_at
-            result["lunch_break_end_at"] = self._lunch_break_end_at
-            result["day_start_at"] = self._start_at
-            result["day_end_at"] = self._end_at
-            result["date"] = self._date
+            result["Déjeuner début"] = self._lunch_break_start_at
+            result["Déjeuner fin"] = self._lunch_break_end_at
+            result["Journée début"] = self._start_at
+            result["Journée fin"] = self._end_at
+            result["Date"] = self._date
 
         return result
 
@@ -574,10 +578,10 @@ class EDMoyenneGeneraleSensor(EDGenericSensor):
 
         result.update(
             {
-                "moyenneClasse": moyenne["moyenneClasse"],
-                "moyenneMin": moyenne["moyenneMin"],
-                "moyenneMax": moyenne["moyenneMax"],
-                "dateCalcul": moyenne["dateCalcul"],
+                "Moyenne classe": moyenne["moyenneClasse"],
+                "Moyenne minimum": moyenne["moyenneMin"],
+                "Moyenne maximum": moyenne["moyenneMax"],
+                "Date de calcul": moyenne["dateCalcul"],
             }
         )
 
@@ -609,7 +613,7 @@ class EDEvaluationsSensor(EDGenericSensor):
         result = super().extra_state_attributes
         result.update(
             {
-                "evaluations": attributes,
+                "Evaluations": attributes,
             }
         )
         return result
@@ -639,7 +643,7 @@ class EDAbsencesSensor(EDGenericSensor):
         result = super().extra_state_attributes
         result.update(
             {
-                "absences": attributes,
+                "Absences": attributes,
             }
         )
         return result
@@ -669,7 +673,7 @@ class EDRetardsSensor(EDGenericSensor):
         result = super().extra_state_attributes
         result.update(
             {
-                "delays": attributes,
+                "Retards": attributes,
             }
         )
         return result
@@ -700,7 +704,7 @@ class EDSanctionsSensor(EDGenericSensor):
         result = super().extra_state_attributes
         result.update(
             {
-                "sanctions": attributes,
+                "Sanctions": attributes,
             }
         )
         return result
@@ -730,7 +734,7 @@ class EDEncouragementsSensor(EDGenericSensor):
         result = super().extra_state_attributes
         result.update(
             {
-                "encouragements": attributes,
+                "Encouragements": attributes,
             }
         )
         return result
@@ -755,7 +759,7 @@ class EDFormulairesSensor(EDGenericSensor):
         result = super().extra_state_attributes
         result.update(
             {
-                "formulaires": attributes,
+                "Formulaires": attributes,
             }
         )
         return result
@@ -804,14 +808,37 @@ class EDMessagerieSensor(EDGenericSensor):
         result = super().extra_state_attributes
         result.update(
             {
-                "reçus": messagerie["messagesRecusCount"],
-                "envoyés": messagerie["messagesEnvoyesCount"],
-                "archivés": messagerie["messagesArchivesCount"],
-                "non lu": messagerie["messagesRecusNotReadCount"],
-                "brouillons": messagerie["messagesDraftCount"],
+                "Reçus": messagerie["messagesRecusCount"],
+                "Envoyés": messagerie["messagesEnvoyesCount"],
+                "Archivés": messagerie["messagesArchivesCount"],
+                "Non lu": messagerie["messagesRecusNotReadCount"],
+                "Brouillons": messagerie["messagesDraftCount"],
             }
         )
         return result
+
+    @property
+    def native_value(self) -> str:
+        """Return the state of the sensor."""
+        messagerie = {}
+        if (
+            self._child_info
+            and f"{self._child_info.get_fullname_lower()}_messagerie"
+            in self.coordinator.data
+        ):
+            messagerie = self.coordinator.data[
+                f"{self._child_info.get_fullname_lower()}_messagerie"
+            ]
+        elif "messagerie" in self.coordinator.data:
+            messagerie = self.coordinator.data["messagerie"]
+        else:
+            return "0"
+
+        return (
+            str(messagerie["messagesRecusNotReadCount"])
+            + "/"
+            + str(messagerie["messagesRecusCount"])
+        )
 
 
 def is_too_big(obj: Any) -> bool:

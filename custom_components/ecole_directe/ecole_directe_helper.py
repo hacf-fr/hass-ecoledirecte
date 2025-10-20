@@ -281,10 +281,10 @@ class EDSession:
             contenu = re.sub(CLEANR, "", contenu)
         return {
             "date": datetime.strptime(pour_le, "%Y-%m-%d"),
-            "subject": data.get("matiere"),
+            "matiere": data.get("matiere"),
             "short_description": contenu[0:HOMEWORK_DESC_MAX_LENGTH],
             "description": contenu,
-            "done": data["aFaire"].get("effectue", False),
+            "effectue": data["aFaire"].get("effectue", False),
             "interrogation": data.get("interrogation", False),
         }
 
@@ -312,7 +312,7 @@ class EDSession:
             return {}
 
         response = {}
-        response["grades"] = []
+        response["notes"] = []
         response["moyenne_generale"] = {}
         response["evaluations"] = []
         response["disciplines"] = []
@@ -374,7 +374,7 @@ class EDSession:
                     if index2 > grades_display:
                         continue
                     grade = get_grade(grade_json)
-                    response["grades"].append(grade)
+                    response["notes"].append(grade)
         return response
 
     async def get_vie_scolaire(self, eleve: EDEleve) -> dict:
@@ -558,19 +558,16 @@ def get_grade(data: Any) -> dict:
 
     return {
         "date": data.get("date"),
-        "subject": data.get("libelleMatiere"),
-        "comment": data.get("devoir"),
-        "grade": data.get("valeur"),
-        "out_of": data.get("noteSur").replace(".", ","),
-        "default_out_of": data.get("noteSur").replace(".", ","),
-        "grade_out_of": data.get("valeur") + "/" + data.get("noteSur"),
+        "matiere": data.get("libelleMatiere"),
+        "commentaire": data.get("devoir"),
+        "note": data.get("valeur"),
+        "sur": data.get("noteSur").replace(".", ","),
+        "note_sur": data.get("valeur") + "/" + data.get("noteSur"),
         "coefficient": (data.get("coef") or "").replace(".", ","),
-        "class_average": (data.get("moyenneClasse") or "").replace(".", ","),
+        "moyenne_classe": (data.get("moyenneClasse") or "").replace(".", ","),
         "max": str(data.get("maxClasse") or "").replace(".", ","),
         "min": str(data.get("minClasse") or "").replace(".", ","),
-        "is_bonus": "",
-        "is_optionnal": data.get("nonSignificatif"),
-        "is_out_of_20": "",
+        "non_significatif": data.get("nonSignificatif"),
         "date_saisie": data.get("dateSaisie"),
         "elements_programme": elements_programme,
     }
@@ -585,6 +582,11 @@ def get_disciplines_periode(data: Any) -> list:
                 if (
                     "codeSousMatiere" in discipline_json
                     and len(discipline_json["codeSousMatiere"]) > 0
+                ):
+                    continue
+                if (
+                    "groupeMatiere" in discipline_json
+                    and discipline_json["groupeMatiere"] is True
                 ):
                     continue
                 discipline = {
@@ -618,16 +620,17 @@ def get_evaluation(data: Any) -> dict:
                 elements_programme.append(element)
 
         return {
-            "name": data.get("devoir"),
+            "devoir": data.get("devoir"),
             "date": data.get("date"),
-            "subject": data.get("libelleMatiere"),
-            "acquisitions": [
+            "date_saisie": data.get("dateSaisie"),
+            "matiere": data.get("libelleMatiere"),
+            "elements_programme": [
                 {
-                    "name": acquisition.get("libelleCompetence"),
-                    "abbreviation": acquisition.get("valeur"),
-                    "level": acquisition.get("level"),
+                    "competence": competence.get("libelleCompetence"),
+                    "descriptif": competence.get("descriptif"),
+                    "valeur": competence.get("valeur"),
                 }
-                for acquisition in elements_programme
+                for competence in elements_programme
             ],
         }
     except Exception as ex:
@@ -651,8 +654,8 @@ def get_competence(data: Any) -> dict:
             level = "Unknown"
 
     return {
+        "competence": data.get("libelleCompetence"),
         "descriptif": data.get("descriptif"),
-        "libelle_competence": data.get("libelleCompetence"),
         "valeur": valeur,
         "level": level,
     }
@@ -665,7 +668,7 @@ def get_vie_scolaire_element(viescolaire: Any) -> dict:
             "date": viescolaire["date"],
             "type_element": viescolaire["typeElement"],
             "display_date": viescolaire["displayDate"],
-            "justified": viescolaire["justifie"],
+            "justifie": viescolaire["justifie"],
             "motif": viescolaire["motif"],
             "libelle": viescolaire["libelle"],
             "commentaire": viescolaire["commentaire"],
@@ -687,11 +690,11 @@ def get_lesson(data: Any, lunch_break_time: time) -> dict:
         "start_time": start_date.strftime("%H:%M"),
         "end_time": end_date.strftime("%H:%M"),
         "lesson": data["text"],
-        "classroom": data["salle"],
-        "canceled": data["isAnnule"],
+        "salle": data["salle"],
+        "is_annule": data["isAnnule"],
         "background_color": data["color"],
-        "teacher_name": data["prof"],
-        "exempted": data["dispense"],
+        "prof": data["prof"],
+        "dispense": data["dispense"],
         "is_morning": start_date.time() < lunch_break_time,
         "is_afternoon": start_date.time() >= lunch_break_time,
     }

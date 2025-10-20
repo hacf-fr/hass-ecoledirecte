@@ -165,7 +165,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         self.compare_data(
                             previous_data,
                             f"{eleve.get_fullname_lower()}_homeworks",
-                            ["date", "subject", "short_description"],
+                            ["date", "matiere", "short_description"],
                             "new_homework",
                             eleve,
                         )
@@ -262,13 +262,13 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                                 f"{eleve.get_fullname_lower()}_moyenne_generale"
                             ] = grades_evaluations["moyenne_generale"]
 
-                        self.data[f"{eleve.get_fullname_lower()}_grades"] = (
-                            grades_evaluations["grades"]
+                        self.data[f"{eleve.get_fullname_lower()}_notes"] = (
+                            grades_evaluations["notes"]
                         )
                         self.compare_data(
                             previous_data,
-                            f"{eleve.get_fullname_lower()}_grades",
-                            ["date", "subject", "comment"],
+                            f"{eleve.get_fullname_lower()}_notes",
+                            ["date", "matiere", "commentaire"],
                             "new_grade",
                             eleve,
                         )
@@ -279,7 +279,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         self.compare_data(
                             previous_data,
                             f"{eleve.get_fullname_lower()}_evaluations",
-                            ["date", "subject", "name"],
+                            ["date", "matiere", "devoir"],
                             "new_evaluations",
                             eleve,
                         )

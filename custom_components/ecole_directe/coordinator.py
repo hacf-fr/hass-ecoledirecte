@@ -254,7 +254,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             )
                             for discipline in disciplines:
                                 self.data[
-                                    f"{eleve.get_fullname_lower()}_{get_unique_id(discipline['name'])}"
+                                    f"{eleve.get_fullname_lower()}_{get_unique_id(discipline['nom'])}"
                                 ] = discipline
 
                         if "moyenne_generale" in grades_evaluations:

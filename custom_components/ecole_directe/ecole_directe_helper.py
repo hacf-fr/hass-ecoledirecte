@@ -591,7 +591,7 @@ def get_disciplines_periode(data: Any) -> list:
                     continue
                 discipline = {
                     "code": discipline_json.get("codeMatiere", "").lower(),
-                    "name": discipline_json.get("discipline", "").lower(),
+                    "nom": discipline_json.get("discipline", "").lower(),
                     "moyenne": discipline_json.get("moyenne", "").replace(",", "."),
                     "moyenneClasse": discipline_json.get("moyenneClasse", "").replace(
                         ",", "."

@@ -119,7 +119,7 @@ async def async_setup_entry(
                                 EDDisciplineSensor(
                                     coordinator,
                                     eleve,
-                                    discipline["name"],
+                                    discipline["nom"],
                                     discipline["moyenne"],
                                 )
                             )
@@ -420,7 +420,7 @@ class EDDisciplineSensor(EDGenericSensor):
         result.update(
             {
                 "Code": discipline["code"],
-                "Nom": discipline["name"],
+                "Nom": discipline["nom"],
                 "Moyenne classe": discipline["moyenneClasse"],
                 "Moyenne minimum": discipline["moyenneMin"],
                 "Moyenne maximum": discipline["moyenneMax"],
@@ -576,12 +576,17 @@ class EDMoyenneGeneraleSensor(EDGenericSensor):
         if moyenne is None or moyenne == {}:
             return result
 
+        disciplines = self.coordinator.data[
+            f"{self._child_info.get_fullname_lower()}_disciplines"
+        ]
+
         result.update(
             {
                 "Moyenne classe": moyenne["moyenneClasse"],
                 "Moyenne minimum": moyenne["moyenneMin"],
                 "Moyenne maximum": moyenne["moyenneMax"],
                 "Date de calcul": moyenne["dateCalcul"],
+                "Disciplines": disciplines,
             }
         )
 

@@ -98,8 +98,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         await session.get_classe(
                             classe["id"],
                         )
-                except Exception as ex:
-                    LOGGER.warning("Error getting classes: %s", ex)
+                except Exception:
+                    LOGGER.exception("Error getting classes")
 
             if session.account_type == "1":  # famille
                 if "MESSAGERIE" in session.modules:
@@ -110,10 +110,9 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             year_data,
                         )
 
-                    except Exception as ex:
-                        LOGGER.warning(
-                            "Error getting messages for family from ecole directe: %s",
-                            ex,
+                    except Exception:
+                        LOGGER.exception(
+                            "Error getting messages for family from ecole directe"
                         )
 
                 if FAKE_ON or "EDFORMS" in session.modules:
@@ -129,10 +128,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             "new_formulaire",
                             None,
                         )
-                    except Exception as ex:
-                        LOGGER.warning(
-                            "Error getting formulaires from ecole directe: %s", ex
-                        )
+                    except Exception:
+                        LOGGER.exception("Error getting formulaires from ecole directe")
 
             # START: MODIFIED FOR WALLET BALANCE (SINGLE CALL)
             all_balances = None
@@ -140,10 +137,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 all_balances = await session.get_all_wallet_balances()
                 if all_balances and f"{session.id}" in all_balances:
                     self.data["wallets"] = all_balances[f"{session.id}"]
-            except Exception as ex:
-                LOGGER.warning(
-                    "Error getting all wallet balances from ecole directe: %s", ex
-                )
+            except Exception:
+                LOGGER.exception("Error getting all wallet balances from ecole directe")
             # END: MODIFIED FOR WALLET BALANCE (SINGLE CALL)
 
             for eleve in session.eleves:
@@ -234,10 +229,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             )
                         )
 
-                    except Exception as ex:
-                        LOGGER.warning(
-                            "Error getting homeworks from ecole directe: %s", ex
-                        )
+                    except Exception:
+                        LOGGER.exception("Error getting homeworks from ecole directe")
                 if FAKE_ON or "NOTES" in eleve.modules:
                     try:
                         grades_evaluations = await session.get_grades_evaluations(
@@ -283,10 +276,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             "new_evaluation",
                             eleve,
                         )
-                    except Exception as ex:
-                        LOGGER.warning(
-                            "Error getting grades from ecole directe: %s", ex
-                        )
+                    except Exception:
+                        LOGGER.exception("Error getting grades from ecole directe")
 
                 if FAKE_ON or "EDT" in eleve.modules:
                     try:
@@ -367,10 +358,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             )
                         )
 
-                    except Exception as ex:
-                        LOGGER.warning(
-                            "Error getting Lessons from ecole directe: %s", ex
-                        )
+                    except Exception:
+                        LOGGER.exception("Error getting Lessons from ecole directe")
 
                 if FAKE_ON or "VIE_SCOLAIRE" in eleve.modules:
                     try:
@@ -420,9 +409,9 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                                 "new_encouragement",
                                 eleve,
                             )
-                    except Exception as ex:
-                        LOGGER.warning(
-                            "Error getting vie scolaire from ecole directe: %s", ex
+                    except Exception:
+                        LOGGER.exception(
+                            "Error getting vie scolaire from ecole directe"
                         )
                 if FAKE_ON or "MESSAGERIE" in eleve.modules:
                     try:
@@ -433,10 +422,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             eleve,
                             year_data,
                         )
-                    except Exception as ex:
-                        LOGGER.warning(
-                            "Error getting messages from ecole directe: %s", ex
-                        )
+                    except Exception:
+                        LOGGER.exception("Error getting messages from ecole directe")
 
             return self.data
 
@@ -468,13 +455,12 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         not_found_items.append(item)
                 for not_found_item in not_found_items:
                     self.trigger_event(event_type, eleve, not_found_item)
-        except Exception as ex:
-            LOGGER.warning(
-                "Error comparing data: self[%s] previous_data[%s] data_key[%s] ex[%s]",
+        except Exception:
+            LOGGER.exception(
+                "Error comparing data: self[%s] previous_data[%s] data_key[%s]",
                 self,
                 previous_data,
                 data_key,
-                ex,
             )
 
     def trigger_event(self, event_type: str, eleve: EDEleve | None, data: Any) -> None:

@@ -605,8 +605,8 @@ def get_disciplines_periode(data: Any) -> list:
                     "appreciations": discipline_json.get("appreciations", ""),
                 }
                 disciplines.append(discipline)
-    except Exception as ex:
-        LOGGER.warning("get_periode: %s", ex)
+    except Exception:
+        LOGGER.exception("get_periode: %s", data)
         raise
     return disciplines
 
@@ -633,8 +633,8 @@ def get_evaluation(data: Any) -> dict:
                 for competence in elements_programme
             ],
         }
-    except Exception as ex:
-        LOGGER.warning("get_evaluation: %s", ex)
+    except Exception:
+        LOGGER.exception("get_evaluation: %s", data)
         raise
 
 
@@ -673,8 +673,8 @@ def get_vie_scolaire_element(viescolaire: Any) -> dict:
             "libelle": viescolaire["libelle"],
             "commentaire": viescolaire["commentaire"],
         }
-    except Exception as ex:
-        LOGGER.warning("Error: %s - format_viescolaire: %s", ex, viescolaire)
+    except Exception:
+        LOGGER.exception("Error on format_viescolaire: %s", viescolaire)
         return {}
 
 

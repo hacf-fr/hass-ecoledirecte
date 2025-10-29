@@ -59,10 +59,10 @@ class EDEleve:
         """Save student information."""
         if data is None:
             self.classe_id = classe_id
-            self.classe_name: str = str({classe_name: ""})
-            self.eleve_id: str = str({eleve_id: ""})
-            self.eleve_lastname: str = str({last_name: ""})
-            self.eleve_firstname: str = str({first_name: ""})
+            self.classe_name: str = classe_name if classe_name is not None else ""
+            self.eleve_id: str = eleve_id if eleve_id is not None else ""
+            self.eleve_lastname: str = last_name if last_name is not None else ""
+            self.eleve_firstname: str = first_name if first_name is not None else ""
             self.modules: list[str] = modules
             self.establishment = establishment
         else:

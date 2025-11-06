@@ -273,6 +273,7 @@ class EDWalletSensor(EDGenericSensor):
         self._attr_device_class = SensorDeviceClass.MONETARY
         self._attr_native_unit_of_measurement = "EUR"
         self._attr_icon = "mdi:wallet"
+        self.unique_id = self._attr_name
 
     @property
     def native_value(self) -> Any:

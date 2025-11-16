@@ -6,7 +6,7 @@ import logging
 from datetime import date, datetime, timedelta, tzinfo
 from typing import TYPE_CHECKING, Any
 
-from ecoledirecte_api.client import QCMException
+from ecoledirecte_api.client import EDConnectionState, QCMException
 from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
@@ -32,6 +32,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
     config_entry: ConfigEntry
     timezone: tzinfo
+    conn_state: EDConnectionState = EDConnectionState()
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the coordinator."""
@@ -59,9 +60,11 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             self.config_entry.data["password"],
             self.hass.config.config_dir + "/" + self.config_entry.data["qcm_filename"],
             self.hass,
+            self.conn_state,
         ) as session:
             try:
                 await session.login()
+                self.conn_state = session.conn_state
             except QCMException:
                 LOGGER.exception("Unable to init ecole directe client")
                 return None

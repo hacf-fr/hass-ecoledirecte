@@ -10,3 +10,4 @@ logger:
   default: info
   logs:
     custom_components.ecole_directe: debug
+    ecoledirecte_api: debug

@@ -1,0 +1,35 @@
+# Service ID
+devoir_effectue:
+  # Different fields that your service action accepts
+  fields:
+    # Key of the field
+    eleve_id:
+      # Whether or not field is required (default = false)
+      required: true
+      # Advanced fields are only shown when the advanced mode is enabled for the user
+      # (default = false)
+      advanced: false
+      # Example value that can be passed for this field
+      example: "2021"
+      # The default field value
+      default: "0"
+    devoir_id:
+      # Whether or not field is required (default = false)
+      required: true
+      # Advanced fields are only shown when the advanced mode is enabled for the user
+      # (default = false)
+      advanced: false
+      # Example value that can be passed for this field
+      example: "2021"
+      # The default field value
+      default: "0"
+    effectue:
+      # Whether or not field is required (default = false)
+      required: true
+      # Advanced fields are only shown when the advanced mode is enabled for the user
+      # (default = false)
+      advanced: false
+      # Example value that can be passed for this field
+      example: "False"
+      # The default field value
+      default: "True"

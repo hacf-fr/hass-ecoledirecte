@@ -11,7 +11,8 @@ from types import TracebackType
 from typing import Any, Self
 
 import anyio
-from ecoledirecte_api.client import EDClient, QCMException
+from ecoledirecte_api.client import EDClient, EDConnectionState, QCMException
+from ecoledirecte_api.const import ED_OK
 from homeassistant.core import HomeAssistant
 from unidecode import unidecode
 
@@ -94,12 +95,15 @@ class EDEleve:
 class EDSession:
     """Ecole Directe session with Token and cookie."""
 
+    conn_state: EDConnectionState
+
     def __init__(
         self,
         user: str,
         pwd: str,
         qcm_path: str,
         hass: HomeAssistant,
+        conn_state: EDConnectionState | None = None,
     ) -> None:
         """Save some information needed to login the session."""
         self.hass = hass
@@ -109,6 +113,7 @@ class EDSession:
         self.log_folder = self.hass.config.config_dir + INTEGRATION_PATH + "logs/"
         self.test_folder = self.hass.config.config_dir + INTEGRATION_PATH + "test/"
         Path(self.log_folder).mkdir(parents=True, exist_ok=True)
+        self.conn_state = conn_state if conn_state is not None else EDConnectionState()
 
     async def __aenter__(self) -> Self:
         """Enter the session context."""
@@ -146,15 +151,31 @@ class EDSession:
             username=self.username,
             password=self.password,
             qcm_json=self.qcm,
+            connection_state=self.conn_state,
         )
         self.ed_client.on_new_question(self.save_question)
         login = await self.ed_client.login()
         LOGGER.debug(login)
         LOGGER.info(
-            "Connection OK - identifiant: [{%s}]",
+            "Connection OK - identifiant: [%s]",
             login["data"]["accounts"][0]["identifiant"],
         )
+        self.conn_state = self.ed_client.conn_state
+        LOGGER.debug(
+            "token: [%s] - cookies: [%s]",
+            self.conn_state.token,
+            self.conn_state.cookie_jar,
+        )
+
         self.data = login["data"]
+        if FAKE_ON:
+            self.data["accounts"][0]["profile"]["eleves"][0]["id"] = "2232"
+            self.data["accounts"][0]["profile"]["eleves"][0]["prenom"] = "Benjamin"
+            self.data["accounts"][0]["profile"]["eleves"][0]["nom"] = "Noname"
+            self.data["accounts"][0]["profile"]["eleves"][1]["id"] = "2233"
+            self.data["accounts"][0]["profile"]["eleves"][1]["prenom"] = "Arthur"
+            self.data["accounts"][0]["profile"]["eleves"][1]["nom"] = "Noname"
+
         self.id = self.data["accounts"][0]["id"]
         self.identifiant = self.data["accounts"][0]["identifiant"]
         self.id_login = self.data["accounts"][0]["idLogin"]
@@ -195,7 +216,15 @@ class EDSession:
     ) -> Any | None:
         """Get messages from Ecole Directe."""
         if FAKE_ON:
-            json_resp = await load_json_file(self.test_folder + "test_messages.json")
+            if eleve is None:
+                json_resp = await load_json_file(
+                    self.test_folder + "get_messages_famille.json"
+                )
+            else:
+                json_resp = await load_json_file(
+                    self.test_folder + f"{eleve.eleve_id}_get_messages_eleve.json"
+                )
+
         elif eleve is None:
             json_resp = await self.ed_client.get_messages(
                 family_id, None, annee_scolaire
@@ -221,7 +250,10 @@ class EDSession:
         """Get homeworks by date."""
         if FAKE_ON:
             json_resp = await load_json_file(
-                self.test_folder + "test_homeworks_" + date + ".json"
+                self.test_folder
+                + f"{eleve.eleve_id}_get_homeworks_by_date_"
+                + date
+                + ".json"
             )
             return json_resp["data"]
 
@@ -241,7 +273,9 @@ class EDSession:
     async def get_homeworks(self, eleve: EDEleve, decode_html: bool) -> list[Any]:
         """Get homeworks."""
         if FAKE_ON:
-            json_resp = await load_json_file(self.test_folder + "test_homeworks.json")
+            json_resp = await load_json_file(
+                self.test_folder + f"{eleve.eleve_id}_get_homeworks.json"
+            )
         else:
             json_resp = await self.ed_client.get_homeworks(eleve_id=eleve.eleve_id)
             await save_json_file(
@@ -280,6 +314,7 @@ class EDSession:
         if clean_content:
             contenu = re.sub(CLEANR, "", contenu)
         return {
+            "devoir_id": data.get("id"),
             "date": datetime.strptime(pour_le, "%Y-%m-%d"),
             "matiere": data.get("matiere"),
             "short_description": contenu[0:HOMEWORK_DESC_MAX_LENGTH],
@@ -287,6 +322,16 @@ class EDSession:
             "effectue": data["aFaire"].get("effectue", False),
             "interrogation": data.get("interrogation", False),
         }
+
+    async def post_homework(
+        self, eleve_id: str, devoir_id: int, effectue: bool
+    ) -> bool:
+        """Post homework as done or not done."""
+        response = await self.ed_client.post_homework(
+            eleve_id=eleve_id, devoir_id=devoir_id, effectue=effectue
+        )
+        LOGGER.debug("post_homework response: %s", response)
+        return response["code"] == ED_OK
 
     async def get_grades_evaluations(
         self,
@@ -296,7 +341,9 @@ class EDSession:
     ) -> dict:
         """Get grades."""
         if FAKE_ON:
-            json_resp = await load_json_file(self.test_folder + "test_grades.json")
+            json_resp = await load_json_file(
+                self.test_folder + f"{eleve.eleve_id}_get_grades_evaluations.json"
+            )
         else:
             json_resp = await self.ed_client.get_grades_evaluations(
                 eleve_id=eleve.eleve_id,
@@ -381,7 +428,7 @@ class EDSession:
         """Get vie scolaire (absences, retards, etc.)."""
         if FAKE_ON:
             json_resp = await load_json_file(
-                self.test_folder + "test_vie_scolaire.json"
+                self.test_folder + f"{eleve.eleve_id}_get_vie_scolaire.json"
             )
         else:
             json_resp = await self.ed_client.get_vie_scolaire(
@@ -447,7 +494,9 @@ class EDSession:
     ) -> list[Any]:
         """Get lessons."""
         if FAKE_ON:
-            json_resp = await load_json_file(self.test_folder + "test_lessons.json")
+            json_resp = await load_json_file(
+                self.test_folder + f"{eleve.eleve_id}_get_lessons.json"
+            )
         else:
             json_resp = await self.ed_client.get_lessons(
                 eleve_id=eleve.eleve_id,
@@ -474,7 +523,9 @@ class EDSession:
     async def get_all_wallet_balances(self) -> dict | None:
         """Get all wallet balances from Ecole Directe."""
         if FAKE_ON:
-            json_resp = await load_json_file(self.test_folder + "test_wallet.json")
+            json_resp = await load_json_file(
+                self.test_folder + "get_all_wallet_balances.json"
+            )
         else:
             json_resp = await self.ed_client.get_all_wallet_balances()
 

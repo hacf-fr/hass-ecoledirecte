@@ -13,7 +13,6 @@ ignore = [
     "COM812", # incompatible with formatter
     "ISC001", # incompatible with formatter
 
-
     "A005",   # It is just wrong
     "ANN401", # Opiniated warning on disallowing dynamically typed expressions
     "D203",   # Conflicts with other rules
@@ -33,6 +32,8 @@ ignore = [
     "Q002",
     "Q003",
     "W191",
+
+    "ARG001",
 
     #TODO To fix:
     "EXE002",

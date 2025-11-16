@@ -27,11 +27,12 @@ from .coordinator import EDDataUpdateCoordinator
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.typing import ConfigType
 
 LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup(hass: HomeAssistant) -> bool:
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up is called when Home Assistant is loading our component."""
     LOGGER.debug("async_setup")
 

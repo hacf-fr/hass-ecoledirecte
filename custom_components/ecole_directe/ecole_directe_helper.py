@@ -171,10 +171,10 @@ class EDSession:
         if FAKE_ON:
             self.data["accounts"][0]["profile"]["eleves"][0]["id"] = "2232"
             self.data["accounts"][0]["profile"]["eleves"][0]["prenom"] = "Benjamin"
-            self.data["accounts"][0]["profile"]["eleves"][0]["nom"] = "Noname"
+            self.data["accounts"][0]["profile"]["eleves"][0]["nom"] = "No Name"
             self.data["accounts"][0]["profile"]["eleves"][1]["id"] = "2233"
             self.data["accounts"][0]["profile"]["eleves"][1]["prenom"] = "Arthur"
-            self.data["accounts"][0]["profile"]["eleves"][1]["nom"] = "Noname"
+            self.data["accounts"][0]["profile"]["eleves"][1]["nom"] = "No Name"
 
         self.id = self.data["accounts"][0]["id"]
         self.identifiant = self.data["accounts"][0]["identifiant"]
@@ -414,14 +414,15 @@ class EDSession:
                     index1 += 1
                     if index1 > grades_display:
                         continue
-                    evaluation = get_evaluation(grade_json)
-                    response["evaluations"].append(evaluation)
                 else:
                     index2 += 1
                     if index2 > grades_display:
                         continue
                     grade = get_grade(grade_json)
                     response["notes"].append(grade)
+                evaluation = get_evaluation(grade_json)
+                if len(evaluation) > 0:
+                    response["evaluations"].append(evaluation)
         return response
 
     async def get_vie_scolaire(self, eleve: EDEleve) -> dict:
@@ -541,12 +542,10 @@ class EDSession:
                     compte_id = str(compte["id"])
                     if compte_id not in balances:
                         balances[compte_id] = []
-                    balances[compte_id].append(
-                        {
-                            "solde": compte.get("solde"),
-                            "libelle": compte.get("libelle"),
-                        }
-                    )
+                    balances[compte_id].append({
+                        "solde": compte.get("solde"),
+                        "libelle": compte.get("libelle"),
+                    })
             return balances
 
         LOGGER.warning(
@@ -669,6 +668,9 @@ def get_evaluation(data: Any) -> dict:
         if "elementsProgramme" in data:
             for element in data["elementsProgramme"]:
                 elements_programme.append(element)
+
+        if len(elements_programme) == 0:
+            return {}
 
         return {
             "devoir": data.get("devoir"),

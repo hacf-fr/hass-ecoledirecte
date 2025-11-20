@@ -542,10 +542,12 @@ class EDSession:
                     compte_id = str(compte["id"])
                     if compte_id not in balances:
                         balances[compte_id] = []
-                    balances[compte_id].append({
-                        "solde": compte.get("solde"),
-                        "libelle": compte.get("libelle"),
-                    })
+                    balances[compte_id].append(
+                        {
+                            "solde": compte.get("solde"),
+                            "libelle": compte.get("libelle"),
+                        }
+                    )
             return balances
 
         LOGGER.warning(

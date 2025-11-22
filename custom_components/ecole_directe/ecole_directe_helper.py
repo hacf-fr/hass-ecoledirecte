@@ -5,7 +5,7 @@ import json
 import logging
 import operator
 import re
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from pathlib import Path
 from types import TracebackType
 from typing import Any, Self
@@ -369,8 +369,6 @@ class EDSession:
         if "periodes" in data:
             data["periodes"].sort(key=operator.itemgetter("dateDebut"))
             for periode_json in data["periodes"]:
-                if periode_json["cloture"]:
-                    continue
                 if (
                     "trimestre" not in periode_json["periode"].lower()
                     and "semestre" not in periode_json["periode"].lower()
@@ -382,7 +380,7 @@ class EDSession:
                     continue
                 if datetime.now() > datetime.strptime(
                     periode_json["dateFin"], "%Y-%m-%d"
-                ):
+                ) + timedelta(days=1):
                     continue
                 response["disciplines"] = get_disciplines_periode(periode_json)
                 if "ensembleMatieres" in periode_json:

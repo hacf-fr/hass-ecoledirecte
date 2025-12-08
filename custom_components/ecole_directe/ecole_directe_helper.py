@@ -5,7 +5,7 @@ import json
 import logging
 import operator
 import re
-from datetime import datetime, time, timedelta
+from datetime import datetime, time
 from pathlib import Path
 from types import TracebackType
 from typing import Any, Self
@@ -379,8 +379,8 @@ class EDSession:
                 ):
                     continue
                 if datetime.now() > datetime.strptime(
-                    periode_json["dateFin"], "%Y-%m-%d"
-                ) + timedelta(days=1):
+                    periode_json["dateFin"] + " 23:59:59", "%Y-%m-%d %H:%M:%S"
+                ):
                     continue
                 response["disciplines"] = get_disciplines_periode(periode_json)
                 if "ensembleMatieres" in periode_json:

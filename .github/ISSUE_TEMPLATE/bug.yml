@@ -1,38 +1,38 @@
 ---
-name: "Bug report"
-description: "Report a bug with the integration"
+name: "Signalement d'un bug"
+description: "Signaler un bug dans l'intégration"
 body:
 - type: markdown
   attributes:
-    value: Before you open a new issue, search through the existing issues to see if others have had the same problem.
+    value: Avant d'ouvrir un nouveau ticket, consultez les tickets existants pour voir si d'autres personnes ont rencontré le même problème.
 - type: textarea
   attributes:
-    label: "System Health details"
-    description: "Paste the data from the System Health card in Home Assistant (https://www.home-assistant.io/more-info/system-health#github-issues)"
+    label: "Etat du système"
+    description: "Coller les données de la carte d'état du système dans Home Assistant(https://www.home-assistant.io/more-info/system-health#github-issues)"
   validations:
     required: true
 - type: checkboxes
   attributes:
     label: Checklist
     options:
-      - label: I have enabled debug logging for my installation.
+      - label: J'ai activé la journalisation de débogage pour mon installation.
         required: true
-      - label: I have filled out the issue template to the best of my ability.
+      - label: J'ai rempli le modèle de rapport de ticket du mieux que j'ai pu.
         required: true
-      - label: This issue only contains 1 issue (if you have multiple issues, open one issue for each issue).
+      - label: Ce ticket ne contient qu'un seul problème (si vous avez plusieurs problèmes, veuillez ouvrir un ticket distinct pour chaque problème).
         required: true
-      - label: This issue is not a duplicate issue of any [previous issues](https://github.com/hacf-fr/hass-ecoledirecte/issues?q=is%3Aissue+label%3A%22Bug%22+)..
+      - label: Ce problème n'est pas un doublon d'un [problème précédent](https://github.com/hacf-fr/hass-ecoledirecte/issues?q=is%3Aissue+label%3A%22Bug%22+)..
         required: true
 - type: textarea
   attributes:
-    label: "Describe the issue"
-    description: "A clear and concise description of what the issue is."
+    label: "Décrire le problème"
+    description: "Une description claire et concise du problème."
   validations:
     required: true
 - type: textarea
   attributes:
-    label: Reproduction steps
-    description: "Without steps to reproduce, it will be hard to fix. It is very important that you fill out this part. Issues without it will be closed."
+    label: Étapes de reproduction
+    description: "Sans les étapes pour reproduire le problème, il sera difficile de le résoudre. Il est donc très important de remplir cette section. Les tickets incomplets seront fermés."
     value: |
       1.
       2.
@@ -43,7 +43,7 @@ body:
 - type: textarea
   attributes:
     label: "Debug logs"
-    description: "To enable debug logs check this https://www.home-assistant.io/integrations/logger/, this **needs** to include _everything_ from startup of Home Assistant to the point where you encounter the issue."
+    description: "Pour activer les journaux de débogage, consultez cette page : https://www.home-assistant.io/integrations/logger/. Ces journaux doivent impérativement inclure _tout_ ce qui se passe depuis le démarrage de Home Assistant jusqu'au moment où vous rencontrez le problème."
     render: text
   validations:
     required: true
@@ -51,4 +51,4 @@ body:
 - type: textarea
   attributes:
     label: "Diagnostics dump"
-    description: "Drag the diagnostics dump file here. (see https://www.home-assistant.io/integrations/diagnostics/ for info)"
+    description: "Faites glisser ici le fichier de diagnostic. (Voir https://www.home-assistant.io/integrations/diagnostics/ pour plus d'informations)"

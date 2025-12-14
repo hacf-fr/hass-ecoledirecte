@@ -1,46 +1,46 @@
 ---
 name: "Feature request"
-description: "Suggest an idea for this project"
+description: "Proposez une idée pour ce projet"
 body:
 - type: markdown
   attributes:
-    value: Before you open a new feature request, search through the existing feature requests to see if others have had the same idea.
+    value: Avant de soumettre une nouvelle demande de fonctionnalité, consultez les demandes existantes pour voir si d'autres personnes ont déjà eu la même idée.
 - type: checkboxes
   attributes:
     label: Checklist
     options:
-      - label: I have filled out the template to the best of my ability.
+      - label: J'ai rempli le modèle du mieux que j'ai pu.
         required: true
-      - label: This only contains 1 feature request (if you have multiple feature requests, open one feature request for each feature request).
+      - label: Ceci ne contient qu'une seule demande de fonctionnalité (si vous avez plusieurs demandes de fonctionnalités, ouvrez une demande de fonctionnalité pour chaque demande).
         required: true
-      - label: This issue is not a duplicate feature request of [previous feature requests](https://github.com/hacf-fr/hass-ecoledirecte/issues?q=is%3Aissue+label%3A%22Feature+Request%22+).
+      - label: Cette demande ne fait pas double des demandes de [fonctionnalités précédentes](https://github.com/hacf-fr/hass-ecoledirecte/issues?q=is%3Aissue+label%3A%22Feature+Request%22+).
         required: true
 
 - type: textarea
   attributes:
-    label: "Is your feature request related to a problem? Please describe."
-    description: "A clear and concise description of what the problem is."
-    placeholder: "I'm always frustrated when [...]"
+    label: "Votre demande de fonctionnalité est-elle liée à un problème ? Veuillez le décrire."
+    description: "Une description claire et concise du problème. Expliquer comment cela affecte vous et/ou votre configuration Home Assistant. Expliquer pourquoi cette fonctionnalité serait utile pour vous."
+    placeholder: "Je suis toujours frustré quand [...]"
   validations:
     required: true
 
 - type: textarea
   attributes:
-    label: "Describe the solution you'd like"
-    description: "A clear and concise description of what you want to happen."
+    label: "Décrivez la solution que vous souhaitez"
+    description: "Une description claire et concise de ce que vous souhaitez obtenir."
   validations:
     required: true
 
 - type: textarea
   attributes:
-    label: "Describe alternatives you've considered"
-    description: "A clear and concise description of any alternative solutions or features you've considered."
+    label: "Décrivez les alternatives que vous avez envisagées."
+    description: "Une description claire et concise des solutions ou fonctionnalités alternatives que vous avez envisagées."
   validations:
     required: true
 
 - type: textarea
   attributes:
-    label: "Additional context"
-    description: "Add any other context or screenshots about the feature request here."
+    label: "Contexte supplémentaire"
+    description: "Ajoutez ici tout autre contexte ou captures d'écran concernant la demande de fonctionnalité."
   validations:
     required: true

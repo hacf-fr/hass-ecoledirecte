@@ -8,6 +8,13 @@ on:
     branches:
       - "main"
 
+permissions: {}
+
+# IMPORTANT: Keep HA_VERSION synchronized across all workflow files:
+# - copilot-setup-steps.yml
+# - lint.yml
+# - validate.yml (if added in the future)
+
 jobs:
   ruff:
     name: "Ruff"
@@ -19,14 +26,27 @@ jobs:
         - name: "Set up Python"
           uses: actions/setup-python@v6.1.0
           with:
-            python-version: "3.12"
-            cache: "pip"
+          python-version: "3.13"
 
-        - name: "Install requirements"
-          run: python3 -m pip install -r requirements.txt
+      - name: Install uv
+        uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
+        with:
+          version: "0.9.3"
+          enable-cache: true
+          cache-dependency-glob: "**/requirements*.txt"
 
-        - name: "Lint"
-          run: python3 -m ruff check .
+      - name: Cache Home Assistant installation
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        with:
+          path: |
+            ${{ github.workspace }}/.local/ha-venv
+          key: ha-venv-${{ runner.os }}-py313-ha${{ steps.ha_version.outputs.HA_VERSION }}-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ha-venv-${{ runner.os }}-py313-ha${{ steps.ha_version.outputs.HA_VERSION }}-
+            ha-venv-${{ runner.os }}-py313-
 
-        - name: "Format"
-          run: python3 -m ruff format . --check
+      - name: Install requirements
+        run: script/setup/bootstrap
+
+      - name: Lint check
+        run: script/lint-check

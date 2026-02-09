@@ -1,3 +1,6 @@
+# yaml-language-server: $schema=../../schemas/yaml/services_schema.yaml
+# Describes the format for available services for ecole_directe
+
 # Service ID
 devoir_effectue:
   # Different fields that your service action accepts
@@ -33,3 +36,6 @@ devoir_effectue:
       example: "False"
       # The default field value
       default: "True"
+reload_data:
+  name: Reload Data
+  description: Force a refresh of the integration data from the API

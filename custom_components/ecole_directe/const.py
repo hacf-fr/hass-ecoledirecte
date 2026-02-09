@@ -1,7 +1,12 @@
 """Constants for the Ecole Directe integration."""
 
+from logging import Logger, getLogger
+
 from homeassistant.const import Platform
 
+LOGGER: Logger = getLogger(__package__)
+
+# Integration metadata
 DOMAIN = "ecole_directe"
 EVENT_TYPE = DOMAIN + "_event"
 FILENAME_QCM = "ecoledirecte_qcm.json"
@@ -18,4 +23,6 @@ DEFAULT_LUNCH_BREAK_TIME = "13:00"
 MAX_STATE_ATTRS_BYTES = 16384
 AUGUST = 8
 
+SERVICE_DEVOIR_EFFECTUE = "devoir_effectue"
+DEFAULT_ENABLE_DEBUGGING = False
 FAKE_ON = False

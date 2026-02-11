@@ -20,6 +20,7 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
 
+from .api import EDEleve, get_unique_id
 from .const import (
     DEFAULT_LUNCH_BREAK_TIME,
     DOMAIN,
@@ -27,7 +28,6 @@ from .const import (
     MAX_STATE_ATTRS_BYTES,
 )
 from .coordinator import EDDataUpdateCoordinator
-from .ecole_directe_helper import EDEleve, get_unique_id
 
 LOGGER = logging.getLogger(__name__)
 

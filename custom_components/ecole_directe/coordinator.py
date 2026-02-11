@@ -10,6 +10,7 @@ from ecoledirecte_api.client import EDConnectionState, QCMException
 from homeassistant.helpers.update_coordinator import TimestampDataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
+from .api import EDEleve, EDSession, get_unique_id
 from .const import (
     AUGUST,
     DEFAULT_LUNCH_BREAK_TIME,
@@ -18,7 +19,6 @@ from .const import (
     FAKE_ON,
     GRADES_TO_DISPLAY,
 )
-from .ecole_directe_helper import EDEleve, EDSession, get_unique_id
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -171,20 +171,22 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         self.data[f"{eleve.get_fullname_lower()}_homeworks_today"] = (
                             list(
                                 filter(
-                                    lambda homework: homework["date"]
-                                    .astimezone(self.timezone)
-                                    .date()
-                                    == today,
+                                    lambda homework: (
+                                        homework["date"]
+                                        .astimezone(self.timezone)
+                                        .date()
+                                        == today
+                                    ),
                                     homeworks,
                                 )
                             )
                         )
                         homeworks_tomorrow = list(
                             filter(
-                                lambda homework: homework["date"]
-                                .astimezone(self.timezone)
-                                .date()
-                                == tomorrow,
+                                lambda homework: (
+                                    homework["date"].astimezone(self.timezone).date()
+                                    == tomorrow
+                                ),
                                 homeworks,
                             )
                         )
@@ -202,32 +204,36 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
                         self.data[f"{eleve.get_fullname_lower()}_homeworks_1"] = list(
                             filter(
-                                lambda homework: homework["date"]
-                                .astimezone(self.timezone)
-                                .date()
-                                >= current_week_begin
-                                and homework["date"].astimezone(self.timezone).date()
-                                <= current_week_end,
+                                lambda homework: (
+                                    homework["date"].astimezone(self.timezone).date()
+                                    >= current_week_begin
+                                    and homework["date"]
+                                    .astimezone(self.timezone)
+                                    .date()
+                                    <= current_week_end
+                                ),
                                 homeworks,
                             )
                         )
                         self.data[f"{eleve.get_fullname_lower()}_homeworks_2"] = list(
                             filter(
-                                lambda homework: homework["date"]
-                                .astimezone(self.timezone)
-                                .date()
-                                >= next_week_begin
-                                and homework["date"].astimezone(self.timezone).date()
-                                <= next_week_end,
+                                lambda homework: (
+                                    homework["date"].astimezone(self.timezone).date()
+                                    >= next_week_begin
+                                    and homework["date"]
+                                    .astimezone(self.timezone)
+                                    .date()
+                                    <= next_week_end
+                                ),
                                 homeworks,
                             )
                         )
                         self.data[f"{eleve.get_fullname_lower()}_homeworks_3"] = list(
                             filter(
-                                lambda homework: homework["date"]
-                                .astimezone(self.timezone)
-                                .date()
-                                >= after_next_week_begin,
+                                lambda homework: (
+                                    homework["date"].astimezone(self.timezone).date()
+                                    >= after_next_week_begin
+                                ),
                                 homeworks,
                             )
                         )
@@ -301,20 +307,20 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         self.data[f"{eleve.get_fullname_lower()}_timetable_today"] = (
                             list(
                                 filter(
-                                    lambda lesson: lesson["start"]
-                                    .astimezone(self.timezone)
-                                    .date()
-                                    == today,
+                                    lambda lesson: (
+                                        lesson["start"].astimezone(self.timezone).date()
+                                        == today
+                                    ),
                                     lessons,
                                 )
                             )
                         )
                         lessons_tomorrow = list(
                             filter(
-                                lambda lesson: lesson["start"]
-                                .astimezone(self.timezone)
-                                .date()
-                                == tomorrow,
+                                lambda lesson: (
+                                    lesson["start"].astimezone(self.timezone).date()
+                                    == tomorrow
+                                ),
                                 lessons,
                             )
                         )
@@ -331,32 +337,32 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         )
                         self.data[f"{eleve.get_fullname_lower()}_timetable_1"] = list(
                             filter(
-                                lambda lesson: lesson["start"]
-                                .astimezone(self.timezone)
-                                .date()
-                                >= today
-                                and lesson["start"].astimezone(self.timezone).date()
-                                <= current_week_end,
+                                lambda lesson: (
+                                    lesson["start"].astimezone(self.timezone).date()
+                                    >= today
+                                    and lesson["start"].astimezone(self.timezone).date()
+                                    <= current_week_end
+                                ),
                                 lessons,
                             )
                         )
                         self.data[f"{eleve.get_fullname_lower()}_timetable_2"] = list(
                             filter(
-                                lambda lesson: lesson["start"]
-                                .astimezone(self.timezone)
-                                .date()
-                                >= next_week_begin
-                                and lesson["start"].astimezone(self.timezone).date()
-                                <= next_week_end,
+                                lambda lesson: (
+                                    lesson["start"].astimezone(self.timezone).date()
+                                    >= next_week_begin
+                                    and lesson["start"].astimezone(self.timezone).date()
+                                    <= next_week_end
+                                ),
                                 lessons,
                             )
                         )
                         self.data[f"{eleve.get_fullname_lower()}_timetable_3"] = list(
                             filter(
-                                lambda lesson: lesson["start"]
-                                .astimezone(self.timezone)
-                                .date()
-                                >= after_next_week_begin,
+                                lambda lesson: (
+                                    lesson["start"].astimezone(self.timezone).date()
+                                    >= after_next_week_begin
+                                ),
                                 lessons,
                             )
                         )

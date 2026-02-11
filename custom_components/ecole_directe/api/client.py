@@ -1,46 +1,45 @@
-"""Module to help communication with Ecole Directe API."""
+"""
+API Client for ecole_directe.
+
+This module provides the API client for communicating with external services.
+It demonstrates proper error handling, authentication patterns, and async operations.
+
+For more information on creating API clients:
+https://developers.home-assistant.io/docs/api_lib_index
+"""
+
+from __future__ import annotations
 
 import base64
 import json
-import logging
 import operator
 import re
 from datetime import datetime, time
 from pathlib import Path
-from types import TracebackType
-from typing import Any, Self
+from typing import TYPE_CHECKING, Any, Self
 
 import anyio
 from ecoledirecte_api.client import EDClient, EDConnectionState, QCMException
 from ecoledirecte_api.const import ED_OK
-from homeassistant.core import HomeAssistant
 from unidecode import unidecode
 
-from .const import (
+from ..const import (
     EVENT_TYPE,
     FAKE_ON,
     GRADES_TO_DISPLAY,
     HOMEWORK_DESC_MAX_LENGTH,
     INTEGRATION_PATH,
+    LOGGER,
     VIE_SCOLAIRE_TO_DISPLAY,
 )
 
+if TYPE_CHECKING:
+    from types import TracebackType
+
+    from homeassistant.core import HomeAssistant
+
 # as per recommendation from @freylis, compile once only
 CLEANR = re.compile("<.*?>")
-
-LOGGER = logging.getLogger(__name__)
-
-
-async def load_json_file(file_path: str) -> dict:
-    """Load JSON file."""
-    async with await anyio.open_file(file_path, "r") as f:
-        return json.loads(await f.read())
-
-
-async def save_json_file(json_content: Any, file_path: str) -> None:
-    """Save JSON file."""
-    async with await anyio.open_file(file_path, "w", encoding="utf-8") as f:
-        await f.write(json.dumps(json_content, indent=4, ensure_ascii=False))
 
 
 class EDEleve:
@@ -583,6 +582,18 @@ class EDSession:
     async def get_classe(self, classe_id: str) -> None:
         """Get classe."""
         await self.ed_client.get_classe(classe_id=classe_id)
+
+
+async def load_json_file(file_path: str) -> dict:
+    """Load JSON file."""
+    async with await anyio.open_file(file_path, "r") as f:
+        return json.loads(await f.read())
+
+
+async def save_json_file(json_content: Any, file_path: str) -> None:
+    """Save JSON file."""
+    async with await anyio.open_file(file_path, "w", encoding="utf-8") as f:
+        await f.write(json.dumps(json_content, indent=4, ensure_ascii=False))
 
 
 async def check_ecoledirecte_session(

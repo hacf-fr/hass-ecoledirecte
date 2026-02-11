@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -13,6 +12,9 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError
 
+from .api import (
+    check_ecoledirecte_session,
+)
 from .const import (
     DEFAULT_ALLOW_NOTIFICATION,
     DEFAULT_LUNCH_BREAK_TIME,
@@ -20,9 +22,7 @@ from .const import (
     DOMAIN,
     FILENAME_QCM,
     GRADES_TO_DISPLAY,
-)
-from .ecole_directe_helper import (
-    check_ecoledirecte_session,
+    LOGGER,
 )
 
 if TYPE_CHECKING:
@@ -39,8 +39,6 @@ STEP_USER_DATA_SCHEMA_UP = vol.Schema(
         ): bool,
     }
 )
-
-LOGGER = logging.getLogger(__name__)
 
 
 @config_entries.HANDLERS.register(DOMAIN)

@@ -7,7 +7,6 @@ https://github.com/hacf-fr/hass-ecoledirecte
 
 from __future__ import annotations
 
-import logging
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
@@ -19,7 +18,8 @@ from homeassistant.core import (
 )
 from homeassistant.exceptions import ConfigEntryNotReady
 
-from custom_components.ecole_directe.ecole_directe_helper import EDSession
+from custom_components.ecole_directe.api import EDSession
+from custom_components.ecole_directe.const import LOGGER
 
 from .const import DEFAULT_REFRESH_INTERVAL, DOMAIN, PLATFORMS
 from .coordinator import EDDataUpdateCoordinator
@@ -28,8 +28,6 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.typing import ConfigType
-
-LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:

@@ -17,3 +17,5 @@
 # Testing utilities for Home Assistant custom components
 # Provides additional fixtures and utilities specifically for custom component testing
 pytest-homeassistant-custom-component==0.13.301
+Unidecode>=1.4.0
+ecoledirecte>=0.2.3

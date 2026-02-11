@@ -22,3 +22,5 @@ colorlog==6.10.1
 zlib_ng==1.0.0
 isal==1.8.0
 pre-commit
+Unidecode>=1.4.0
+ecoledirecte>=0.2.3

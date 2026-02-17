@@ -1,5 +1,8 @@
 name: "Validate with hassfest and HACS"
 
+permissions:
+  contents: read
+
 on:
   push:
   pull_request:

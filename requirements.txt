@@ -1,5 +1,5 @@
 colorlog==6.10.1
 pip>=21.3.1
-ruff==0.15.1
+ruff==0.15.2
 homeassistant
 Unidecode>=1.4.0

@@ -21,14 +21,13 @@ from homeassistant.core import (
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.loader import async_get_loaded_integration
 
-from .api import EDSession
+from .api import EDApiClient
 from .const import DEFAULT_REFRESH_INTERVAL, DOMAIN, LOGGER, PLATFORMS
 from .coordinator import EDDataUpdateCoordinator
-from .data import EDData
+from .data import EDConfigEntry, EDData
 from .service_actions import async_setup_services
 
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
 # This integration is configured via config entries only
@@ -65,7 +64,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: EDConfigEntry,
 ) -> bool:
     """
     Set up this integration using UI.
@@ -102,7 +101,7 @@ async def async_setup_entry(
     LOGGER.debug("async_setup_entry")
     hass.data.setdefault(DOMAIN, {})
     # Initialize client first
-    session = EDSession(
+    session = EDApiClient(
         user=entry.data[CONF_USERNAME],  # From config flow setup
         pwd=entry.data[CONF_PASSWORD],  # From config flow setup
         qcm_path=hass.config.config_dir
@@ -113,9 +112,15 @@ async def async_setup_entry(
     )
 
     # Initialize coordinator with config_entry
-    # coordinator = EDDataUpdateCoordinator(hass=hass,logger=LOGGER,name=DOMAIN,config_entry=entry,update_interval=timedelta(hours=1),always_update=False,)  # noqa: ERA001
-
-    coordinator = EDDataUpdateCoordinator(hass, entry)
+    coordinator = EDDataUpdateCoordinator(
+        hass=hass,
+        logger=LOGGER,
+        name=DOMAIN,
+        entry=entry,
+        update_interval=timedelta(
+            minutes=entry.options.get("refresh_interval", DEFAULT_REFRESH_INTERVAL)
+        ),
+    )
 
     # Store runtime data
     entry.runtime_data = EDData(
@@ -142,7 +147,7 @@ async def async_setup_entry(
 
 async def async_unload_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: EDConfigEntry,
 ) -> bool:
     """
     Unload a config entry.
@@ -172,7 +177,7 @@ async def async_unload_entry(
 
 async def async_reload_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: EDConfigEntry,
 ) -> None:
     """
     Reload config entry.

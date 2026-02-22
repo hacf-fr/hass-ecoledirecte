@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from custom_components.ecole_directe.api.client import EDSession
+from custom_components.ecole_directe.api.client import EDApiClient
 from custom_components.ecole_directe.const import DOMAIN, LOGGER
 
 if TYPE_CHECKING:
@@ -32,7 +32,7 @@ async def async_handle_devoir_effectue(
         password = hass.config_entries.async_entries(DOMAIN)[0].data["password"]
         # Example: Access the coordinator # coordinator = entry.runtime_data.coordinator
         # Example: Access the API client  # client = entry.runtime_data.client
-        async with EDSession(
+        async with EDApiClient(
             username,
             password,
             hass.config.config_dir + "/" + qcm,

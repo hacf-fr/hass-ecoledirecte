@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.loader import Integration
 
-    from .api import EDSession
+    from .api import EDApiClient
     from .coordinator import EDDataUpdateCoordinator
 
 
@@ -20,6 +20,6 @@ type EDConfigEntry = ConfigEntry[EDData]
 class EDData:
     """Data for ecole_directe."""
 
-    session: EDSession
+    session: EDApiClient
     coordinator: EDDataUpdateCoordinator
     integration: Integration

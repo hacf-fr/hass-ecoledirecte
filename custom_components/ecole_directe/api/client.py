@@ -42,6 +42,22 @@ if TYPE_CHECKING:
 CLEANR = re.compile("<.*?>")
 
 
+class EDApiClientError(Exception):
+    """Base exception to indicate a general API error."""
+
+
+class EDApiClientCommunicationError(
+    EDApiClientError,
+):
+    """Exception to indicate a communication error with the API."""
+
+
+class EDApiClientAuthenticationError(
+    EDApiClientError,
+):
+    """Exception to indicate an authentication error with the API."""
+
+
 class EDEleve:
     """Student information."""
 
@@ -91,7 +107,7 @@ class EDEleve:
         return f"{self.eleve_firstname} {self.eleve_lastname}"
 
 
-class EDSession:
+class EDApiClient:
     """Ecole Directe session with Token and cookie."""
 
     conn_state: EDConnectionState
@@ -601,7 +617,7 @@ async def check_ecoledirecte_session(
 ) -> bool:
     """Check if credentials to Ecole Directe are ok."""
     try:
-        async with EDSession(
+        async with EDApiClient(
             user, pwd, hass.config.config_dir + "/" + qcm_file_name, hass
         ) as session:
             await session.login()

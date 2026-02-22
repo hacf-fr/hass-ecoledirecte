@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 from ecoledirecte_api.client import QCMException
 
 from custom_components.ecole_directe.api.client import (
-    EDSession,
+    EDApiClient,
 )
 
 if TYPE_CHECKING:
@@ -42,7 +42,7 @@ async def validate_credentials(
 
     """
     try:
-        async with EDSession(
+        async with EDApiClient(
             user=username,
             pwd=password,
             hass=hass,

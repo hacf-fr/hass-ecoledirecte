@@ -101,7 +101,7 @@ async def async_setup_entry(
     LOGGER.debug("async_setup_entry")
     hass.data.setdefault(DOMAIN, {})
     # Initialize client first
-    session = EDApiClient(
+    client = EDApiClient(
         user=entry.data[CONF_USERNAME],  # From config flow setup
         pwd=entry.data[CONF_PASSWORD],  # From config flow setup
         qcm_path=hass.config.config_dir
@@ -124,7 +124,7 @@ async def async_setup_entry(
 
     # Store runtime data
     entry.runtime_data = EDData(
-        session=session,
+        client=client,
         integration=async_get_loaded_integration(hass, entry.domain),
         coordinator=coordinator,
     )

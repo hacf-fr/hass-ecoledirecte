@@ -37,8 +37,8 @@ async def async_handle_devoir_effectue(
             password,
             hass.config.config_dir + "/" + qcm,
             hass,
-        ) as session:
-            await session.post_homework(
+        ) as client:
+            await client.post_homework(
                 eleve_id=eleve_id, devoir_id=devoir_id, effectue=effectue
             )
     except Exception:

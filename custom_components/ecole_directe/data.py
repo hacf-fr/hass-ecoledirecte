@@ -20,6 +20,6 @@ type EDConfigEntry = ConfigEntry[EDData]
 class EDData:
     """Data for ecole_directe."""
 
-    session: EDApiClient
+    client: EDApiClient
     coordinator: EDDataUpdateCoordinator
     integration: Integration

@@ -108,7 +108,7 @@ class EDEleve:
 
 
 class EDApiClient:
-    """Ecole Directe session with Token and cookie."""
+    """Ecole Directe client with Token and cookie."""
 
     conn_state: EDConnectionState
 
@@ -120,7 +120,7 @@ class EDApiClient:
         hass: HomeAssistant,
         conn_state: EDConnectionState | None = None,
     ) -> None:
-        """Save some information needed to login the session."""
+        """Save some information needed to login the client."""
         self.hass = hass
         self.username = user
         self.password = pwd
@@ -131,7 +131,7 @@ class EDApiClient:
         self.conn_state = conn_state if conn_state is not None else EDConnectionState()
 
     async def __aenter__(self) -> Self:
-        """Enter the session context."""
+        """Enter the client context."""
         return self
 
     async def __aexit__(
@@ -140,11 +140,11 @@ class EDApiClient:
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
-        """Exit the session context."""
+        """Exit the client context."""
         await self.close()
 
     async def close(self) -> None:
-        """Close the session."""
+        """Close the client."""
         if self.ed_client is not None:
             await self.ed_client.close()
 
@@ -619,11 +619,11 @@ async def check_ecoledirecte_session(
     try:
         async with EDApiClient(
             user, pwd, hass.config.config_dir + "/" + qcm_file_name, hass
-        ) as session:
-            await session.login()
+        ) as client:
+            await client.login()
     except QCMException:
         return True
-    return session is not None
+    return client is not None
 
 
 def get_grade(data: Any) -> dict:

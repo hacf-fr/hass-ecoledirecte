@@ -151,7 +151,7 @@ async def async_setup_entry(
                             coordinator=coordinator,
                             entity_description=entity_description,
                             eleve=eleve,
-                            homework_id="_1",
+                            suffix="_1",
                         )
                         for entity_description in HOMEWORKS_DESCRIPTIONS
                     )
@@ -160,7 +160,7 @@ async def async_setup_entry(
                             coordinator=coordinator,
                             entity_description=entity_description,
                             eleve=eleve,
-                            homework_id="_2",
+                            suffix="_2",
                         )
                         for entity_description in HOMEWORKS_DESCRIPTIONS
                     )
@@ -169,7 +169,7 @@ async def async_setup_entry(
                             coordinator=coordinator,
                             entity_description=entity_description,
                             eleve=eleve,
-                            homework_id="_3",
+                            suffix="_3",
                         )
                         for entity_description in HOMEWORKS_DESCRIPTIONS
                     )
@@ -178,7 +178,7 @@ async def async_setup_entry(
                             coordinator=coordinator,
                             entity_description=entity_description,
                             eleve=eleve,
-                            homework_id="_today",
+                            suffix="_today",
                         )
                         for entity_description in HOMEWORKS_DESCRIPTIONS
                     )
@@ -187,7 +187,7 @@ async def async_setup_entry(
                             coordinator=coordinator,
                             entity_description=entity_description,
                             eleve=eleve,
-                            homework_id="_tomorrow",
+                            suffix="_tomorrow",
                         )
                         for entity_description in HOMEWORKS_DESCRIPTIONS
                     )
@@ -196,7 +196,7 @@ async def async_setup_entry(
                             coordinator=coordinator,
                             entity_description=entity_description,
                             eleve=eleve,
-                            homework_id="_next_day",
+                            suffix="_next_day",
                         )
                         for entity_description in HOMEWORKS_DESCRIPTIONS
                     )
@@ -205,7 +205,7 @@ async def async_setup_entry(
                             coordinator=coordinator,
                             entity_description=entity_description,
                             eleve=eleve,
-                            homework_id="",
+                            suffix="",
                         )
                         for entity_description in HOMEWORKS_DESCRIPTIONS
                     )
@@ -218,7 +218,7 @@ async def async_setup_entry(
                             coordinator=coordinator,
                             entity_description=entity_description,
                             eleve=eleve,
-                            lesson_id="_1",
+                            suffix="_1",
                         )
                         for entity_description in LESSONS_DESCRIPTIONS
                     )
@@ -227,7 +227,7 @@ async def async_setup_entry(
                             coordinator=coordinator,
                             entity_description=entity_description,
                             eleve=eleve,
-                            lesson_id="_2",
+                            suffix="_2",
                         )
                         for entity_description in LESSONS_DESCRIPTIONS
                     )
@@ -236,7 +236,7 @@ async def async_setup_entry(
                             coordinator=coordinator,
                             entity_description=entity_description,
                             eleve=eleve,
-                            lesson_id="_3",
+                            suffix="_3",
                         )
                         for entity_description in LESSONS_DESCRIPTIONS
                     )
@@ -245,7 +245,7 @@ async def async_setup_entry(
                             coordinator=coordinator,
                             entity_description=entity_description,
                             eleve=eleve,
-                            lesson_id="_today",
+                            suffix="_today",
                         )
                         for entity_description in LESSONS_DESCRIPTIONS
                     )
@@ -254,7 +254,7 @@ async def async_setup_entry(
                             coordinator=coordinator,
                             entity_description=entity_description,
                             eleve=eleve,
-                            lesson_id="_tomorrow",
+                            suffix="_tomorrow",
                         )
                         for entity_description in LESSONS_DESCRIPTIONS
                     )
@@ -263,7 +263,7 @@ async def async_setup_entry(
                             coordinator=coordinator,
                             entity_description=entity_description,
                             eleve=eleve,
-                            lesson_id="_next_day",
+                            suffix="_next_day",
                         )
                         for entity_description in LESSONS_DESCRIPTIONS
                     )

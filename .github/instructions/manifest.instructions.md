@@ -20,10 +20,10 @@ This schema combines Home Assistant's official manifest requirements with HACS-s
   "name": "Ecole Directe",
   "codeowners": ["@Giga77"],
   "config_flow": true,
-  "documentation": "https://github.com/Giga77/hass-ecoledirecte",
+  "documentation": "https://github.com/hacf-fr/hass-ecoledirecte",
   "integration_type": "device",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/Giga77/hass-ecoledirecte/issues",
+  "issue_tracker": "https://github.com/hacf-fr/hass-ecoledirecte/issues",
   "requirements": [],
   "version": "0.0.0"
 }

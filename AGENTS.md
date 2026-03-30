@@ -10,7 +10,7 @@ This is a Home Assistant custom integration that was generated from a blueprint 
 
 - **Domain:** `ecole_directe`
 - **Title:** Ecole Directe
-- **Repository:** Giga77/hass-ecoledirecte
+- **Repository:** hacf-fr/hass-ecoledirecte
 
 **Key directories:**
 

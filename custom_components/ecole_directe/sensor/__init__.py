@@ -301,7 +301,7 @@ async def async_setup_entry(
                                     entity_description=entity_description,
                                     eleve=eleve,
                                     nom=discipline["nom"],
-                                    moyenne=discipline["moyenne"],
+                                    note=discipline["moyenne"],
                                 )
                                 for entity_description in DISCIPLINE_DESCRIPTIONS
                             )

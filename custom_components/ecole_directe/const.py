@@ -8,6 +8,7 @@ LOGGER: Logger = getLogger(__package__)
 
 # Integration metadata
 DOMAIN = "ecole_directe"
+ATTRIBUTION = "Data provided by Ecole Directe API"
 EVENT_TYPE = DOMAIN + "_event"
 FILENAME_QCM = "ecoledirecte_qcm.json"
 INTEGRATION_PATH = "/custom_components/" + DOMAIN + "/"

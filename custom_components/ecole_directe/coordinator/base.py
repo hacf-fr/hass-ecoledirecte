@@ -22,7 +22,8 @@ from homeassistant.helpers.update_coordinator import (
 )
 from homeassistant.util import dt as dt_util
 
-from custom_components.ecole_directe.api.client import EDApiClient, get_unique_id
+from custom_components.ecole_directe.api.client import EDApiClient
+from custom_components.ecole_directe.helpers import get_unique_id
 from ecole_directe.api import (
     EDApiClientAuthenticationError,
     EDApiClientError,

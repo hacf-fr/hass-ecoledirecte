@@ -7,7 +7,6 @@ from .client import (
     EDApiClientError,
     EDEleve,
     check_ecoledirecte_session,
-    get_unique_id,
 )
 
 __all__ = [
@@ -17,5 +16,4 @@ __all__ = [
     "EDApiClientError",
     "EDEleve",
     "check_ecoledirecte_session",
-    "get_unique_id",
 ]

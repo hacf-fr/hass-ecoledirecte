@@ -1,6 +1,6 @@
 {
   "name": "HA ecole_directe Dev Container",
-  "image": "mcr.microsoft.com/devcontainers/python:3.13",
+  "image": "mcr.microsoft.com/devcontainers/python:3-3.14",
   "postCreateCommand": "bash .devcontainer/setup-shell.sh && bash .devcontainer/setup-git.sh && script/setup/setup",
   "containerEnv": {
     // Home Assistant version to install in the devcontainer.

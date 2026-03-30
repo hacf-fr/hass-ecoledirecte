@@ -21,7 +21,8 @@ from typing import TYPE_CHECKING, Any, Self
 import anyio
 from ecoledirecte_api.client import EDClient, EDConnectionState, QCMException
 from ecoledirecte_api.const import ED_OK
-from unidecode import unidecode
+
+from custom_components.ecole_directe.helpers import get_unique_id
 
 from ..const import (
     EVENT_TYPE,
@@ -786,8 +787,3 @@ def get_formulaire(data: Any) -> dict:
         "titre": data["titre"],
         "created": data["created"],
     }
-
-
-def get_unique_id(data: str) -> str:
-    """Get unique id."""
-    return unidecode(data).lower().replace(" ", "_")

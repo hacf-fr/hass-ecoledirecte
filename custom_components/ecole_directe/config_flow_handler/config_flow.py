@@ -13,7 +13,6 @@ https://developers.home-assistant.io/docs/config_entries_config_flow_handler
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Any
 
 import anyio
@@ -84,7 +83,7 @@ class EDConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 path = self.hass.config.config_dir + "/" + user_input["qcm_filename"]
-                if not Path(path).is_file():
+                if not await anyio.Path(path).is_file():
                     async with await anyio.open_file(path, "w", encoding="utf-8") as f:
                         await f.write(json.dumps({}, indent=4, ensure_ascii=False))
 

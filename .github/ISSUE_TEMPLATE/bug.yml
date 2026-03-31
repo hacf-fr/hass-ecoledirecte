@@ -1,54 +1,69 @@
 ---
 name: "Signalement d'un bug"
 description: "Signaler un bug dans l'intégration"
+labels: ["bug"]
 body:
-- type: markdown
-  attributes:
-    value: Avant d'ouvrir un nouveau ticket, consultez les tickets existants pour voir si d'autres personnes ont rencontré le même problème.
-- type: textarea
-  attributes:
-    label: "Etat du système"
-    description: "Coller les données de la carte d'état du système dans Home Assistant(https://www.home-assistant.io/more-info/system-health#github-issues)"
-  validations:
-    required: true
-- type: checkboxes
-  attributes:
-    label: Checklist
-    options:
-      - label: J'ai activé la journalisation de débogage pour mon installation.
-        required: true
-      - label: J'ai rempli le modèle de rapport de ticket du mieux que j'ai pu.
-        required: true
-      - label: Ce ticket ne contient qu'un seul problème (si vous avez plusieurs problèmes, veuillez ouvrir un ticket distinct pour chaque problème).
-        required: true
-      - label: Ce problème n'est pas un doublon d'un [problème précédent](https://github.com/hacf-fr/hass-ecoledirecte/issues?q=is%3Aissue+label%3A%22Bug%22+)..
-        required: true
-- type: textarea
-  attributes:
-    label: "Décrire le problème"
-    description: "Une description claire et concise du problème."
-  validations:
-    required: true
-- type: textarea
-  attributes:
-    label: Étapes de reproduction
-    description: "Sans les étapes pour reproduire le problème, il sera difficile de le résoudre. Il est donc très important de remplir cette section. Les tickets incomplets seront fermés."
-    value: |
-      1.
-      2.
-      3.
-      ...
-  validations:
-    required: true
-- type: textarea
-  attributes:
-    label: "Debug logs"
-    description: "Pour activer les journaux de débogage, consultez cette page : https://www.home-assistant.io/integrations/logger/. Ces journaux doivent impérativement inclure _tout_ ce qui se passe depuis le démarrage de Home Assistant jusqu'au moment où vous rencontrez le problème."
-    render: text
-  validations:
-    required: true
+  - type: markdown
+    attributes:
+      value: Avant d'ouvrir un nouveau ticket, consultez les tickets existants pour voir si d'autres personnes ont rencontré le même problème.
+  - type: textarea
+    attributes:
+      label: "Version de Home Assistant"
+      description: "La version de Home Assistant que vous utilisez (ex: 2026.1.0)"
+      placeholder: "2026.1.0"
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: "Version de l'intégration"
+      description: "La version de cette intégration personnalisée que vous utilisez (ex: 1.0.0)"
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: "Etat du système"
+      description: "Coller les données de la carte d'état du système dans Home Assistant(https://www.home-assistant.io/more-info/system-health#github-issues)"
+    validations:
+      required: false
+  - type: checkboxes
+    attributes:
+      label: Checklist
+      options:
+        - label: J'ai activé la journalisation de débogage pour mon installation.
+          required: true
+        - label: J'ai rempli le modèle de rapport de ticket du mieux que j'ai pu.
+          required: true
+        - label: Ce ticket ne contient qu'un seul problème (si vous avez plusieurs problèmes, veuillez ouvrir un ticket distinct pour chaque problème).
+          required: true
+        - label: Ce problème n'est pas un doublon d'un [problème précédent](https://github.com/hacf-fr/hass-ecoledirecte/issues?q=is%3Aissue+label%3A%22Bug%22+)..
+          required: true
+  - type: textarea
+    attributes:
+      label: "Décrire le problème"
+      description: "Une description claire et concise du problème."
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Étapes de reproduction
+      description: "Sans les étapes pour reproduire le problème, il sera difficile de le résoudre. Il est donc très important de remplir cette section. Les tickets incomplets seront fermés."
+      value: |
+        1.
+        2.
+        3.
+        ...
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: "Debug logs"
+      description: "Pour activer les journaux de débogage, consultez cette page : https://www.home-assistant.io/integrations/logger/. Ces journaux doivent impérativement inclure _tout_ ce qui se passe depuis le démarrage de Home Assistant jusqu'au moment où vous rencontrez le problème."
+      render: text
+    validations:
+      required: true
 
-- type: textarea
-  attributes:
-    label: "Diagnostics dump"
-    description: "Faites glisser ici le fichier de diagnostic. (Voir https://www.home-assistant.io/integrations/diagnostics/ pour plus d'informations)"
+  - type: textarea
+    attributes:
+      label: "Diagnostics dump"
+      description: "Faites glisser ici le fichier de diagnostic. (Voir https://www.home-assistant.io/integrations/diagnostics/ pour plus d'informations)"

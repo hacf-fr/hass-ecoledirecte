@@ -14,24 +14,60 @@ from datetime import timedelta
 from typing import TYPE_CHECKING
 
 import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
+from homeassistant.components import websocket_api
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import (
+    EVENT_HOMEASSISTANT_STARTED,
+    CoreState,
     HomeAssistant,
 )
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.loader import async_get_loaded_integration
 
 from .api import EDApiClient
-from .const import DEFAULT_REFRESH_INTERVAL, DOMAIN, LOGGER, PLATFORMS
+from .const import (
+    DEFAULT_REFRESH_INTERVAL,
+    DOMAIN,
+    INTEGRATION_VERSION,
+    LOGGER,
+    PLATFORMS,
+)
 from .coordinator import EDDataUpdateCoordinator
 from .data import EDConfigEntry, EDData
+from .frontend import JSModuleRegistration
 from .service_actions import async_setup_services
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
+    from homeassistant.util.event_type import EventType
 
 # This integration is configured via config entries only
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+
+async def async_register_frontend(hass: HomeAssistant) -> None:
+    """Enregistrer les modules frontend après le démarrage de HA."""
+    module_register = JSModuleRegistration(hass)
+    await module_register.async_register()
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/version",
+    }
+)
+@websocket_api.async_response
+async def websocket_get_version(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict,
+) -> None:
+    """Gérer la demande de version du frontend."""
+    connection.send_result(
+        msg["id"],
+        {"version": INTEGRATION_VERSION},
+    )
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -58,6 +94,20 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
     """
     LOGGER.debug("async_setup")
+
+    # Enregistrer la commande websocket pour la vérification de version
+    websocket_api.async_register_command(hass, websocket_get_version)
+
+    async def _setup_frontend(_event: EventType = None) -> None:
+        await async_register_frontend(hass)
+
+    # Si HA est déjà en cours d'exécution, enregistrer immédiatement
+    if hass.state == CoreState.running:
+        await _setup_frontend()
+    else:
+        # Sinon, attendre l'événement STARTED
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _setup_frontend)
+
     await async_setup_services(hass)
     return True
 

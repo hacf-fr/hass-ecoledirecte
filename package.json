@@ -1,0 +1,14 @@
+{
+  "name": "ecole_directe_cards",
+  "version": "1.0.0",
+  "description": "Home Assistant Cards for Ecole Directe",
+  "scripts": {
+    "build": "tsc --noEmit && esbuild src/EcoleDirecteHACards.ts --bundle --outfile=custom_components/ecole_directe/frontend/EcoleDirecteHACards.js --format=esm --target=es2020 --minify",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.0",
+    "lit-html": "^3.3.2",
+    "typescript": "^5.0.0"
+  }
+}

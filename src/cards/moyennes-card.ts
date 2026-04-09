@@ -112,7 +112,7 @@ class EDMoyennesCard extends BaseEDCard {
       const moyennesRows = [];
 
       if (this.config.display_overall_average) {
-        moyennesRows.push(this.getOverallAverageRow(moyennes));
+        moyennesRows.push(this.getOverallAverageRow());
       }
 
       for (let index = 0; index < moyennes.length; index++) {

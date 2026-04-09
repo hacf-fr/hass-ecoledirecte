@@ -1,10 +1,12 @@
 const LitElement = Object.getPrototypeOf(
   customElements.get("ha-panel-lovelace")
-);
-const html = LitElement.prototype.html;
-const css = LitElement.prototype.css;
+) as typeof HTMLElement;
+const html = (LitElement as any).prototype.html;
+const css = (LitElement as any).prototype.css;
 
 class BaseEDCardEditor extends LitElement {
+  [key: string]: any;
+
   static get properties() {
     return {
       hass: {},
@@ -37,7 +39,7 @@ class BaseEDCardEditor extends LitElement {
     this.dispatchEvent(event);
   }
 
-  buildSelectField(label, config_key, options, value, default_value) {
+  buildSelectField(label: any, config_key: any, options: any, value: any, default_value?: any) {
     let selectOptions = [];
     for (let i = 0; i < options.length; i++) {
       let currentOption = options[i];
@@ -54,14 +56,14 @@ class BaseEDCardEditor extends LitElement {
         .value=${value || default_value}
         .configValue=${config_key}
         @change=${this._valueChanged}
-        @closed=${(ev) => ev.stopPropagation()}
+        @closed=${(ev: any) => ev.stopPropagation()}
       >
         ${selectOptions}
       </ha-select>
     `;
   }
 
-  buildSwitchField(label, config_key, value, default_value) {
+  buildSwitchField(label: any, config_key: any, value: any, default_value?: any) {
     if (typeof value !== "boolean") {
       value = default_value;
     }
@@ -78,7 +80,7 @@ class BaseEDCardEditor extends LitElement {
     `;
   }
 
-  buildNumberField(label, config_key, value, default_value, step) {
+  buildNumberField(label: any, config_key: any, value: any, default_value?: any, step?: any) {
     return html`
       <ha-textfield
         type="number"
@@ -92,7 +94,7 @@ class BaseEDCardEditor extends LitElement {
     `;
   }
 
-  buildTextField(label, config_key, value, default_value) {
+  buildTextField(label: any, config_key: any, value: any, default_value?: any) {
     return html`
       <ha-textfield
         label="${label}"
@@ -105,7 +107,7 @@ class BaseEDCardEditor extends LitElement {
     `;
   }
 
-  buildEntityPickerField(label, config_key, value, filter) {
+  buildEntityPickerField(label: any, config_key: any, value: any, filter: any) {
     const entityFilter = new RegExp("ed_(.*)_" + filter);
 
     return html`

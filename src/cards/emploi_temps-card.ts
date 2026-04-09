@@ -6,11 +6,11 @@ const LitElement = Object.getPrototypeOf(
 const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
-Date.prototype.getWeekNumber = function () {
-  var d = new Date(+this);
+(Date.prototype as any).getWeekNumber = function () {
+  var d = new Date(+(this as any));
   d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() + 4 - (d.getDay() || 7));
-  return Math.ceil(((d - new Date(d.getFullYear(), 0, 1)) / 8.64e7 + 1) / 7);
+  return Math.ceil((((d as any) - (new Date(d.getFullYear(), 0, 1) as any)) / 8.64e7 + 1) / 7);
 };
 
 function isSameDay(d1, d2) {
@@ -37,7 +37,7 @@ class EDTimetableCard extends BaseEDCard {
   }
 
   getTimetableRow(lesson) {
-    let currentDate = new Date();
+    let currentDate = new Date().getTime();
     let startAt = Date.parse(lesson.start_at);
     let endAt = Date.parse(lesson.end_at);
 
@@ -283,7 +283,7 @@ class EDTimetableCard extends BaseEDCard {
             const nextLessonStartAt = new Date(nextLesson.start_at);
             if (
               lesson.is_morning === nextLesson.is_morning &&
-              Math.floor((nextLessonStartAt - currentEndAt) / 1000 / 60) > 30
+              Math.floor(((nextLessonStartAt as any) - (currentEndAt as any)) / 1000 / 60) > 30
             ) {
               const now = new Date();
               dayTemplates.push(

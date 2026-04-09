@@ -1,10 +1,12 @@
 const LitElement = Object.getPrototypeOf(
   customElements.get("ha-panel-lovelace")
-);
-const html = LitElement.prototype.html;
-const css = LitElement.prototype.css;
+) as typeof HTMLElement;
+const html = (LitElement as any).prototype.html;
+const css = (LitElement as any).prototype.css;
 
 class BaseEDCard extends LitElement {
+  [key: string]: any;
+
   static get properties() {
     return {
       config: {},

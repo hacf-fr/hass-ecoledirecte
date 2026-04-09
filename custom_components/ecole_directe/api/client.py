@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self
 
 import anyio
-from ecoledirecte_api.client import EDClient, EDConnectionState, QCMException
+from ecoledirecte_api.client import EDClient, QCMException
 from ecoledirecte_api.const import ED_OK
 
 from custom_components.ecole_directe.helpers import get_unique_id
@@ -113,15 +113,12 @@ class EDEleve:
 class EDApiClient:
     """Ecole Directe client with Token and cookie."""
 
-    conn_state: EDConnectionState
-
     def __init__(
         self,
         user: str,
         pwd: str,
         qcm_path: str,
         hass: HomeAssistant,
-        conn_state: EDConnectionState | None = None,
     ) -> None:
         """Save some information needed to login the client."""
         self.hass = hass
@@ -131,7 +128,6 @@ class EDApiClient:
         self.log_folder = self.hass.config.config_dir + INTEGRATION_PATH + "logs/"
         self.test_folder = self.hass.config.config_dir + INTEGRATION_PATH + "test/"
         Path(self.log_folder).mkdir(parents=True, exist_ok=True)
-        self.conn_state = conn_state if conn_state is not None else EDConnectionState()
 
     async def __aenter__(self) -> Self:
         """Enter the client context."""
@@ -169,7 +165,6 @@ class EDApiClient:
             username=self.username,
             password=self.password,
             qcm_json=self.qcm,
-            connection_state=self.conn_state,
         )
         self.ed_client.on_new_question(self.save_question)
         login = await self.ed_client.login()
@@ -178,11 +173,10 @@ class EDApiClient:
             "Connection OK - identifiant: [%s]",
             login["data"]["accounts"][0]["identifiant"],
         )
-        self.conn_state = self.ed_client.conn_state
         LOGGER.debug(
             "token: [%s] - cookies: [%s]",
-            self.conn_state.token,
-            self.conn_state.cookie_jar,
+            self.ed_client.token,
+            self.ed_client.cookie_jar,
         )
 
         self.data = login["data"]
@@ -210,9 +204,7 @@ class EDApiClient:
         self.eleves = []
         for account in self.data["accounts"]:
             if account["typeCompte"] == "E":
-                account_modules = [
-                    m["code"] for m in account["modules"] if m["enable"]
-                ]
+                account_modules = [m["code"] for m in account["modules"] if m["enable"]]
                 self.eleves.append(
                     EDEleve(
                         account_modules,

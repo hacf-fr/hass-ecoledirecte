@@ -72,8 +72,10 @@ class EDEleve:
         last_name: str | None = None,
         classe_id: str | None = None,
         classe_name: str | None = None,
+        account_id_login: int | None = None,
     ) -> None:
         """Save student information."""
+        self.account_id_login = account_id_login
         if data is None:
             self.classe_id = classe_id
             self.classe_name: str = classe_name if classe_name is not None else ""
@@ -192,37 +194,55 @@ class EDApiClient:
             self.data["accounts"][0]["profile"]["eleves"][1]["prenom"] = "Arthur"
             self.data["accounts"][0]["profile"]["eleves"][1]["nom"] = "No Name"
 
-        self.id = self.data["accounts"][0]["id"]
-        self.identifiant = self.data["accounts"][0]["identifiant"]
-        self.id_login = self.data["accounts"][0]["idLogin"]
-        self.account_type = self.data["accounts"][0]["typeCompte"]
-        self.modules = []
-        for module in self.data["accounts"][0]["modules"]:
-            if module["enable"]:
-                self.modules.append(module["code"])
+        main_account = next(
+            (a for a in self.data["accounts"] if a.get("main", False)),
+            self.data["accounts"][0],
+        )
+
+        self.id = main_account["id"]
+        self.identifiant = main_account["identifiant"]
+        self.id_login = main_account["idLogin"]
+        self.account_type = main_account["typeCompte"]
+        self.modules = [m["code"] for m in main_account["modules"] if m["enable"]]
+        self.current_account_id_login = main_account["idLogin"]
+
+        # Collect children from ALL accounts (not just the main one)
         self.eleves = []
-        if self.account_type == "E":
-            self.eleves.append(
-                EDEleve(
-                    self.modules,
-                    None,
-                    self.data["accounts"][0]["nomEtablissement"],
-                    self.id,
-                    self.data["accounts"][0]["prenom"],
-                    self.data["accounts"][0]["nom"],
-                    self.data["accounts"][0]["profile"]["classe"]["id"],
-                    self.data["accounts"][0]["profile"]["classe"]["libelle"],
-                )
-            )
-        elif "eleves" in self.data["accounts"][0]["profile"]:
-            for eleve in self.data["accounts"][0]["profile"]["eleves"]:
+        for account in self.data["accounts"]:
+            if account["typeCompte"] == "E":
+                account_modules = [
+                    m["code"] for m in account["modules"] if m["enable"]
+                ]
                 self.eleves.append(
                     EDEleve(
-                        [],
-                        eleve,
-                        self.data["accounts"][0]["nomEtablissement"],
+                        account_modules,
+                        None,
+                        account["nomEtablissement"],
+                        account["id"],
+                        account["prenom"],
+                        account["nom"],
+                        account["profile"]["classe"]["id"],
+                        account["profile"]["classe"]["libelle"],
+                        account_id_login=account["idLogin"],
                     )
                 )
+            elif "eleves" in account.get("profile", {}):
+                for eleve in account["profile"]["eleves"]:
+                    self.eleves.append(
+                        EDEleve(
+                            [],
+                            eleve,
+                            account["nomEtablissement"],
+                            account_id_login=account["idLogin"],
+                        )
+                    )
+
+    async def switch_account(self, target_id_login: int) -> None:
+        """Switch the API session context to a different account."""
+        if target_id_login == self.current_account_id_login:
+            return
+        await self.ed_client.switch_account(target_id_login)
+        self.current_account_id_login = target_id_login
 
     async def get_messages(
         self,

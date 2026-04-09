@@ -247,6 +247,17 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 # END: MODIFIED FOR WALLET BALANCE (SINGLE CALL)
 
                 for eleve in client.eleves:
+                    # Switch account context if this child belongs to a different account
+                    if eleve.account_id_login is not None:
+                        try:
+                            await client.switch_account(eleve.account_id_login)
+                        except Exception:
+                            LOGGER.exception(
+                                "Error switching account for %s",
+                                eleve.get_fullname(),
+                            )
+                            continue
+
                     # START: DISTRIBUTE WALLET BALANCE DATA
                     if all_balances and eleve.eleve_id in all_balances:
                         wallets_key = f"{eleve.get_fullname_lower()}_wallets"

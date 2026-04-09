@@ -22,13 +22,12 @@ from homeassistant.helpers.update_coordinator import (
 )
 from homeassistant.util import dt as dt_util
 
-from custom_components.ecole_directe.api.client import EDApiClient
-from custom_components.ecole_directe.helpers import get_unique_id
-from ecole_directe.api import (
+from custom_components.ecole_directe.api import (
     EDApiClientAuthenticationError,
     EDApiClientError,
 )
-from ecole_directe.const import (
+from custom_components.ecole_directe.api.client import EDApiClient
+from custom_components.ecole_directe.const import (
     AUGUST,
     DEFAULT_LUNCH_BREAK_TIME,
     EVENT_TYPE,
@@ -36,14 +35,15 @@ from ecole_directe.const import (
     GRADES_TO_DISPLAY,
     LOGGER,
 )
+from custom_components.ecole_directe.helpers import get_unique_id
 
 if TYPE_CHECKING:
     from logging import Logger
 
     from homeassistant.core import HomeAssistant
 
-    from ecole_directe.api.client import EDEleve
-    from ecole_directe.data import EDConfigEntry
+    from custom_components.ecole_directe.api.client import EDEleve
+    from custom_components.ecole_directe.data import EDConfigEntry
 
 
 class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):

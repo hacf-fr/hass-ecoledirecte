@@ -10,6 +10,6 @@
 # Note: Home Assistant core dependencies are already available
 # Only list additional packages your integration needs
 pip>=26.0.1
-ruff==0.15.8
+ruff==0.15.9
 ecoledirecte>=0.2.6
 Unidecode>=1.4.0

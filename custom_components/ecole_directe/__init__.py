@@ -108,7 +108,6 @@ async def async_setup_entry(
         + "/"
         + entry.data["qcm_filename"],  # From config flow setup
         hass=hass,
-        conn_state=None,
     )
 
     # Initialize coordinator with config_entry

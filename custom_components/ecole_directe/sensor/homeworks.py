@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
     SensorEntityDescription,
-    SensorStateClass,
 )
 
 from custom_components.ecole_directe.const import LOGGER
@@ -22,8 +21,6 @@ ENTITY_DESCRIPTIONS = (
         key="homeworks",
         translation_key="homeworks",
         icon="mdi:book-open",
-        state_class=SensorStateClass.MEASUREMENT,
-        suggested_display_precision=0,
         has_entity_name=True,
     ),
 )

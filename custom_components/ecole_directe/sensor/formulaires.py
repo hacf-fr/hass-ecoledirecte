@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
     SensorEntityDescription,
-    SensorStateClass,
 )
 
 from custom_components.ecole_directe.sensor.generic import EDGenericSensor
@@ -19,8 +18,6 @@ ENTITY_DESCRIPTIONS = (
         key="formulaires",
         translation_key="formulaires",
         icon="mdi:form-select",
-        state_class=SensorStateClass.MEASUREMENT,
-        suggested_display_precision=0,
         has_entity_name=True,
     ),
 )

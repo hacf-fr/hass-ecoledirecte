@@ -397,10 +397,7 @@ class EDApiClient:
         if "periodes" in data:
             data["periodes"].sort(key=operator.itemgetter("dateDebut"))
             for periode_json in data["periodes"]:
-                if (
-                    "trimestre" not in periode_json["periode"].lower()
-                    and "semestre" not in periode_json["periode"].lower()
-                ):
+                if periode_json["annuel"] is True:
                     continue
                 if datetime.now() < datetime.strptime(
                     periode_json["dateDebut"], "%Y-%m-%d"

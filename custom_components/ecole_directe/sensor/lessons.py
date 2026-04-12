@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
     SensorEntityDescription,
-    SensorStateClass,
 )
 
 from custom_components.ecole_directe.const import DEFAULT_LUNCH_BREAK_TIME, LOGGER
@@ -22,8 +21,6 @@ ENTITY_DESCRIPTIONS = (
         key="lessons",
         translation_key="lessons",
         icon="mdi:calendar-clock",
-        state_class=SensorStateClass.MEASUREMENT,
-        suggested_display_precision=0,
         has_entity_name=True,
     ),
 )

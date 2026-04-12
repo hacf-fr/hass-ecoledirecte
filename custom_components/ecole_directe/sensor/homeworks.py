@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
     SensorEntityDescription,
-    SensorStateClass,
 )
 
 from custom_components.ecole_directe.const import LOGGER
@@ -22,8 +21,6 @@ ENTITY_DESCRIPTIONS = (
         key="homeworks",
         translation_key="homeworks",
         icon="mdi:book-open",
-        state_class=SensorStateClass.MEASUREMENT,
-        suggested_display_precision=0,
         has_entity_name=True,
     ),
 )
@@ -80,12 +77,13 @@ class EDHomeworksSensor(EDGenericSensor):
             return {}
         if self._key in self.coordinator.data:
             homeworks = self.coordinator.data[self._key]
-            for homework in homeworks:
-                if not homework["effectue"]:
-                    todo_counter += 1
-                attributes.append(homework)
-            if attributes is not None:
-                attributes.sort(key=operator.itemgetter("date"))
+            if homeworks is not None:
+                for homework in homeworks:
+                    if not homework["effectue"]:
+                        todo_counter += 1
+                    attributes.append(homework)
+                if attributes is not None:
+                    attributes.sort(key=operator.itemgetter("date"))
         else:
             attributes.append({"Erreur": f"{self._key} n'existe pas."})
 

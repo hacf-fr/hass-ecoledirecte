@@ -33,7 +33,7 @@ FAKE_ON: Final[bool] = False
 # Lire la version depuis manifest.json
 MANIFEST_PATH: Final[Path] = Path(__file__).parent / "manifest.json"
 with Path.open(MANIFEST_PATH, encoding="utf-8") as f:
-    INTEGRATION_VERSION: Final[str] = json.load(f).get("version", "0.0.0")
+    INTEGRATION_VERSION: Final[str] = json.load(f).get("version", "v0.0.0")
 
 # URL de base pour les ressources frontend
 URL_BASE: Final[str] = "/" + DOMAIN

@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self
 
 import anyio
-from ecoledirecte_api.client import EDClient, EDConnectionState, QCMException
+from ecoledirecte_api.client import EDClient, QCMException
 from ecoledirecte_api.const import ED_OK
 
 from custom_components.ecole_directe.helpers import get_unique_id
@@ -72,8 +72,10 @@ class EDEleve:
         last_name: str | None = None,
         classe_id: str | None = None,
         classe_name: str | None = None,
+        account_id_login: int | None = None,
     ) -> None:
         """Save student information."""
+        self.account_id_login = account_id_login
         if data is None:
             self.classe_id = classe_id
             self.classe_name: str = classe_name if classe_name is not None else ""
@@ -111,15 +113,12 @@ class EDEleve:
 class EDApiClient:
     """Ecole Directe client with Token and cookie."""
 
-    conn_state: EDConnectionState
-
     def __init__(
         self,
         user: str,
         pwd: str,
         qcm_path: str,
         hass: HomeAssistant,
-        conn_state: EDConnectionState | None = None,
     ) -> None:
         """Save some information needed to login the client."""
         self.hass = hass
@@ -129,7 +128,6 @@ class EDApiClient:
         self.log_folder = self.hass.config.config_dir + INTEGRATION_PATH + "logs/"
         self.test_folder = self.hass.config.config_dir + INTEGRATION_PATH + "test/"
         Path(self.log_folder).mkdir(parents=True, exist_ok=True)
-        self.conn_state = conn_state if conn_state is not None else EDConnectionState()
 
     async def __aenter__(self) -> Self:
         """Enter the client context."""
@@ -167,7 +165,6 @@ class EDApiClient:
             username=self.username,
             password=self.password,
             qcm_json=self.qcm,
-            connection_state=self.conn_state,
         )
         self.ed_client.on_new_question(self.save_question)
         login = await self.ed_client.login()
@@ -176,11 +173,10 @@ class EDApiClient:
             "Connection OK - identifiant: [%s]",
             login["data"]["accounts"][0]["identifiant"],
         )
-        self.conn_state = self.ed_client.conn_state
         LOGGER.debug(
             "token: [%s] - cookies: [%s]",
-            self.conn_state.token,
-            self.conn_state.cookie_jar,
+            self.ed_client.token,
+            self.ed_client.cookie_jar,
         )
 
         self.data = login["data"]
@@ -192,37 +188,53 @@ class EDApiClient:
             self.data["accounts"][0]["profile"]["eleves"][1]["prenom"] = "Arthur"
             self.data["accounts"][0]["profile"]["eleves"][1]["nom"] = "No Name"
 
-        self.id = self.data["accounts"][0]["id"]
-        self.identifiant = self.data["accounts"][0]["identifiant"]
-        self.id_login = self.data["accounts"][0]["idLogin"]
-        self.account_type = self.data["accounts"][0]["typeCompte"]
-        self.modules = []
-        for module in self.data["accounts"][0]["modules"]:
-            if module["enable"]:
-                self.modules.append(module["code"])
+        main_account = next(
+            (a for a in self.data["accounts"] if a.get("main", False)),
+            self.data["accounts"][0],
+        )
+
+        self.id = main_account["id"]
+        self.identifiant = main_account["identifiant"]
+        self.id_login = main_account["idLogin"]
+        self.account_type = main_account["typeCompte"]
+        self.modules = [m["code"] for m in main_account["modules"] if m["enable"]]
+        self.current_account_id_login = main_account["idLogin"]
+
+        # Collect children from ALL accounts (not just the main one)
         self.eleves = []
-        if self.account_type == "E":
-            self.eleves.append(
-                EDEleve(
-                    self.modules,
-                    None,
-                    self.data["accounts"][0]["nomEtablissement"],
-                    self.id,
-                    self.data["accounts"][0]["prenom"],
-                    self.data["accounts"][0]["nom"],
-                    self.data["accounts"][0]["profile"]["classe"]["id"],
-                    self.data["accounts"][0]["profile"]["classe"]["libelle"],
-                )
-            )
-        elif "eleves" in self.data["accounts"][0]["profile"]:
-            for eleve in self.data["accounts"][0]["profile"]["eleves"]:
+        for account in self.data["accounts"]:
+            if account["typeCompte"] == "E":
+                account_modules = [m["code"] for m in account["modules"] if m["enable"]]
                 self.eleves.append(
                     EDEleve(
-                        [],
-                        eleve,
-                        self.data["accounts"][0]["nomEtablissement"],
+                        account_modules,
+                        None,
+                        account["nomEtablissement"],
+                        account["id"],
+                        account["prenom"],
+                        account["nom"],
+                        account["profile"]["classe"]["id"],
+                        account["profile"]["classe"]["libelle"],
+                        account_id_login=account["idLogin"],
                     )
                 )
+            elif "eleves" in account.get("profile", {}):
+                for eleve in account["profile"]["eleves"]:
+                    self.eleves.append(
+                        EDEleve(
+                            [],
+                            eleve,
+                            account["nomEtablissement"],
+                            account_id_login=account["idLogin"],
+                        )
+                    )
+
+    async def switch_account(self, target_id_login: int) -> None:
+        """Switch the API session context to a different account."""
+        if target_id_login == self.current_account_id_login:
+            return
+        await self.ed_client.switch_account(target_id_login)
+        self.current_account_id_login = target_id_login
 
     async def get_messages(
         self,
@@ -385,10 +397,7 @@ class EDApiClient:
         if "periodes" in data:
             data["periodes"].sort(key=operator.itemgetter("dateDebut"))
             for periode_json in data["periodes"]:
-                if (
-                    "trimestre" not in periode_json["periode"].lower()
-                    and "semestre" not in periode_json["periode"].lower()
-                ):
+                if periode_json["annuel"] is True:
                     continue
                 if datetime.now() < datetime.strptime(
                     periode_json["dateDebut"], "%Y-%m-%d"

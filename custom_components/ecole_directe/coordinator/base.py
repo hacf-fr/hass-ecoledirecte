@@ -14,7 +14,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta, tzinfo
 from typing import TYPE_CHECKING, Any
 
-from ecoledirecte_api.client import EDConnectionState, QCMException
+from ecoledirecte_api.client import QCMException
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import (
     TimestampDataUpdateCoordinator,
@@ -22,13 +22,12 @@ from homeassistant.helpers.update_coordinator import (
 )
 from homeassistant.util import dt as dt_util
 
-from custom_components.ecole_directe.api.client import EDApiClient
-from custom_components.ecole_directe.helpers import get_unique_id
-from ecole_directe.api import (
+from custom_components.ecole_directe.api import (
     EDApiClientAuthenticationError,
     EDApiClientError,
 )
-from ecole_directe.const import (
+from custom_components.ecole_directe.api.client import EDApiClient
+from custom_components.ecole_directe.const import (
     AUGUST,
     DEFAULT_LUNCH_BREAK_TIME,
     EVENT_TYPE,
@@ -36,14 +35,15 @@ from ecole_directe.const import (
     GRADES_TO_DISPLAY,
     LOGGER,
 )
+from custom_components.ecole_directe.helpers import get_unique_id
 
 if TYPE_CHECKING:
     from logging import Logger
 
     from homeassistant.core import HomeAssistant
 
-    from ecole_directe.api.client import EDEleve
-    from ecole_directe.data import EDConfigEntry
+    from custom_components.ecole_directe.api.client import EDEleve
+    from custom_components.ecole_directe.data import EDConfigEntry
 
 
 class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
@@ -68,7 +68,6 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
     config_entry: EDConfigEntry
     timezone: tzinfo
-    conn_state: EDConnectionState = EDConnectionState()
 
     def __init__(
         self,
@@ -158,11 +157,9 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 + "/"
                 + self.config_entry.data["qcm_filename"],
                 self.hass,
-                self.conn_state,
             ) as client:
                 try:
                     await client.login()
-                    self.conn_state = client.conn_state
                 except QCMException:
                     LOGGER.exception("Unable to init ecole directe client")
                     return None
@@ -247,6 +244,17 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 # END: MODIFIED FOR WALLET BALANCE (SINGLE CALL)
 
                 for eleve in client.eleves:
+                    # Switch account context if this child belongs to a different account
+                    if eleve.account_id_login is not None:
+                        try:
+                            await client.switch_account(eleve.account_id_login)
+                        except Exception:
+                            LOGGER.exception(
+                                "Error switching account for %s",
+                                eleve.get_fullname(),
+                            )
+                            continue
+
                     # START: DISTRIBUTE WALLET BALANCE DATA
                     if all_balances and eleve.eleve_id in all_balances:
                         wallets_key = f"{eleve.get_fullname_lower()}_wallets"

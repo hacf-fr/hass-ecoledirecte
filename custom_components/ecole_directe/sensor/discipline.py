@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
     SensorEntityDescription,
-    SensorStateClass,
 )
 
 from custom_components.ecole_directe.helpers import get_unique_id
@@ -21,8 +20,6 @@ ENTITY_DESCRIPTIONS = (
         key="discipline",
         translation_key="discipline",
         icon="mdi:book-open-variant",
-        state_class=SensorStateClass.MEASUREMENT,
-        suggested_display_precision=0,
         has_entity_name=True,
     ),
 )

@@ -47,7 +47,6 @@ async def validate_credentials(
             pwd=password,
             hass=hass,
             qcm_path=qcm_path,
-            conn_state=None,
         ) as client:
             await client.login()
     except QCMException:

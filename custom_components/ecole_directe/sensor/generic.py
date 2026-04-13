@@ -69,6 +69,8 @@ class EDGenericSensor(SensorEntity, EDEntity):
             return "unavailable"
         if self._state is not None:
             if self._state == "len":
+                if self.coordinator.data[self._key] is None:
+                    return 0
                 return len(self.coordinator.data[self._key])
             return self._state
         return self.coordinator.data[self._key]

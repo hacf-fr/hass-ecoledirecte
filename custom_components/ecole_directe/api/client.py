@@ -433,6 +433,11 @@ class EDApiClient:
             data["notes"].sort(key=operator.itemgetter("dateSaisie"))
             data["notes"].reverse()
             for grade_json in data["notes"]:
+                fallback_matiere = get_lsun_libelle_matiere(
+                    data.get("LSUN"),
+                    grade_json.get("codeMatiere"),
+                    grade_json.get("codePeriode"),
+                )
                 if grade_json["noteSur"] == "0":
                     index1 += 1
                     if index1 > grades_display:
@@ -441,9 +446,9 @@ class EDApiClient:
                     index2 += 1
                     if index2 > grades_display:
                         continue
-                    grade = get_grade(grade_json)
+                    grade = get_grade(grade_json, fallback_matiere)
                     response["notes"].append(grade)
-                evaluation = get_evaluation(grade_json)
+                evaluation = get_evaluation(grade_json, fallback_matiere)
                 if len(evaluation) > 0:
                     response["evaluations"].append(evaluation)
         return response
@@ -636,7 +641,48 @@ async def check_ecoledirecte_session(
     return client is not None
 
 
-def get_grade(data: Any) -> dict:
+def get_lsun_libelle_matiere(
+    lsun: Any | None,
+    code_matiere: str | None,
+    code_periode: str | None,
+) -> str | None:
+    """Find the matching libelleMatiere in LSUN by codeMatiere and codePeriode."""
+    if not code_matiere or not isinstance(lsun, dict):
+        return None
+
+    if code_periode and code_periode in lsun:
+        period_items = lsun.get(code_periode)
+        if isinstance(period_items, list):
+            for item in period_items:
+                if (
+                    isinstance(item, dict)
+                    and item.get("codeMatiere") == code_matiere
+                    and item.get("libelleMatiere")
+                ):
+                    return item["libelleMatiere"]
+
+    for period_items in lsun.values():
+        if not isinstance(period_items, list):
+            continue
+        for item in period_items:
+            if (
+                isinstance(item, dict)
+                and item.get("codeMatiere") == code_matiere
+                and item.get("libelleMatiere")
+            ):
+                return item["libelleMatiere"]
+
+    return None
+
+
+def get_matiere(data: Any, fallback_matiere: str | None = None) -> str | None:
+    """Get the correct matiere label from grade/evaluation data."""
+    if data.get("codeSousMatiere") and fallback_matiere:
+        return f"{fallback_matiere} - {data.get('libelleMatiere')}"
+    return data.get("libelleMatiere")
+
+
+def get_grade(data: Any, fallback_matiere: str | None = None) -> dict:
     """Get grade information."""
     elements_programme = []
     if "elementsProgramme" in data:
@@ -645,7 +691,7 @@ def get_grade(data: Any) -> dict:
 
     return {
         "date": data.get("date"),
-        "matiere": data.get("libelleMatiere"),
+        "matiere": get_matiere(data, fallback_matiere),
         "commentaire": data.get("devoir"),
         "note": data.get("valeur"),
         "sur": data.get("noteSur").replace(".", ","),
@@ -698,7 +744,7 @@ def get_disciplines_periode(data: Any) -> list:
     return disciplines
 
 
-def get_evaluation(data: Any) -> dict:
+def get_evaluation(data: Any, fallback_matiere: str | None = None) -> dict:
     """Get evaluation information."""
     try:
         elements_programme = []
@@ -713,7 +759,7 @@ def get_evaluation(data: Any) -> dict:
             "devoir": data.get("devoir"),
             "date": data.get("date"),
             "date_saisie": data.get("dateSaisie"),
-            "matiere": data.get("libelleMatiere"),
+            "matiere": get_matiere(data, fallback_matiere),
             "elements_programme": [
                 {
                     "competence": competence.get("libelleCompetence"),

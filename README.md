@@ -7,7 +7,7 @@
 [![hacs][hacsbadge]][hacs]
 ![Project Maintenance][maintenance-shield]
 
-[![BuyMeCoffee][buymecoffeebadge]][giga77]
+[![BuyMeCoffee][buymecoffeebadge]](https://www.buymeacoffee.com/giga77)
 
 **✨ Develop in the cloud:** Want to contribute or customize this integration? Open it directly in GitHub Codespaces - no local setup required!
 

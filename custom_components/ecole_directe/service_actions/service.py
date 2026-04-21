@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from custom_components.ecole_directe.api.client import EDApiClient
+from homeassistant.exceptions import HomeAssistantError
+
 from custom_components.ecole_directe.const import DOMAIN, LOGGER
 
 if TYPE_CHECKING:
@@ -27,20 +28,12 @@ async def async_handle_devoir_effectue(
             devoir_id,
             effectue,
         )
-        qcm = hass.config_entries.async_entries(DOMAIN)[0].data["qcm_filename"]
-        username = hass.config_entries.async_entries(DOMAIN)[0].data["username"]
-        password = hass.config_entries.async_entries(DOMAIN)[0].data["password"]
-        # Example: Access the coordinator # coordinator = entry.runtime_data.coordinator
-        # Example: Access the API client  # client = entry.runtime_data.client
-        async with EDApiClient(
-            username,
-            password,
-            hass.config.config_dir + "/" + qcm,
-            hass,
-        ) as client:
-            await client.post_homework(
-                eleve_id=eleve_id, devoir_id=devoir_id, effectue=effectue
-            )
-    except Exception:
+        client = entry.runtime_data.client
+        await client.post_homework(
+            eleve_id=eleve_id, devoir_id=devoir_id, effectue=effectue
+        )
+    except Exception as err:
         LOGGER.exception("Error on service devoir_effectue call")
-        return
+        raise HomeAssistantError(
+            f"Failed to mark homework as done: {err}"
+        ) from err

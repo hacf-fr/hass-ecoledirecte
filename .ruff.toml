@@ -13,20 +13,15 @@ ignore = [
     "COM812", # incompatible with formatter
     "ISC001", # incompatible with formatter
 
-    "A005",   # It is just wrong
-    "ANN401", # Opiniated warning on disallowing dynamically typed expressions
-    "D203",   # Conflicts with other rules
+
     "D213",   # Conflicts with other rules
     "RUF012", # Just broken
-    "TC006",  # Checks for unquoted type expressions in typing.cast() calls.
     "TID252", # Relative imports
 
     # Formatter conflicts
-    "COM812",
     "COM819",
     "D206",
     "E501",
-    "ISC001",
     "Q000",
     "Q001",
     "Q002",
@@ -61,3 +56,6 @@ keep-runtime-typing = true
 
 [lint.mccabe]
 max-complexity = 25
+
+[lint.pydocstyle]
+convention = "google"

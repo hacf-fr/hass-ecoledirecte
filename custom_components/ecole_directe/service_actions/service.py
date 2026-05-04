@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from homeassistant.exceptions import HomeAssistantError
 
-from custom_components.ecole_directe.const import DOMAIN, LOGGER
+from custom_components.ecole_directe.const import LOGGER
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant, ServiceCall
@@ -34,6 +34,5 @@ async def async_handle_devoir_effectue(
         )
     except Exception as err:
         LOGGER.exception("Error on service devoir_effectue call")
-        raise HomeAssistantError(
-            f"Failed to mark homework as done: {err}"
-        ) from err
+        msg = f"Failed to mark homework as done: {err}"
+        raise HomeAssistantError(msg) from err

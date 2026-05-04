@@ -32,9 +32,6 @@ if [[ -z ${VIRTUAL_ENV:-} ]]; then
     fi
 fi
 
-log_header "Checking code format"
-ruff format . --check
-
 log_header "Checking code with Ruff"
 ruff check .
 

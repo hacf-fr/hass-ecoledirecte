@@ -27,7 +27,7 @@ def format_state_value(value: Any, unit: str | None = None) -> str:
     if isinstance(value, bool):
         return "on" if value else "off"
 
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         formatted = f"{value:.2f}" if isinstance(value, float) else str(value)
         return f"{formatted} {unit}" if unit else formatted
 

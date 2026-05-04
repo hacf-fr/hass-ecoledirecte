@@ -267,7 +267,7 @@ Then:
 2. Open in VS Code
 3. Click "Reopen in Container" when prompted
 
-Both options give you the same fully-configured development environment with Home Assistant, Python 3.13, and all necessary tools.
+Both options give you the same fully-configured development environment with Home Assistant, Python 3.14, and all necessary tools.
 
 ---
 

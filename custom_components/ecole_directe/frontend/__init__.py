@@ -1,12 +1,16 @@
 """Enregistrement des modules JavaScript."""
 
+from __future__ import annotations
+
 import logging
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.http import StaticPathConfig
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_call_later
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 from ..const import JSMODULES, URL_BASE
 

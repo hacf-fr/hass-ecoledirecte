@@ -106,7 +106,7 @@ class EDDevoirCard extends BaseEDCard {
   }
 
   getdevoirRow(devoir, index) {
-    let description = devoir.description.trim().replace("\n", "<br />");
+    let description = devoir.description.trim().replace(/\n/g, "<br />");
 
     return html`
       <tr class="${devoir.effectue ? "devoir-done" : ""}">

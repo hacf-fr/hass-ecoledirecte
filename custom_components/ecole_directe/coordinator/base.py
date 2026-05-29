@@ -545,7 +545,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                                         "is_modifie",
                                         "is_annule",
                                     ],
-                                    "new_timetable",
+                                    "edt_changement",
                                     eleve,
                                     item_identifier="id",
                                 )
@@ -573,7 +573,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                                         "is_modifie",
                                         "is_annule",
                                     ],
-                                    "new_timetable",
+                                    "edt_changement",
                                     eleve,
                                     item_identifier="id",
                                 )
@@ -603,7 +603,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                                         "is_modifie",
                                         "is_annule",
                                     ],
-                                    "new_timetable",
+                                    "edt_changement",
                                     eleve,
                                     item_identifier="id",
                                 )
@@ -766,13 +766,6 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             } == {key: item.get(key) for key in compare_keys}:
                                 found = True
                                 break
-                        # Fallback: match by the compare keys
-                        elif item_identifier is None and {
-                            key: previous_item.get(key) for key in compare_keys
-                        } == {key: item.get(key) for key in compare_keys}:
-                            matched_previous = previous_item
-                            found = True
-                            break
 
                     if not found:
                         not_found_items.append(
@@ -785,13 +778,6 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 for not_found_item in not_found_items:
                     # Trigger events with both previous and current item when available
                     self.trigger_event(event_type, eleve, not_found_item)
-                    LOGGER.debug(
-                        "Event type %s: New item found for %s for key %s: %s",
-                        event_type,
-                        eleve.get_fullname(),
-                        data_key,
-                        not_found_item,
-                    )
         except Exception:
             LOGGER.exception(
                 "Error comparing data: self[%s] previous_data[%s] data_key[%s]",

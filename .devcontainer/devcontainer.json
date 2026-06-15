@@ -19,7 +19,7 @@
     "APT_UPDATE": "0"
   },
   "features": {
-    "ghcr.io/devcontainers/features/node:2": {
+    "ghcr.io/devcontainers/features/node:": {
       "version": "lts"
     },
     "ghcr.io/devcontainers/features/github-cli:1": {},

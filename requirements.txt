@@ -11,5 +11,5 @@
 # Only list additional packages your integration needs
 pip>=26.1.2
 ruff==0.16.0
-ecoledirecte>=0.2.9
+ecoledirecte>=0.2.10
 Unidecode>=1.4.0

@@ -18,4 +18,4 @@
 # Provides additional fixtures and utilities specifically for custom component testing
 pytest-homeassistant-custom-component==0.13.325
 Unidecode>=1.4.0
-ecoledirecte>=0.2.9
+ecoledirecte>=0.2.10

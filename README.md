@@ -74,7 +74,7 @@ max: 10
 
 Cette intégration fournit plusieurs entités, toujours préfixées avec `ed_PRENOM_NOM` (où `PRENOM` et `NOM` sont remplacé).
 Les entités sont mises à jour toutes les 30 minutes.
-Dans vos dashboards, vous pouvez utiliser les cartes [EcoleDirecteHACards](https://github.com/hacf-fr/EcoleDirecteHACards).
+Dans vos dashboards, vous pouvez utiliser les cartes incluses dans cette intégration [EcoleDirecteHACards](https://github.com/hacf-fr/hass-ecoledirecte/tree/main/src/cards).
 | Entité | Description |
 |--------|-------------|
 | `sensor.ed_PRENOM_NOM` | informations basique de l'enfant |

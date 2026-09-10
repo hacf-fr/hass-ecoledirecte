@@ -12,10 +12,8 @@ https://developers.home-assistant.io/docs/config_entries_config_flow_handler
 
 from __future__ import annotations
 
-import json
 from typing import Any
 
-import anyio
 from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.exceptions import HomeAssistantError
@@ -82,16 +80,10 @@ class EDConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                path = self.hass.config.config_dir + "/" + user_input["qcm_filename"]
-                if not await anyio.Path(path).is_file():
-                    async with await anyio.open_file(path, "w", encoding="utf-8") as f:
-                        await f.write(json.dumps({}, indent=4, ensure_ascii=False))
-
                 await validate_credentials(
                     self.hass,
                     username=user_input[CONF_USERNAME],
                     password=user_input[CONF_PASSWORD],
-                    qcm_path=path,
                 )
 
             except Exception as exception:
@@ -149,12 +141,10 @@ class EDConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                path = self.hass.config.config_dir + "/" + user_input["qcm_filename"]
                 await validate_credentials(
                     self.hass,
                     username=user_input[CONF_USERNAME],
                     password=user_input[CONF_PASSWORD],
-                    qcm_path=path,
                 )
             except Exception as exception:
                 errors["base"] = self._map_exception_to_error(exception)
@@ -210,12 +200,10 @@ class EDConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                path = self.hass.config.config_dir + "/" + user_input["qcm_filename"]
                 await validate_credentials(
                     self.hass,
                     username=user_input[CONF_USERNAME],
                     password=user_input[CONF_PASSWORD],
-                    qcm_path=path,
                 )
             except Exception as exception:
                 errors["base"] = self._map_exception_to_error(exception)

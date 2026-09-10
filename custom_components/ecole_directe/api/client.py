@@ -117,14 +117,13 @@ class EDApiClient:
         self,
         user: str,
         pwd: str,
-        qcm_path: str,
         hass: HomeAssistant,
     ) -> None:
         """Save some information needed to login the client."""
         self.hass = hass
         self.username = user
         self.password = pwd
-        self.qcm_path = qcm_path
+        self.qcm_json: dict[str, list[str]] = {}
         self.log_folder = self.hass.config.config_dir + INTEGRATION_PATH + "logs/"
         self.test_folder = self.hass.config.config_dir + INTEGRATION_PATH + "test/"
         Path(self.log_folder).mkdir(parents=True, exist_ok=True)
@@ -148,23 +147,28 @@ class EDApiClient:
             await self.ed_client.close()
 
     async def save_question(self, qcm_json: Any) -> None:
-        """Save questions to file."""
-        await save_json_file(qcm_json, self.qcm_path)
+        """Handle a new QCM question."""
+        if isinstance(qcm_json, dict):
+            self.qcm_json = qcm_json
+
         event_data = {
             "child_name": None,
             "type": "new_qcm",
+            "qcm_json": qcm_json,
         }
         self.hass.bus.fire(EVENT_TYPE, event_data)
-        LOGGER.debug("Saved question to file")
+        LOGGER.debug("QCM question received")
+
+    async def set_qcm_answer(self, question: str, answer: str) -> None:
+        """Set the selected QCM answer for the next login attempt."""
+        self.qcm_json[question] = [answer]
 
     async def login(self) -> Any:
         """Login to Ecole Directe."""
-        LOGGER.debug("loading QCM file")
-        self.qcm = await load_json_file(self.qcm_path)
         self.ed_client: EDClient = EDClient(
             username=self.username,
             password=self.password,
-            qcm_json=self.qcm,
+            qcm_json=self.qcm_json,
         )
         self.ed_client.on_new_question(self.save_question)
         login = await self.ed_client.login()
@@ -627,14 +631,10 @@ async def save_json_file(json_content: Any, file_path: str) -> None:
         await f.write(json.dumps(json_content, indent=4, ensure_ascii=False))
 
 
-async def check_ecoledirecte_session(
-    user: str, pwd: str, qcm_file_name: str, hass: HomeAssistant
-) -> bool:
+async def check_ecoledirecte_session(user: str, pwd: str, hass: HomeAssistant) -> bool:
     """Check if credentials to Ecole Directe are ok."""
     try:
-        async with EDApiClient(
-            user, pwd, hass.config.config_dir + "/" + qcm_file_name, hass
-        ) as client:
+        async with EDApiClient(user, pwd, hass=hass) as client:
             await client.login()
     except QCMException:
         return True

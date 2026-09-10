@@ -13,10 +13,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from custom_components.ecole_directe.const import ATTRIBUTION
+from custom_components.ecole_directe.const import ATTRIBUTION, DOMAIN
 from custom_components.ecole_directe.coordinator import EDDataUpdateCoordinator
 
 if TYPE_CHECKING:
@@ -60,14 +60,13 @@ class EDEntity(CoordinatorEntity[EDDataUpdateCoordinator]):
         self._attr_unique_id = (
             f"{coordinator.config_entry.entry_id}_{entity_description.key}"
         )
+
+        device = f"ED - {self.coordinator.config_entry.title}"
+
         self._attr_device_info = DeviceInfo(
-            identifiers={
-                (
-                    coordinator.config_entry.domain,
-                    coordinator.config_entry.entry_id,
-                ),
-            },
-            name=coordinator.config_entry.title,
-            manufacturer=coordinator.config_entry.domain,
-            model=coordinator.data.get("model", "Unknown"),
+            name=device,
+            entry_type=DeviceEntryType.SERVICE,
+            identifiers={(DOMAIN, device)},
+            manufacturer="Ecole Directe",
+            model=device,
         )

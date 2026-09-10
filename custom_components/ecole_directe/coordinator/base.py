@@ -15,7 +15,9 @@ from datetime import date, datetime, timedelta, tzinfo
 from typing import TYPE_CHECKING, Any
 
 from ecoledirecte_api.client import QCMException
+from homeassistant.core import Event, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import (
     TimestampDataUpdateCoordinator,
     UpdateFailed,
@@ -26,7 +28,9 @@ from custom_components.ecole_directe.api import (
     EDApiClientAuthenticationError,
     EDApiClientError,
 )
-from custom_components.ecole_directe.api.client import EDApiClient
+from custom_components.ecole_directe.api.client import (
+    EDApiClient,
+)
 from custom_components.ecole_directe.const import (
     AUGUST,
     DEFAULT_LUNCH_BREAK_TIME,
@@ -34,6 +38,7 @@ from custom_components.ecole_directe.const import (
     FAKE_ON,
     GRADES_TO_DISPLAY,
     LOGGER,
+    MAX_QUESTIONS,
 )
 from custom_components.ecole_directe.helpers import get_unique_id
 
@@ -88,6 +93,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         )
         self.timezone = dt_util.get_default_time_zone()
         LOGGER.debug("timezone: %s", self.timezone)
+        # Initialize QCM data store for persistence
+        self._qcm_store = Store(hass, 1, f"ecole_directe_qcm_{entry.entry_id}")
 
     async def _async_setup(self) -> None:
         """
@@ -106,7 +113,102 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         device_info = await self.config_entry.runtime_data.client.get_device_info()
         self._device_id = device_info["id"]
         """
+        self.data = {
+            "qcm_questions": {},
+            "qcm_selected_options": {},
+        }
+
+        # Load saved QCM data from disk
+        saved_qcm = await self._qcm_store.async_load()
+        if isinstance(saved_qcm, dict):
+            self.data["qcm_questions"] = saved_qcm.get("qcm_questions", {})
+            self.data["qcm_selected_options"] = saved_qcm.get(
+                "qcm_selected_options", {}
+            )
+            LOGGER.debug("Loaded saved QCM data: %s", saved_qcm)
+
         LOGGER.debug("Coordinator setup complete for %s", self.config_entry.entry_id)
+
+        @callback
+        def _handle_new_qcm_event(event: Event) -> None:
+            if event.data.get("type") != "new_qcm":
+                return
+
+            qcm_json = event.data.get("qcm_json", {})
+            self.hass.async_create_task(self._async_handle_new_qcm_event(qcm_json))
+
+        self.config_entry.async_on_unload(
+            self.hass.bus.async_listen(EVENT_TYPE, _handle_new_qcm_event)
+        )
+
+    async def _async_handle_new_qcm_event(self, qcm_json: dict[str, list[str]]) -> None:
+        """Handle incoming QCM events and update stored questions."""
+        LOGGER.debug("Handling new QCM event with data: %s", qcm_json)
+        self._update_qcm_data(qcm_json)
+        self.async_set_updated_data(self.data)
+
+    def _update_qcm_data(self, qcm_json: dict[str, list[str]]) -> None:
+        """Update coordinator data from the latest QCM challenge."""
+        LOGGER.debug("Updating QCM data with new challenge: %s", qcm_json)
+        questions: dict[str, list[str]] = {}
+        for question, propositions in qcm_json.items():
+            if not isinstance(question, str) or not isinstance(propositions, list):
+                continue
+            if len(propositions) < MAX_QUESTIONS:
+                continue
+
+            questions[question] = [str(option) for option in propositions]
+
+        if questions:
+            # Merge new questions with existing ones instead of replacing
+            self.data["qcm_questions"].update(questions)
+            # Preserve all selected options (both old and new)
+            # Only remove answers for questions that no longer exist
+            self.data["qcm_selected_options"] = {
+                question: answer
+                for question, answer in self.data.get(
+                    "qcm_selected_options", {}
+                ).items()
+                if question in self.data["qcm_questions"]
+            }
+        else:
+            self.data["qcm_questions"] = {}
+            self.data["qcm_selected_options"] = {}
+
+        LOGGER.debug("Updated QCM data questions: %s", self.data["qcm_questions"])
+        LOGGER.debug(
+            "Updated QCM data selected options: %s", self.data["qcm_selected_options"]
+        )
+
+        # Persist updated QCM data to disk
+        self.hass.async_create_task(self._async_save_qcm_data())
+
+    def set_qcm_answer(self, question: str, option: str) -> None:
+        """Store the selected QCM answer for the next login attempt."""
+        LOGGER.debug(
+            "Setting QCM answer for question '%s' to option '%s'", question, option
+        )
+        if self.data is None:
+            return
+
+        if question not in self.data.get("qcm_questions", {}):
+            return
+
+        self.data.setdefault("qcm_selected_options", {})[question] = option
+        # Persist QCM data to disk
+        self.hass.async_create_task(self._async_save_qcm_data())
+
+    async def _async_save_qcm_data(self) -> None:
+        """Save QCM data to disk for persistence."""
+        if self.data is None:
+            return
+
+        qcm_data = {
+            "qcm_questions": self.data.get("qcm_questions", {}),
+            "qcm_selected_options": self.data.get("qcm_selected_options", {}),
+        }
+        await self._qcm_store.async_save(qcm_data)
+        LOGGER.debug("Saved QCM data to store: %s", qcm_data)
 
     async def _async_update_data(self) -> Any:
         """
@@ -153,22 +255,36 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             async with EDApiClient(
                 self.config_entry.data["username"],
                 self.config_entry.data["password"],
-                self.hass.config.config_dir
-                + "/"
-                + self.config_entry.data["qcm_filename"],
                 self.hass,
             ) as client:
+                if self.data is not None:
+                    for question, selected_option in self.data.get(
+                        "qcm_selected_options", {}
+                    ).items():
+                        if selected_option is None:
+                            continue
+                        client.qcm_json[question] = [selected_option]
+
                 try:
                     await client.login()
                 except QCMException:
-                    LOGGER.exception("Unable to init ecole directe client")
-                    return None
+                    LOGGER.warning("QCM verification pending for ecole directe client")
+                    return self.data
                 except Exception:
-                    LOGGER.critical("Unknow error on login")
-                    return None
+                    LOGGER.critical("Unknown error on login")
+                    return self.data
 
-                self.data = {}
-                self.data["session"] = client
+                # Preserve QCM data across updates so saved questions persist
+                previous_qcm_questions = (self.data or {}).get("qcm_questions", {})
+                previous_qcm_selected_options = (self.data or {}).get(
+                    "qcm_selected_options", {}
+                )
+
+                self.data = {
+                    "session": client,
+                    "qcm_questions": previous_qcm_questions,
+                    "qcm_selected_options": previous_qcm_selected_options,
+                }
 
                 current_year = datetime.now(self.timezone).year
                 if datetime.now(self.timezone).month >= AUGUST:

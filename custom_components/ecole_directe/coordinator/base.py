@@ -11,9 +11,11 @@ https://developers.home-assistant.io/docs/integration_fetching_data#coordinated-
 
 from __future__ import annotations
 
+import json
 from datetime import date, datetime, timedelta, tzinfo
 from typing import TYPE_CHECKING, Any
 
+import anyio
 from ecoledirecte_api.client import QCMException
 from homeassistant.core import Event, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
@@ -34,8 +36,10 @@ from custom_components.ecole_directe.api.client import (
 from custom_components.ecole_directe.const import (
     AUGUST,
     DEFAULT_LUNCH_BREAK_TIME,
+    DOMAIN,
     EVENT_TYPE,
     FAKE_ON,
+    FILENAME_QCM,
     GRADES_TO_DISPLAY,
     LOGGER,
     MAX_QUESTIONS,
@@ -127,6 +131,9 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             )
             LOGGER.debug("Loaded saved QCM data: %s", saved_qcm)
 
+        # Check for legacy ecoledirecte_qcm.json file, migrate and delete it
+        await self.async_migrate_legacy_qcm_file()
+
         LOGGER.debug("Coordinator setup complete for %s", self.config_entry.entry_id)
 
         @callback
@@ -209,6 +216,93 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         }
         await self._qcm_store.async_save(qcm_data)
         LOGGER.debug("Saved QCM data to store: %s", qcm_data)
+
+    async def async_migrate_legacy_qcm_file(self) -> None:
+        """Check if legacy QCM file exists, read it, convert it to current usage and delete it."""
+        filename = self.config_entry.data.get("qcm_filename", FILENAME_QCM)
+        candidate_paths = [self.hass.config.path(filename)]
+        if filename != FILENAME_QCM:
+            candidate_paths.append(self.hass.config.path(FILENAME_QCM))
+
+        for file_path_str in candidate_paths:
+            file_path = anyio.Path(file_path_str)
+            try:
+                if not await file_path.is_file():
+                    continue
+
+                LOGGER.debug("Found legacy QCM file at %s, migrating", file_path_str)
+                content = await file_path.read_text(encoding="utf-8")
+                legacy_data: Any = json.loads(content)
+
+                if isinstance(legacy_data, dict):
+                    if self.data is None:
+                        self.data = {
+                            "qcm_questions": {},
+                            "qcm_selected_options": {},
+                        }
+
+                    migrated = False
+                    for question, propositions in legacy_data.items():
+                        if not isinstance(question, str):
+                            continue
+                        if isinstance(propositions, list):
+                            options = [str(opt) for opt in propositions]
+                        elif isinstance(propositions, str):
+                            options = [propositions]
+                        else:
+                            continue
+
+                        if not options:
+                            continue
+
+                        if question not in self.data["qcm_questions"]:
+                            self.data["qcm_questions"][question] = options
+                            migrated = True
+                        else:
+                            for opt in options:
+                                if opt not in self.data["qcm_questions"][question]:
+                                    self.data["qcm_questions"][question].append(opt)
+                                    migrated = True
+
+                        if question not in self.data["qcm_selected_options"]:
+                            self.data["qcm_selected_options"][question] = options[0]
+                            migrated = True
+
+                    if migrated:
+                        await self._async_save_qcm_data()
+                        LOGGER.debug(
+                            "Migrated QCM data from %s into coordinator data",
+                            file_path_str,
+                        )
+
+                        # Sync migrated data to any other ecole_directe config entries without QCM data
+                        for entry in self.hass.config_entries.async_entries(DOMAIN):
+                            if entry.entry_id != self.config_entry.entry_id:
+                                other_store = Store(
+                                    self.hass, 1, f"ecole_directe_qcm_{entry.entry_id}"
+                                )
+                                other_data = await other_store.async_load()
+                                if not other_data:
+                                    await other_store.async_save(
+                                        {
+                                            "qcm_questions": dict(
+                                                self.data["qcm_questions"]
+                                            ),
+                                            "qcm_selected_options": dict(
+                                                self.data["qcm_selected_options"]
+                                            ),
+                                        }
+                                    )
+
+                await file_path.unlink(missing_ok=True)
+                LOGGER.info(
+                    "Legacy QCM file '%s' migrated and deleted successfully",
+                    file_path_str,
+                )
+            except Exception as err:
+                LOGGER.warning(
+                    "Error while migrating legacy QCM file '%s': %s", file_path_str, err
+                )
 
     async def _async_update_data(self) -> Any:
         """

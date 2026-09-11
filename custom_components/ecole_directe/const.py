@@ -13,6 +13,7 @@ LOGGER: Logger = getLogger(__package__)
 DOMAIN: Final[str] = "ecole_directe"
 ATTRIBUTION: Final[str] = "Data provided by Ecole Directe API"
 EVENT_TYPE: Final[str] = DOMAIN + "_event"
+FILENAME_QCM: Final[str] = "ecoledirecte_qcm.json"
 INTEGRATION_PATH: Final[str] = "/custom_components/" + DOMAIN + "/"
 PLATFORMS: Final[list[Platform]] = [Platform.SENSOR, Platform.SELECT]
 

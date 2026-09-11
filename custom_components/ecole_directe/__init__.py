@@ -154,9 +154,6 @@ async def async_setup_entry(
     client = EDApiClient(
         user=entry.data[CONF_USERNAME],  # From config flow setup
         pwd=entry.data[CONF_PASSWORD],  # From config flow setup
-        qcm_path=hass.config.config_dir
-        + "/"
-        + entry.data["qcm_filename"],  # From config flow setup
         hass=hass,
     )
 

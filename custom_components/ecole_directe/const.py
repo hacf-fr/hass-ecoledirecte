@@ -15,7 +15,7 @@ ATTRIBUTION: Final[str] = "Data provided by Ecole Directe API"
 EVENT_TYPE: Final[str] = DOMAIN + "_event"
 FILENAME_QCM: Final[str] = "ecoledirecte_qcm.json"
 INTEGRATION_PATH: Final[str] = "/custom_components/" + DOMAIN + "/"
-PLATFORMS: Final[list[Platform]] = [Platform.SENSOR]
+PLATFORMS: Final[list[Platform]] = [Platform.SENSOR, Platform.SELECT]
 
 # default values for options
 DEFAULT_REFRESH_INTERVAL: Final[int] = 30
@@ -26,6 +26,7 @@ DEFAULT_ALLOW_NOTIFICATION: Final[bool] = False
 DEFAULT_LUNCH_BREAK_TIME: Final[str] = "13:00"
 MAX_STATE_ATTRS_BYTES: Final[int] = 16384
 AUGUST: Final[int] = 8
+MAX_QUESTIONS: Final[int] = 2
 
 DEFAULT_ENABLE_DEBUGGING: Final[bool] = False
 FAKE_ON: Final[bool] = False

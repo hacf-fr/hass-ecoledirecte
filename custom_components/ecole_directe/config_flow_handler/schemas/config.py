@@ -22,7 +22,6 @@ from homeassistant.helpers import selector
 
 from custom_components.ecole_directe.const import (
     DEFAULT_ALLOW_NOTIFICATION,
-    FILENAME_QCM,
 )
 
 if TYPE_CHECKING:
@@ -56,7 +55,6 @@ def get_user_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
                     type=selector.TextSelectorType.PASSWORD,
                 ),
             ),
-            vol.Optional("qcm_filename", default=FILENAME_QCM): str,
             vol.Optional(
                 "allow_notification",
                 default=DEFAULT_ALLOW_NOTIFICATION,
@@ -93,7 +91,6 @@ def get_reconfigure_schema(username: str) -> vol.Schema:
                     type=selector.TextSelectorType.PASSWORD,
                 ),
             ),
-            vol.Optional("qcm_filename", default=FILENAME_QCM): str,
             vol.Optional(
                 "allow_notification",
                 default=DEFAULT_ALLOW_NOTIFICATION,
@@ -130,7 +127,6 @@ def get_reauth_schema(username: str) -> vol.Schema:
                     type=selector.TextSelectorType.PASSWORD,
                 ),
             ),
-            vol.Optional("qcm_filename", default=FILENAME_QCM): str,
         },
     )
 

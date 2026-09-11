@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 
 async def validate_credentials(
-    hass: HomeAssistant, username: str, password: str, qcm_path: str
+    hass: HomeAssistant, username: str, password: str
 ) -> None:
     """
     Validate user credentials by testing API connection.
@@ -33,7 +33,6 @@ async def validate_credentials(
         hass: Home Assistant instance.
         username: The username to validate.
         password: The password to validate.
-        qcm_path: Path to the QCM file.
 
     Raises:
         EDApiClientAuthenticationError: If credentials are invalid.
@@ -46,7 +45,6 @@ async def validate_credentials(
             user=username,
             pwd=password,
             hass=hass,
-            qcm_path=qcm_path,
         ) as client:
             await client.login()
     except QCMException:

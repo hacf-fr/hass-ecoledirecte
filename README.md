@@ -64,7 +64,7 @@ max: 10
 
 ### Double autentification
 
-Avant la version v1.2.2, la double autentification était gérée via un fichier qcm au format json. Certain utilisateurs ayant des difficultés à le gérer. Les question sont maintenant représentées dans des entités.
+Avant la version v1.2.2, la double autentification était gérée via un fichier qcm au format json. Certain utilisateurs ayant des difficultés à le gérer, les question sont maintenant représentées dans des entités.
 Lors de la première connection, il y a un seul service avec deux questions:
 ![First login](doc/first_login.png)
 

@@ -137,7 +137,7 @@ Evénement | Description
 `new_encouragement` | nouvel encouragement
 `new_qcm` | nouveau qcm
 
-## Enable Debug Logging
+## Activer les logs de debug
 
 Pour activer le mode debug de cette intégration, ajoutez le yaml suivant dans le fichier `configuration.yaml` et redémarrer Home Assistant :
 
@@ -149,34 +149,33 @@ logger:
     ecoledirecte_api: debug
 ```
 
-## 🤝 Contributing
+## 🤝 Contributions
 
 Les contributions sont les bienvenues!
 
 ---
 
-## 🤖 AI-Assisted Development
+## 🤖 Développement assisté par IA
 
-> **ℹ️ Transparency Notice**
+> **ℹ️ Avis de transparence**
 >
-> This integration was developed with assistance from AI coding agents (GitHub Copilot, Claude, and others). While the codebase follows Home Assistant Core standards, AI-generated code may not be reviewed or tested to the same extent as manually written code.
+> Cette intégration a parfois été développée avec l'aide d'agents de codage IA (GitHub Copilot, Claude et autres). Bien que le code respecte les normes Home Assistant Core, le code généré par IA peut ne pas avoir été révisé ou testé dans la même mesure qu'un code écrit manuellement.
 >
-> AI tools were used to:
+> Les outils d'IA ont été utilisés pour :
 >
-> - Generate boilerplate code following Home Assistant patterns
-> - Implement standard integration features (config flow, coordinator, entities)
-> - Ensure code quality and type safety
-> - Write documentation and comments
+> - Générer du code générique respectant les modèles Home Assistant
+> - Implémenter des fonctionnalités d'intégration standard (flux de configuration, coordinateur, entités)
+> - Assurer la qualité du code et la sécurité du typage
+> - Rédiger la documentation et les commentaires
 >
-> Please be aware that AI-assisted development may result in unexpected behavior or edge cases that haven't been thoroughly tested. If you encounter any issues, please [open an issue](../../issues) on GitHub.
+> Veuillez noter que le développement assisté par IA peut entraîner des comportements inattendus ou des cas particuliers qui n'ont pas été minutieusement testés. Si vous rencontrez des problèmes, veuillez [ouvrir un problème](../../issues) sur GitHub.
 >
-> *Note: This section can be removed or modified if AI assistance was not used in your integration's development.*
 
 ---
 
-## 📄 License
+## 📄 Licence
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de détails.
 
 ---
 

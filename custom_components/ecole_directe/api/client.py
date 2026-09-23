@@ -353,6 +353,7 @@ class EDApiClient:
             "description": contenu,
             "effectue": data["aFaire"].get("effectue", False),
             "interrogation": data.get("interrogation", False),
+            "documents": data["aFaire"].get("documents", []),
         }
 
     async def post_homework(

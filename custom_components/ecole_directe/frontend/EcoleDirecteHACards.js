@@ -312,7 +312,7 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),D=V.prototy
               >`:""}
         </td>
         <td class="grade-detail">
-          <span class="grade-value">${a}</span>
+          ${e.non_significatif ? b`<span class="grade-value non-significatif">${a}</span>` : b`<span class="grade-value">${a}</span>`}
           ${this.config.display_class_average&&e.moyenne_classe?b`<span class="grade-class-average"
                 >Moy. ${e.moyenne_classe}</span
               >`:""}
@@ -388,9 +388,14 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),D=V.prototy
       }
       .grade-detail {
         text-align: right;
+        width: 40%;
       }
       .grade-value {
         font-weight: bold;
+      }
+
+      .non-significatif {
+        font-style: italic;
       }
       .grade-value,
       .grade-class-average {

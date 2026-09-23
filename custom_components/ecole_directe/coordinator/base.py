@@ -623,6 +623,13 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                                 "new_evaluation",
                                 eleve,
                             )
+
+                            self.data[f"{eleve.get_fullname_lower()}_periodes_moyennes"] = (
+                                await client.get_periodes_moyennes(
+                                    eleve,
+                                    year_data,
+                                )
+                            )
                         except Exception:
                             LOGGER.exception("Error getting grades from ecole directe")
 

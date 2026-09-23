@@ -32,7 +32,7 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),D=V.prototy
       </td>
     </tr>`}getTimetableRow(t){let i=new Date().getTime(),a=Date.parse(t.start_at),s=Date.parse(t.end_at),n=g``;this.config.display_lunch_break&&t.is_afternoon&&!this.lunchBreakRendered&&(n=this.getBreakRow("Repas",this.config.dim_ended_lessons&&a<i),this.lunchBreakRendered=!0);let o=g`
       <tr
-        class="${t.is_annule?"lesson-canceled":""} ${this.config.dim_ended_lessons&&s<i?"lesson-ended":""}"
+        class="${t.is_annule?"lesson-canceled":t.is_modifie?"lesson-modified":""} ${this.config.dim_ended_lessons&&s<i?"lesson-ended":""}"
       >
         <td>
           ${t.start_time}<br />
@@ -164,6 +164,18 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),D=V.prototy
       }
       .lesson-canceled span.lesson-status {
         background-color: rgb(250, 50, 75);
+      }
+      .lesson-modified span.lesson-name {
+ 	font-style: italic;
+      }
+      .lesson-modified-dot {
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background-color: orange;
+	margin-left: 6px;
+	vertical-align: middle;
       }
       .lesson-ended {
         opacity: 0.3;

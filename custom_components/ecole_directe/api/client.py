@@ -829,6 +829,7 @@ def get_lesson(data: Any, lunch_break_time: time) -> dict:
         "lesson": data["text"],
         "salle": data["salle"],
         "is_annule": data["isAnnule"],
+        "is_modifie": data["isModifie"],
         "background_color": data["color"],
         "prof": data["prof"],
         "dispense": data["dispense"],

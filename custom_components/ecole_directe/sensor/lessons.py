@@ -80,6 +80,7 @@ class EDLessonsSensor(EDGenericSensor):
         if self._key in self.coordinator.data:
             lessons = self.coordinator.data[self._key]
             canceled_counter = None
+            modified_counter = None
             lunch_break_time = datetime.strptime(
                 DEFAULT_LUNCH_BREAK_TIME,
                 "%H:%M",
@@ -92,6 +93,7 @@ class EDLessonsSensor(EDGenericSensor):
                 self._lunch_break_end_at = None
                 self._date = None
                 canceled_counter = 0
+                modified_counter = 0
                 for lesson in lessons:
                     index = lessons.index(lesson)
 
@@ -103,6 +105,8 @@ class EDLessonsSensor(EDGenericSensor):
                         self._date = lesson["start"].strftime("%Y-%m-%d")
                     if lesson["is_annule"]:
                         canceled_counter += 1
+                    elif lesson["is_modifie"]:
+                        modified_counter += 1
                     if single_day and lesson["is_annule"] is False:
                         start = lesson["start"].strftime("%H:%M")
                         if self._start_at is None or start < self._start_at:
@@ -139,6 +143,7 @@ class EDLessonsSensor(EDGenericSensor):
             {
                 "Emploi du temps": attributes,
                 "Cours annulés": canceled_counter,
+                "Cours modifiés": modified_counter,
             }
         )
 

@@ -353,6 +353,7 @@ class EDApiClient:
             "description": contenu,
             "effectue": data["aFaire"].get("effectue", False),
             "interrogation": data.get("interrogation", False),
+            "documents": data["aFaire"].get("documents", []),
         }
 
     async def post_homework(
@@ -808,6 +809,18 @@ def get_disciplines_periode(data: Any) -> list:
         raise
     return disciplines
 
+LEVEL_MAPPING: dict[str, str] = {
+    "1": "Non atteint",
+    "2": "Partiellement atteint",
+    "3": "Atteint",
+    "4": "Dépassé",
+}
+
+def get_level(valeur: str | None) -> str:
+    """Retourne le niveau sous forme de texte selon la valeur."""
+    if valeur is None:
+        return "Inconnu"
+    return LEVEL_MAPPING.get(str(valeur), "Inconnu")
 
 def get_evaluation(data: Any, fallback_matiere: str | None = None) -> dict:
     """Get evaluation information."""
@@ -830,6 +843,7 @@ def get_evaluation(data: Any, fallback_matiere: str | None = None) -> dict:
                     "competence": competence.get("libelleCompetence"),
                     "descriptif": competence.get("descriptif"),
                     "valeur": competence.get("valeur"),
+                    "level": get_level(competence.get("valeur")),
                 }
                 for competence in elements_programme
             ],
@@ -841,24 +855,11 @@ def get_evaluation(data: Any, fallback_matiere: str | None = None) -> dict:
 
 def get_competence(data: Any) -> dict:
     """Get grade information."""
-    valeur = data.get("valeur")
-    match valeur:
-        case "1":
-            level = "Maîtrise insuffisante"
-        case "2":
-            level = "Maîtrise fragile"
-        case "3":
-            level = "Maîtrise satisfaisante"
-        case "4":
-            level = "Très bonne maîtrise"
-        case _:
-            level = "Unknown"
-
     return {
         "competence": data.get("libelleCompetence"),
         "descriptif": data.get("descriptif"),
-        "valeur": valeur,
-        "level": level,
+        "valeur": data.get("valeur"),
+        "level": get_level(data.get("valeur")),
     }
 
 
@@ -893,6 +894,7 @@ def get_lesson(data: Any, lunch_break_time: time) -> dict:
         "lesson": data["text"],
         "salle": data["salle"],
         "is_annule": data["isAnnule"],
+        "is_modifie": data["isModifie"],
         "background_color": data["color"],
         "prof": data["prof"],
         "dispense": data["dispense"],

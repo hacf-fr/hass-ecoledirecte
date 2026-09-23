@@ -198,6 +198,23 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),D=V.prototy
           </label>
           <input type="checkbox" id="devoir-${i}" />
           <span class="devoir-description">${Fe(a)}</span>
+          ${Array.isArray(t.documents) && t.documents.length > 0 ? m`
+          <div class="devoir-documents">
+              <ha-icon icon="mdi:file-document-multiple-outline"></ha-icon>
+              <span>
+                ${t.documents.length} document${t.documents.length > 1 ? "s" : ""}
+              </span>
+            </div>
+
+            <div class="devoir-document-list">
+              ${t.documents.map(d => m`
+                <div class="devoir-document">
+                  <ha-icon icon="mdi:file-document-outline"></ha-icon>
+                  <span>${d.libelle}</span>
+                </div>
+              `)}
+            </div>
+          ` : m``}
         </td>
         <td class="devoir-status">
           <span
@@ -297,6 +314,41 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),D=V.prototy
       }
       .devoir-detail input {
         display: none;
+      }
+      .devoir-documents {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 3px;
+        padding-top: 0px;
+        padding-top: 2px;
+        padding-bottom: 2px;
+        padding-left: 0px;
+        font-size: 0.85em;
+        opacity: 0.8;
+      }
+      .devoir-documents ha-icon {
+        --mdc-icon-size: 18px;
+      }
+      .devoir-document-list {
+        margin-top: 5px;
+        margin-left: 0px;
+        padding-top: 0px;
+        padding-left: 4px;
+      }
+      .devoir-document {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+        margin: 0px;
+        padding: 0px;
+        padding-left: 4px;
+        font-size: 0.82em;
+        opacity: 0.85;
+      }
+      .devoir-document ha-icon {
+        flex-shrink: 0;
+        --mdc-icon-size: 16px;
       }
     `}static getStubConfig(){return{display_header:!0,reduce_done_devoir:!0,display_done_devoir:!0,enable_slider:!1}}static getConfigElement(){return document.createElement("ecole_directe-devoirs-card-editor")}};customElements.define("ecole_directe-devoirs-card",ee);window.customCards=window.customCards||[];window.customCards.push({type:"ecole_directe-devoirs-card",name:"Carte des devoirs pour Ecole Directe",description:"Affiche les devoirs pour Ecole Directe",documentationURL:"https://github.com/hacf-fr/EcoleDirecteHACards?tab=readme-ov-file#devoirs"});var Re=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),b=Re.prototype.html,Ze=Re.prototype.css,te=class extends _{initCard(){this.items_attribute_key="notes",this.header_title="Notes de ",this.no_data_message="Aucune note disponible"}getFormattedDate(e){return new Date(e).toLocaleDateString("fr-FR",{weekday:"short",day:"2-digit",month:"2-digit"}).replace(/^(.)/,t=>t.toUpperCase())}getGradeRow(e){let t=parseFloat(e.note.replace(",",".")),i=[];if(this.config.compare_with_ratio!==null){let s=parseFloat(this.config.compare_with_ratio),n=t/parseFloat(e.sur.replace(",","."));i.push(n>=s?"above-ratio":"below-ratio")}else if(this.config.compare_with_class_average&&e.moyenne_classe){let s=parseFloat(e.moyenne_classe.replace(",","."));i.push(t>s?"above-average":"below-average")}let a=e.note_sur;if(this.config.grade_format==="short"&&(a=e.note),this.config.display_new_grade_notice){let s=new Date(e.date),n=new Date;s.getFullYear()===n.getFullYear()&&s.getMonth()===n.getMonth()&&s.getDate()===n.getDate()&&i.push("new-grade")}return b`
       <tr class="${i.join(" ")}">

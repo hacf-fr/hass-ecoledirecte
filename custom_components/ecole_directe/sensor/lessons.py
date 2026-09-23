@@ -92,17 +92,34 @@ class EDLessonsSensor(EDGenericSensor):
                 self._lunch_break_end_at = None
                 self._date = None
                 canceled_counter = 0
+                canceled_by_key = {
+                    (
+                        lesson["start_at"],
+                        lesson["end_at"],
+                        lesson["groupe_id"],
+                    ): lesson
+                    for lesson in lessons
+                    if lesson["is_annule"]
+                }
                 for lesson in lessons:
-                    index = lessons.index(lesson)
-
-                    if not (
-                        lesson["start_time"] == lessons[index - 1]["start_time"]
-                        and lesson["is_annule"]
-                    ):
-                        attributes.append(lesson)
-                        self._date = lesson["start"].strftime("%Y-%m-%d")
                     if lesson["is_annule"]:
                         canceled_counter += 1
+                        continue
+
+                    key = (
+                        lesson["start_at"],
+                        lesson["end_at"],
+                        lesson["groupe_id"],
+                    )
+
+                    canceled = canceled_by_key.get(key)
+
+                    if canceled:
+                        lesson["remplace"] = canceled["lesson"]
+
+                    attributes.append(lesson)
+                    self._date = lesson["start"].strftime("%Y-%m-%d")
+
                     if single_day and lesson["is_annule"] is False:
                         start = lesson["start"].strftime("%H:%M")
                         if self._start_at is None or start < self._start_at:

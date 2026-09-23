@@ -42,7 +42,7 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),D=V.prototy
           <span style="background-color:${t.background_color}"></span>
         </td>
         <td>
-          <span class="lesson-name">${t.lesson}</span>
+          <span class="lesson-name">${t.lesson} ${t.remplace?g`<span class="lesson-replaced">(remplace ${t.remplace})</span>`:""}</span>
           ${this.config.display_classroom?g`<span class="lesson-classroom">
                 ${t.salle?"Salle "+t.salle:""}
                 ${t.salle&&this.config.display_teacher?", ":""}
@@ -161,6 +161,11 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),D=V.prototy
       }
       .lesson-canceled span.lesson-name {
         text-decoration: line-through;
+      }
+      .lesson-replaced {
+        font-size: 0.85em;
+        font-style: italic;
+        opacity: 0.7;
       }
       .lesson-canceled span.lesson-status {
         background-color: rgb(250, 50, 75);

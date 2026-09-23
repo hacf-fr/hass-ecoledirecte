@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from ..api.client import LEVEL_MAPPING
+
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
@@ -47,15 +49,16 @@ class EDEvaluationsSensor(EDGenericSensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
-        if self._key in self.coordinator.data:
-            evaluations = self.coordinator.data[self._key]
+        if self.coordinator.data and self._key in self.coordinator.data:
+            evaluations = self.coordinator.data[self._key] or []
             for evaluation in evaluations:
                 attributes.append(evaluation)
 
-        result = super().extra_state_attributes
+        result = super().extra_state_attributes or {}
         result.update(
             {
                 "Evaluations": attributes,
+                "level_mapping": LEVEL_MAPPING,
             }
         )
         return result

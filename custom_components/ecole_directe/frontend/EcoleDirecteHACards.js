@@ -608,17 +608,33 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),D=V.prototy
       .average-class-min + .average-class-max:before {
         content: " - ";
       }
-    `}static getStubConfig(){return{display_header:!0,display_class_average:!0,compare_with_class_average:!0,compare_with_ratio:null,display_class_min:!0,display_class_max:!0}}static getConfigElement(){return document.createElement("ecole_directe-moyennes-card-editor")}};customElements.define("ecole_directe-moyennes-card",ie);window.customCards=window.customCards||[];window.customCards.push({type:"ecole_directe-moyennes-card",name:"Carte des moyennes pour Ecole Directe",description:"Affiche les moyennes pour Ecole Directe",documentationURL:"https://github.com/hacf-fr/EcoleDirecteHACards?tab=readme-ov-file#moyennes"});var Te=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),S=Te.prototype.html,Ke=Te.prototype.css,ae=class extends _{initCard(){this.items_attribute_key="Evaluations",this.header_title="Evaluations de ",this.no_data_message="Pas d'\xE9valuation \xE0 afficher"}getFormattedDate(e){return new Date(e).toLocaleDateString("fr-FR",{weekday:"short",day:"2-digit",month:"2-digit"}).replace(/^(.)/,t=>t.toUpperCase())}getAcquisitionRow(e){return S`<tr class="acquisition-row">
-      <td>${e.competence}</td>
-      <td>${this.getAcquisitionIcon(e)}</td>
+    `}static getStubConfig(){return{display_header:!0,display_class_average:!0,compare_with_class_average:!0,compare_with_ratio:null,display_class_min:!0,display_class_max:!0}}static getConfigElement(){return document.createElement("ecole_directe-moyennes-card-editor")}};customElements.define("ecole_directe-moyennes-card",ie);window.customCards=window.customCards||[];window.customCards.push({type:"ecole_directe-moyennes-card",name:"Carte des moyennes pour Ecole Directe",description:"Affiche les moyennes pour Ecole Directe",documentationURL:"https://github.com/hacf-fr/EcoleDirecteHACards?tab=readme-ov-file#moyennes"});var Te=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),S=Te.prototype.html,Ke=Te.prototype.css,ae=class extends _{initCard(){this.items_attribute_key="Evaluations",this.header_title="Evaluations de ",this.no_data_message="Pas d'\xE9valuation \xE0 afficher"}getFormattedDate(e){return new Date(e).toLocaleDateString("fr-FR",{weekday:"short",day:"2-digit",month:"2-digit"}).replace(/^(.)/,t=>t.toUpperCase())}getAcquisitionRow(e,t){return S`
+      <tr class="acquisition-row acquisition-row-${t}">
+        <td></td>
+        <td colspan="2">
+          <div class="acquisition-item">
+            <span class="acquisition-description">
+              <span class="acquisition-label">${e.competence}</span>
+              ${e.descriptif ? S`
+                <span class="acquisition-detail">${e.descriptif}</span>
+              ` : ""}
+            </span>
+            ${this.getAcquisitionIcon(e)}
+          </div>
+        </td>
     </tr>`}getAcquisitionIcon(e){let t=this.config.mapping_evaluations[e.valeur]||e.valeur,i="";return t==="A+"?i="+":t==="Abs"&&(i="a"),S`
-      <span
-        title="${e.descriptif}"
-        class="acquisition-icon acquisition-icon-${t}"
-      >
-        ${i}
-      </span>
-    `}getEvaluationRow(e,t){let i=e.elements_programme,a=[],s=[],n="grey";for(let o=0;o<i.length;o++)a.push(this.getAcquisitionIcon(i[o])),s.push(this.getAcquisitionRow(i[o]));return S`
+      <div class="acquisition-status">
+        <span
+          title="${e.level}"
+          class="acquisition-icon acquisition-icon-${t}"
+        >
+          ${i}
+        </span>
+      </div>
+    `}
+    toggleEvaluation(e){let t=e.currentTarget,i=t.closest(".evaluation-group");i&&i.classList.toggle("open",t.checked)}
+    getEvaluationRow(e,t){let i=e.elements_programme,a=[],s=[],n="grey";for(let o=0;o<i.length;o++)a.push(this.getAcquisitionIcon(i[o])),s.push(this.getAcquisitionRow(i[o],t));return S`
+      <tbody class="evaluation-group">
       <tr class="evaluation-row">
         <td class="evaluation-color">
           <span style="background-color:${n}"></span>
@@ -627,7 +643,7 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),D=V.prototy
           <label for="evaluation-full-detail-${t}">
             <span class="evaluation-subject">${e.matiere}</span>
           </label>
-          <input type="checkbox" id="evaluation-full-detail-${t}" />
+          <input type="checkbox" id="evaluation-full-detail-${t}" @change="${this.toggleEvaluation}" />
           ${this.config.display_comment?S`<span class="evaluation-comment">${e.devoir}</span>`:""}
           ${this.config.display_date?S`<span class="evaluation-date"
                 >${this.getFormattedDate(e.date)}</span
@@ -635,8 +651,29 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),D=V.prototy
         </td>
         <td class="evaluation-detail">${a}</td>
       </tr>
-      ${s}
-    `}getCardContent(){if(this.hass.states[this.config.entity]){let t=this.getItems(),i=this.config.max_evaluations??t.length,a=[],s=[];for(let n=0;n<i&&!(n>=t.length);n++){let o=t[n];a.push(this.getEvaluationRow(o,n))}return a.length>0?s.push(S`<table>
+       ${s}
+      </tbody>
+    `}
+
+    getLegendHeader() {
+      const stateObj = this.hass.states[this.config.entity];
+
+      const levels = stateObj?.attributes?.level_mapping;
+      if (!levels) {
+        return S``;
+      }
+
+      return S`
+        <div class="evaluation-legend">
+          <span class="legend-item"><span class="acquisition-icon acquisition-icon-4"></span> ${levels["4"]}</span>
+          <span class="legend-item"><span class="acquisition-icon acquisition-icon-3"></span> ${levels["3"]}</span>
+          <span class="legend-item"><span class="acquisition-icon acquisition-icon-2"></span> ${levels["2"]}</span>
+          <span class="legend-item"><span class="acquisition-icon acquisition-icon-1"></span> ${levels["1"]}</span>
+        </div>
+      `;
+    }
+
+    getCardContent(){if(this.hass.states[this.config.entity]){let t=this.getItems(),i=this.config.max_evaluations??t.length,a=[],s=[];s.push(this.getLegendHeader());for(let n=0;n<i&&!(n>=t.length);n++){let o=t[n];a.push(this.getEvaluationRow(o,n))}return a.length>0?s.push(S`<table>
             ${a}
           </table>`):s.push(this.noDataMessage()),s}return[]}getDefaultConfig(){return{display_header:!0,display_description:!0,display_teacher:!0,display_date:!0,display_comment:!0,max_evaluations:null,mapping_evaluations:{}}}static get styles(){return Ke`
       ${super.styles}
@@ -654,12 +691,12 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),D=V.prototy
       }
       td.evaluation-color {
         width: 4px;
-        padding-top: 11px;
+        padding-top: 8px;
       }
       td.evaluation-color > span {
         display: inline-block;
         width: 4px;
-        height: 2rem;
+        height: 4rem;
         border-radius: 4px;
         background-color: grey;
       }
@@ -677,6 +714,7 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),D=V.prototy
       }
       .evaluation-description {
         display: block;
+        padding-left: 0px;
       }
       .evaluation-teacher {
         display: block;
@@ -697,6 +735,36 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),D=V.prototy
       }
       .evaluation-value {
         font-weight: bold;
+      }
+      .evaluation-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 6px;
+        align-items: center;
+        padding: 8px 12px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
+        font-size: 0.85em;
+        font-weight: normal;
+        color: var(--secondary-text-color, gray);
+      }
+      .evaluation-legend div, .legend-item {
+        padding: 0;
+        font-weight: normal;
+        font-size: inherit;
+      }
+      .legend-item {
+        padding-right: 5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px; /* espace propre entre la bulle et le texte */
+      }
+      .acquisition-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 0px 0px 0px;
+        white-space: nowrap;
       }
       .acquisition-icon {
         display: inline-block;
@@ -729,16 +797,50 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),D=V.prototy
       input[type="checkbox"] {
         display: none;
       }
-      /** FIXME
-        .evaluation-row:has(input:checked) .acquisition-icon {
-            display:none;
-        }
-        .evaluation-row:has(input:checked) + .acquisition-row {
-            display: table-row;
-        }
-        */
+      .evaluation-group.open .evaluation-row .evaluation-detail {
+        display: none;
+      }
+      .evaluation-description label {
+        cursor:pointer;
+      }
+      .acquisition-row {
+        display:none;
+      }
+      .evaluation-group.open .acquisition-row {
+        display:table-row;
+      }
+      input[type="checkbox"] {
+        display:none;
+      }
+      .acquisition-row td {
+        padding: 0px 10px 5px 0px;
+      }
+      .acquisition-item {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding: 3px 0;
+      }
+      .acquisition-description {
+        min-width: 0;
+        padding-right: 10px;
+      }
+      .acquisition-label {
+        display: block;
+        font-weight: 500;
+      }
+      .acquisition-detail {
+        display: block;
+        font-size: 0.85em;
+        color: gray;
+        margin-top: 2px;
+      }
+      .acquisition-item .acquisition-icon {
+        flex-shrink: 0;
+        margin-left: 8px;
+      }
       .acquisition-row td:nth-child(2) {
-        text-align: right;
+        text-align: left;
       }
     `}static getStubConfig(){return{display_header:!0,display_description:!0,display_teacher:!0,display_date:!0,display_comment:!0,max_evaluations:null,mapping_evaluations:{}}}static getConfigElement(){return document.createElement("ecole_directe-evaluations-card-editor")}};customElements.define("ecole_directe-evaluations-card",ae);window.customCards=window.customCards||[];window.customCards.push({type:"ecole_directe-evaluations-card",name:"Carte des \xE9valuations pour Ecole Directe",description:"Affiche les \xE9valuations pour Ecole Directe",documentationURL:"https://github.com/hacf-fr/EcoleDirecteHACards?tab=readme-ov-file#evaluations"});var He=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),M=He.prototype.html,Qe=He.prototype.css,se=class extends _{getAbsencesRetardsRow(e){let t=M`
       <tr>

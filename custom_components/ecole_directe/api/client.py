@@ -458,6 +458,71 @@ class EDApiClient:
                     response["evaluations"].append(evaluation)
         return response
 
+    async def get_periodes_moyennes(
+        self,
+        eleve: EDEleve,
+        annee_scolaire: str,
+    ) -> list[dict]:
+        """Récupère l'ensemble des périodes avec leurs moyennes générales."""
+        if FAKE_ON:
+            json_resp = await load_json_file(
+                self.test_folder + f"{eleve.eleve_id}_get_grades_evaluations.json"
+            )
+        else:
+            json_resp = await self.ed_client.get_grades_evaluations(
+                eleve_id=eleve.eleve_id,
+                annee_scolaire=annee_scolaire,
+            )
+
+        if "data" not in json_resp or "periodes" not in json_resp["data"]:
+            LOGGER.warning(
+                "get_periodes_moyennes: données introuvables [%s]", json_resp
+            )
+            return []
+
+        periodes_result = []
+        data = json_resp["data"]
+
+        # Trier les périodes par date de début
+        periodes = sorted(data["periodes"], key=operator.itemgetter("dateDebut"))
+
+        for periode_json in periodes:
+            # On extrait les infos de base de la période
+            periode_info = {
+                "idPeriode": periode_json.get("idPeriode"),
+                "codePeriode": periode_json.get("codePeriode"),
+                "nomPeriode": periode_json.get("periode"),
+                "annuel": periode_json.get("annuel", False),
+                "examenBlanc": periode_json.get("examenBlanc", False),
+                "cloture": periode_json.get("cloture", False),
+                "dateDebut": periode_json.get("dateDebut"),
+                "dateFin": periode_json.get("dateFin"),
+                "moyenne_generale": {},
+            }
+
+            # Extraire la moyenne générale de la période
+            ensemble = periode_json.get("ensembleMatieres", {})
+            if ensemble:
+                periode_info["moyenne_generale"] = {
+                    "moyenneGenerale": (
+                        ensemble.get("moyenneGenerale") or ""
+                    ).replace(",", "."),
+                    "moyenneClasse": (
+                        ensemble.get("moyenneClasse") or ""
+                    ).replace(",", "."),
+                    "moyenneMin": (
+                        ensemble.get("moyenneMin") or ""
+                    ).replace(",", "."),
+                    "moyenneMax": (
+                        ensemble.get("moyenneMax") or ""
+                    ).replace(",", "."),
+                    "dateCalcul": ensemble.get("dateCalcul", ""),
+                }
+
+            periodes_result.append(periode_info)
+
+        return periodes_result
+
     async def get_vie_scolaire(self, eleve: EDEleve) -> dict:
         """Get vie scolaire (absences, retards, etc.)."""
         if FAKE_ON:

@@ -32,6 +32,8 @@ from .messagerie import ENTITY_DESCRIPTIONS as MESSAGERIE_DESCRIPTIONS
 from .messagerie import EDMessagerieSensor
 from .moyenne_generale import ENTITY_DESCRIPTIONS as MOYENNEGENERALE_DESCRIPTIONS
 from .moyenne_generale import EDMoyenneGeneraleSensor
+from .moyennes_periode import ENTITY_DESCRIPTIONS as PERIODES_DESCRIPTIONS
+from .moyennes_periode import EDMoyennesPeriodeSensor
 from .retards import ENTITY_DESCRIPTIONS as RETARDS_DESCRIPTIONS
 from .retards import EDRetardsSensor
 from .sanctions import ENTITY_DESCRIPTIONS as SANCTIONS_DESCRIPTIONS
@@ -316,6 +318,18 @@ async def async_setup_entry(
                                 eleve=eleve,
                             )
                             for entity_description in MOYENNEGENERALE_DESCRIPTIONS
+                        )
+                    if (
+                        f"{eleve.get_fullname_lower()}_periodes_moyennes"
+                        in coordinator.data
+                    ):
+                        async_add_entities(
+                            EDMoyennesPeriodeSensor(
+                                coordinator=coordinator,
+                                entity_description=entity_description,
+                                eleve=eleve,
+                            )
+                            for entity_description in PERIODES_DESCRIPTIONS
                         )
                 except Exception:
                     LOGGER.exception("Error while creating moyennes sensors")

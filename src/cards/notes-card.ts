@@ -43,7 +43,7 @@ class EDGradesCard extends BaseEDCard {
         gradeData.moyenne_classe.replace(",", ".")
       );
       grade_classes.push(
-        grade > class_average ? "above-average" : "below-average"
+        grade >= class_average ? "above-average" : "below-average"
       );
     }
 
@@ -52,8 +52,8 @@ class EDGradesCard extends BaseEDCard {
       formatted_grade = gradeData.note;
     }
 
-    if (this.config.display_new_grade_notice) {
-      let grade_date = new Date(gradeData.date);
+    if (this.config.display_new_grade_notice && gradeData.date_saisie) {
+      let grade_date = new Date(gradeData.date_saisie);
       let today = new Date();
       if (
         grade_date.getFullYear() === today.getFullYear() &&
@@ -84,7 +84,9 @@ class EDGradesCard extends BaseEDCard {
             : ""}
         </td>
         <td class="grade-detail">
-          <span class="grade-value">${formatted_grade}</span>
+          ${gradeData.non_significatif
+          ? html`<span class="grade-value non-significatif">${formatted_grade}</span>`
+          : html`<span class="grade-value">${formatted_grade}</span>`}
           ${this.config.display_class_average && gradeData.moyenne_classe
             ? html`<span class="grade-class-average"
                 >Moy. ${gradeData.moyenne_classe}</span
@@ -215,6 +217,7 @@ class EDGradesCard extends BaseEDCard {
       }
       .grade-detail {
         text-align: right;
+        width: 40%;
       }
       .grade-value {
         font-weight: bold;
@@ -222,6 +225,9 @@ class EDGradesCard extends BaseEDCard {
       .grade-value,
       .grade-class-average {
         display: block;
+      }
+      .non-significatif {
+        font-style: italic;
       }
       .grade-class-average,
       .grade-class-min,

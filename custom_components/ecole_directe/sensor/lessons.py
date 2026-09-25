@@ -80,6 +80,7 @@ class EDLessonsSensor(EDGenericSensor):
         if self._key in self.coordinator.data:
             lessons = self.coordinator.data[self._key]
             canceled_counter = None
+            modified_counter = None
             lunch_break_time = datetime.strptime(
                 DEFAULT_LUNCH_BREAK_TIME,
                 "%H:%M",
@@ -156,6 +157,7 @@ class EDLessonsSensor(EDGenericSensor):
             {
                 "Emploi du temps": attributes,
                 "Cours annulés": canceled_counter,
+                "Cours modifiés": modified_counter,
             }
         )
 

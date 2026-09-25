@@ -119,6 +119,27 @@ class EDDevoirCard extends BaseEDCard {
           </label>
           <input type="checkbox" id="devoir-${index}" />
           <span class="devoir-description">${unsafeHTML(description)}</span>
+          ${Array.isArray(devoir.documents) && devoir.documents.length > 0
+            ? html`
+                <div class="devoir-documents">
+                  <ha-icon icon="mdi:file-document-multiple-outline"></ha-icon>
+                  <span>
+                    ${devoir.documents.length} document${devoir.documents.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+
+                <div class="devoir-document-list">
+                  ${devoir.documents.map(
+                    (d) => html`
+                      <div class="devoir-document">
+                        <ha-icon icon="mdi:file-document-outline"></ha-icon>
+                        <span>${d.libelle}</span>
+                      </div>
+                    `
+                  )}
+                </div>
+              `
+            : html``}
         </td>
         <td class="devoir-status">
           <span
@@ -318,6 +339,41 @@ class EDDevoirCard extends BaseEDCard {
       }
       .devoir-detail input {
         display: none;
+      }
+      .devoir-documents {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 3px;
+        padding-top: 0px;
+        padding-top: 2px;
+        padding-bottom: 2px;
+        padding-left: 0px;
+        font-size: 0.85em;
+        opacity: 0.8;
+      }
+      .devoir-documents ha-icon {
+        --mdc-icon-size: 18px;
+      }
+      .devoir-document-list {
+        margin-top: 5px;
+        margin-left: 0px;
+        padding-top: 0px;
+        padding-left: 4px;
+      }
+      .devoir-document {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+        margin: 0px;
+        padding: 0px;
+        padding-left: 4px;
+        font-size: 0.82em;
+        opacity: 0.85;
+      }
+      .devoir-document ha-icon {
+        flex-shrink: 0;
+        --mdc-icon-size: 16px;
       }
     `;
   }

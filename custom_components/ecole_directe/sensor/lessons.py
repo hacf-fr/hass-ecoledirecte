@@ -121,6 +121,9 @@ class EDLessonsSensor(EDGenericSensor):
                     attributes.append(lesson)
                     self._date = lesson["start"].strftime("%Y-%m-%d")
 
+                    if lesson["is_modifie"]:
+                        modified_counter += 1
+
                     if single_day and lesson["is_annule"] is False:
                         start = lesson["start"].strftime("%H:%M")
                         if self._start_at is None or start < self._start_at:

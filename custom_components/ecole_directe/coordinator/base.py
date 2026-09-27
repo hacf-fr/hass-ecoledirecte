@@ -99,6 +99,9 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         LOGGER.debug("timezone: %s", self.timezone)
         # Initialize QCM data store for persistence
         self._qcm_store = Store(hass, 1, f"ecole_directe_qcm_{entry.entry_id}")
+        # Initialize attributes store for oversized attributes persistence
+        self._attributes_store = Store(hass, 1, f"ed_attributes_{entry.entry_id}")
+        self._stored_attributes: dict[str, Any] = {}
 
     async def _async_setup(self) -> None:
         """
@@ -130,6 +133,14 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 "qcm_selected_options", {}
             )
             LOGGER.debug("Loaded saved QCM data: %s", saved_qcm)
+
+        # Load saved attributes data from disk
+        saved_attributes = await self._attributes_store.async_load()
+        if isinstance(saved_attributes, dict):
+            self._stored_attributes = saved_attributes
+            LOGGER.debug(
+                "Loaded saved attributes data for %s keys", len(self._stored_attributes)
+            )
 
         # Check for legacy ecoledirecte_qcm.json file, migrate and delete it
         await self.async_migrate_legacy_qcm_file()
@@ -216,6 +227,19 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         }
         await self._qcm_store.async_save(qcm_data)
         LOGGER.debug("Saved QCM data to store: %s", qcm_data)
+
+    @callback
+    def async_save_attributes(self, key: str, attributes: Any) -> None:
+        """Save oversized attributes to store."""
+        self._stored_attributes[key] = attributes
+        self._attributes_store.async_delay_save(
+            lambda: self._stored_attributes,
+            delay=5,
+        )
+
+    def get_stored_attributes(self, key: str) -> Any | None:
+        """Get stored attributes from store."""
+        return self._stored_attributes.get(key)
 
     async def async_migrate_legacy_qcm_file(self) -> None:
         """Check if legacy QCM file exists, read it, convert it to current usage and delete it."""

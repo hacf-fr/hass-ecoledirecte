@@ -76,11 +76,11 @@ class EDLessonsSensor(EDGenericSensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
+        canceled_counter: int = 0
+        modified_counter: int = 0
         single_day = self._suffix in ["today", "tomorrow", "next_day"]
         if self._key in self.coordinator.data:
             lessons = self.coordinator.data[self._key]
-            canceled_counter = None
-            modified_counter = None
             lunch_break_time = datetime.strptime(
                 DEFAULT_LUNCH_BREAK_TIME,
                 "%H:%M",
@@ -92,8 +92,6 @@ class EDLessonsSensor(EDGenericSensor):
                 self._lunch_break_start_at = None
                 self._lunch_break_end_at = None
                 self._date = None
-                canceled_counter = 0
-                modified_counter = 0
                 for lesson in lessons:
                     index = lessons.index(lesson)
 
@@ -127,16 +125,16 @@ class EDLessonsSensor(EDGenericSensor):
                             self._lunch_break_end_at = lesson["start"]
             if is_too_big(attributes):
                 LOGGER.warning(
-                    "[%s] Les attributs sont trop volumineux! %s",
+                    "[%s] Les attributs sont trop volumineux, sauvegarde dans le Store",
                     self._attr_name,
-                    attributes,
                 )
-                attributes = []
-                attributes.append(
+                self.coordinator.async_save_attributes(self._key, attributes)
+                attributes = [
                     {
-                        "Erreur": "Les attributs sont trop volumineux. Essayez de désactiver les tags HTML. https://www.hacf.fr/ecole-directe/#retrait-des-tags-html"
+                        "stored_in_store": True,
+                        "store_key": self._key,
                     }
-                )
+                ]
 
         result = super().extra_state_attributes
         result.update(

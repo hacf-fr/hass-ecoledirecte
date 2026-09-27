@@ -828,6 +828,7 @@ def get_lesson(data: Any, lunch_break_time: time) -> dict:
         "end_time": end_date.strftime("%H:%M"),
         "lesson": data["text"],
         "salle": data["salle"],
+        "groupe_id": data["groupeId"],
         "is_annule": data["isAnnule"],
         "is_modifie": data["isModifie"],
         "background_color": data["color"],

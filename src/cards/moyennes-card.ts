@@ -69,7 +69,7 @@ class EDMoyennesCard extends BaseEDCard {
         averageData.moyenneClasse.replace(",", ".")
       );
       average_classes.push(
-        average > class_average ? "above-average" : "below-average"
+        average >= class_average ? "above-average" : "below-average"
       );
     }
 

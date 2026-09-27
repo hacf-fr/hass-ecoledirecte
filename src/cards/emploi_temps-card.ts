@@ -56,7 +56,7 @@ class EDTimetableCard extends BaseEDCard {
 
     let content = html`
       <tr
-        class="${lesson.is_annule ? "lesson-canceled" : ""} ${this.config
+        class="${lesson.is_annule ? "lesson-canceled" : lesson.is_modifie ? "lesson-modified" : ""} ${this.config
           .dim_ended_lessons && endAt < currentDate
           ? "lesson-ended"
           : ""}"
@@ -69,7 +69,14 @@ class EDTimetableCard extends BaseEDCard {
           <span style="background-color:${lesson.background_color}"></span>
         </td>
         <td>
-          <span class="lesson-name">${lesson.lesson}</span>
+          <span class="lesson-name">
+            ${lesson.lesson}${lesson.remplace
+              ? html`<span class="lesson-replaced"> (remplace ${lesson.remplace})</span>`
+              : ""}
+            ${lesson.is_modifie
+              ? html`<span class="lesson-modified-dot"></span>`
+              : ""}
+          </span>
           ${this.config.display_classroom
             ? html`<span class="lesson-classroom">
                 ${lesson.salle ? "Salle " + lesson.salle : ""}
@@ -418,6 +425,23 @@ class EDTimetableCard extends BaseEDCard {
       }
       .lesson-canceled span.lesson-status {
         background-color: rgb(250, 50, 75);
+      }
+      .lesson-modified span.lesson-name {
+        font-style: italic;
+      }
+      .lesson-modified-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: orange;
+        margin-left: 6px;
+        vertical-align: middle;
+      }
+      .lesson-replaced {
+        font-size: 0.85em;
+        font-style: italic;
+        opacity: 0.7;
       }
       .lesson-ended {
         opacity: 0.3;

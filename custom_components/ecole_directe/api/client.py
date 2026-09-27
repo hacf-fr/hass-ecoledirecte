@@ -339,8 +339,13 @@ class EDApiClient:
 
     def get_homework(self, data: dict, pour_le: str, clean_content: bool) -> dict:
         """Get homework information."""
-        if "contenu" in data["aFaire"]:
-            contenu = base64.b64decode(data["aFaire"]["contenu"]).decode("utf-8")
+        a_faire = data.get("aFaire") if isinstance(data.get("aFaire"), dict) else {}
+        contenu_raw = a_faire.get("contenu")
+        if contenu_raw:
+            try:
+                contenu = base64.b64decode(contenu_raw).decode("utf-8")
+            except Exception:
+                contenu = str(contenu_raw)
         else:
             contenu = ""
         if clean_content:
@@ -351,9 +356,9 @@ class EDApiClient:
             "matiere": data.get("matiere"),
             "short_description": contenu[0:HOMEWORK_DESC_MAX_LENGTH],
             "description": contenu,
-            "effectue": data["aFaire"].get("effectue", False),
+            "effectue": a_faire.get("effectue", False),
             "interrogation": data.get("interrogation", False),
-            "documents": data["aFaire"].get("documents", []),
+            "documents": a_faire.get("documents", []),
         }
 
     async def post_homework(
@@ -744,6 +749,7 @@ def get_disciplines_periode(data: Any) -> list:
         raise
     return disciplines
 
+
 LEVEL_MAPPING: dict[str, str] = {
     "1": "Non atteint",
     "2": "Partiellement atteint",
@@ -751,11 +757,13 @@ LEVEL_MAPPING: dict[str, str] = {
     "4": "Dépassé",
 }
 
+
 def get_level(valeur: str | None) -> str:
     """Retourne le niveau sous forme de texte selon la valeur."""
     if valeur is None:
         return "Inconnu"
     return LEVEL_MAPPING.get(str(valeur), "Inconnu")
+
 
 def get_evaluation(data: Any, fallback_matiere: str | None = None) -> dict:
     """Get evaluation information."""

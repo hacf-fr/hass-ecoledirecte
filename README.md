@@ -77,6 +77,9 @@ Il faudra ensuite recharger l'intégration et à nouveau répondre.
 ![reload](doc/reload.png)
 
 Il est possible de devoir recharger plusieurs fois l'intégration.
+
+Une fois le QCM validé, Ecole Directe renvoie un identifiant d'appareil de confiance (couple `cn`/`cv`). L'intégration le mémorise (dans `.storage/ecole_directe_qcm_<id>`) et le renvoie à chaque connexion suivante, comme le fait l'application mobile officielle : le QCM n'est plus demandé aux mises à jour suivantes. C'est important, car Ecole Directe bloque le compte (« tentatives infructueuses de connexion ») après quelques connexions considérées comme venant d'un nouvel appareil. Si Ecole Directe n'accepte plus l'appareil (code 250), l'intégration repasse une seule fois par le QCM et mémorise le nouvel appareil.
+
 Une fois connecté à Ecole Directe, les noms élèves apparaissent avec leurs entités respectives:
 
 ![devices](doc/devices.png)

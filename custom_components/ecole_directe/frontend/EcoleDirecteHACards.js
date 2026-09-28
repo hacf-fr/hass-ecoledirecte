@@ -1,15 +1,15 @@
-var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototype.html,Ue=V.prototype.css,z=class extends V{static get properties(){return{config:{},hass:{},header_title:{type:String},no_data_message:{type:String}}}getCardHeader(){let e=this.hass.states[this.config.entity].attributes;if(e){let t=typeof e.prenom=="string"&&e.prenom.length>0?e.prenom:e.nom_complet;return k`<div class="ed-card-header">
+var I=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),C=I.prototype.html,ze=I.prototype.css,U=class extends I{static get properties(){return{config:{},hass:{},header_title:{type:String},no_data_message:{type:String}}}getCardHeader(){let e=this.hass.states[this.config.entity].attributes;if(e){let t=typeof e.prenom=="string"&&e.prenom.length>0?e.prenom:e.nom_complet;return C`<div class="ed-card-header">
         ${this.header_title} ${t}
-      </div>`}return k`<div class="ed-card-no-data">
+      </div>`}return C`<div class="ed-card-no-data">
       Veuillez choisir une autre entité
-    </div>`}noDataMessage(){return k`<div class="ed-card-no-data">${this.no_data_message}</div>`}render(){return!this.config||!this.hass?k`<div class="ed-card-no-data">
+    </div>`}noDataMessage(){return C`<div class="ed-card-no-data">${this.no_data_message}</div>`}render(){return!this.config||!this.hass?C`<div class="ed-card-no-data">
         Veuillez configurer la carte
-      </div>`:this.hass.states[this.config.entity]?(this.initCard(),k` <ha-card id="${this.config.entity}-card">
+      </div>`:this.hass.states[this.config.entity]?(this.initCard(),C` <ha-card id="${this.config.entity}-card">
         ${this.config.display_header?this.getCardHeader():""}
         ${this.getCardContent()}
-      </ha-card>`):k`<div class="ed-card-no-data">
+      </ha-card>`):C`<div class="ed-card-no-data">
       Veuillez choisir une autre entité
-    </div>`}setConfig(e){if(!e.entity)throw new Error("Vous devez d\xE9finir une entit\xE9");this.config={...this.getDefaultConfig(),...e}}getItems(){let e=[],t=this.hass.states[this.config.entity];return t&&t.attributes[this.items_attribute_key]&&e.push(...t.attributes[this.items_attribute_key]),e}static get styles(){return Ue`
+    </div>`}setConfig(e){if(!e.entity)throw new Error("Vous devez d\xE9finir une entit\xE9");this.config={...this.getDefaultConfig(),...e}}getItems(){let e=[],t=this.hass.states[this.config.entity];return t&&t.attributes[this.items_attribute_key]&&e.push(...t.attributes[this.items_attribute_key]),e}static get styles(){return ze`
       .ed-card-header {
         text-align: center;
       }
@@ -24,15 +24,15 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
         text-align: center;
         font-style: italic;
       }
-    `}},_=z;var me=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),g=me.prototype.html,ze=me.prototype.css;Date.prototype.getWeekNumber=function(){var n=new Date(+this);return n.setHours(0,0,0,0),n.setDate(n.getDate()+4-(n.getDay()||7)),Math.ceil(((n-new Date(n.getFullYear(),0,1))/864e5+1)/7)};function Ve(n,e){return n.getFullYear()===e.getFullYear()&&n.getMonth()===e.getMonth()&&n.getDate()===e.getDate()}var q=class extends _{constructor(){super(...arguments);this.lunchBreakRendered=!1}initCard(){}getBreakRow(t,i){return g` <tr class="lunch-break ${i?"lesson-ended":""}">
+    `}},_=U;var me=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),g=me.prototype.html,Ue=me.prototype.css;Date.prototype.getWeekNumber=function(){var r=new Date(+this);return r.setHours(0,0,0,0),r.setDate(r.getDate()+4-(r.getDay()||7)),Math.ceil(((r-new Date(r.getFullYear(),0,1))/864e5+1)/7)};function Ie(r,e){return r.getFullYear()===e.getFullYear()&&r.getMonth()===e.getMonth()&&r.getDate()===e.getDate()}var V=class extends _{constructor(){super(...arguments);this.lunchBreakRendered=!1}initCard(){}getBreakRow(t,i){return g` <tr class="lunch-break ${i?"lesson-ended":""}">
       <td></td>
       <td><span></span></td>
       <td colspan="2">
         <span class="lesson-name">${t}</span>
       </td>
-    </tr>`}getTimetableRow(t){let i=new Date().getTime(),a=Date.parse(t.start_at),s=Date.parse(t.end_at),r=g``;this.config.display_lunch_break&&t.is_afternoon&&!this.lunchBreakRendered&&(r=this.getBreakRow("Repas",this.config.dim_ended_lessons&&a<i),this.lunchBreakRendered=!0);let o=g`
+    </tr>`}getTimetableRow(t){let i=new Date().getTime(),a=Date.parse(t.start_at),s=Date.parse(t.end_at),n=g``;this.config.display_lunch_break&&t.is_afternoon&&!this.lunchBreakRendered&&(n=this.getBreakRow("Repas",this.config.dim_ended_lessons&&a<i),this.lunchBreakRendered=!0);let o=g`
       <tr
-        class="${t.is_annule?"lesson-canceled":""} ${this.config.dim_ended_lessons&&s<i?"lesson-ended":""}"
+        class="${t.is_annule?"lesson-canceled":t.is_modifie?"lesson-modified":""} ${this.config.dim_ended_lessons&&s<i?"lesson-ended":""}"
       >
         <td>
           ${t.start_time}<br />
@@ -42,7 +42,10 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
           <span style="background-color:${t.background_color}"></span>
         </td>
         <td>
-          <span class="lesson-name">${t.lesson}</span>
+          <span class="lesson-name">
+            ${t.lesson}${t.remplace?g`<span class="lesson-replaced"> (remplace ${t.remplace})</span>`:""}
+            ${t.is_modifie?g`<span class="lesson-modified-dot"></span>`:""}
+          </span>
           ${this.config.display_classroom?g`<span class="lesson-classroom">
                 ${t.salle?"Salle "+t.salle:""}
                 ${t.salle&&this.config.display_teacher?", ":""}
@@ -53,10 +56,10 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
           ${t.dispense?g`<span class="lesson-status">${t.dispense}</span>`:""}
         </td>
       </tr>
-    `;return g`${r}${o}`}getFormattedDate(t){return new Date(t.start_at).toLocaleDateString("fr-FR",{weekday:"long",day:"2-digit",month:"2-digit"}).replace(/^(.)/,i=>i.toUpperCase())}getFormattedTime(t){return new Intl.DateTimeFormat("fr-FR",{hour:"numeric",minute:"numeric"}).format(new Date(t))}getDayHeader(t,i,a,s){return g`<div class="ed-timetable-header">
+    `;return g`${n}${o}`}getFormattedDate(t){return new Date(t.start_at).toLocaleDateString("fr-FR",{weekday:"long",day:"2-digit",month:"2-digit"}).replace(/^(.)/,i=>i.toUpperCase())}getFormattedTime(t){return new Intl.DateTimeFormat("fr-FR",{hour:"numeric",minute:"numeric"}).format(new Date(t))}getDayHeader(t,i,a,s){return g`<div class="ed-timetable-header">
       ${this.config.enable_slider?g`<span
             class="ed-timetable-header-arrow-left ${s===0?"disabled":""}"
-            @click=${r=>this.changeDay("previous",r)}
+            @click=${n=>this.changeDay("previous",n)}
             >←</span
           >`:""}
       <span class="ed-timetable-header-date"
@@ -68,21 +71,21 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
           </span>`:""}
       ${this.config.enable_slider?g`<span
             class="ed-timetable-header-arrow-right"
-            @click=${r=>this.changeDay("next",r)}
+            @click=${n=>this.changeDay("next",n)}
             >→</span
           >`:""}
-    </div>`}changeDay(t,i){if(i.preventDefault(),i.target.classList.contains("disabled"))return;let a=i.target.parentElement.parentElement,s=a.previousElementSibling&&a.previousElementSibling.classList.contains("ed-timetable-day-wrapper"),r=a.nextElementSibling&&a.nextElementSibling.classList.contains("ed-timetable-day-wrapper"),o=null;t==="previous"&&s?o=a.previousElementSibling:t==="next"&&r&&(o=a.nextElementSibling),o&&(a.classList.remove("active"),o.classList.add("active"),s=o.previousElementSibling&&o.previousElementSibling.classList.contains("ed-timetable-day-wrapper"),r=o.nextElementSibling&&o.nextElementSibling.classList.contains("ed-timetable-day-wrapper"),s||o.querySelector(".ed-timetable-header-arrow-left").classList.add("disabled"),r||o.querySelector(".ed-timetable-header-arrow-right").classList.add("disabled"))}render(){if(!this.config||!this.hass)return g`<div class="ed-card-no-data">
+    </div>`}changeDay(t,i){if(i.preventDefault(),i.target.classList.contains("disabled"))return;let a=i.target.parentElement.parentElement,s=a.previousElementSibling&&a.previousElementSibling.classList.contains("ed-timetable-day-wrapper"),n=a.nextElementSibling&&a.nextElementSibling.classList.contains("ed-timetable-day-wrapper"),o=null;t==="previous"&&s?o=a.previousElementSibling:t==="next"&&n&&(o=a.nextElementSibling),o&&(a.classList.remove("active"),o.classList.add("active"),s=o.previousElementSibling&&o.previousElementSibling.classList.contains("ed-timetable-day-wrapper"),n=o.nextElementSibling&&o.nextElementSibling.classList.contains("ed-timetable-day-wrapper"),s||o.querySelector(".ed-timetable-header-arrow-left").classList.add("disabled"),n||o.querySelector(".ed-timetable-header-arrow-right").classList.add("disabled"))}render(){if(!this.config||!this.hass)return g`<div class="ed-card-no-data">
         Veuillez configurer la carte
-      </div>`;let t=this.hass.states[this.config.entity];if(t){let i=t.attributes["Emploi du temps"];if(i){if(i.length>0&&i[0].stored_in_store){let d=i[0].store_key;if(this._storedData&&this._storedData[d])i=this._storedData[d];else return this._fetchingKeys||(this._fetchingKeys={}),this._fetchingKeys[d]||(this._fetchingKeys[d]=!0,this.hass.callWS({type:"ecole_directe/get_stored_data",key:d}).then(h=>{this._storedData||(this._storedData={}),this._storedData[d]=h.data||[],this.requestUpdate()}).catch(h=>{console.error("Error fetching stored data for key",d,h)})),g`<div class="ed-card-no-data">Chargement de l'emploi du temps...</div>`}this.lunchBreakRendered=!1;let a=[],s=[],r=0,o=null,l=null,c=new Date,p=0;for(let d=0;d<i.length;d++){let h=i[d],y=this.getFormattedDate(h),w=new Date(h.end_at);if(h.isAnnule||(o===null&&(o=h.start_at),l=h.end_at),h.isAnnule&&d<i.length-1){let P=i[d+1];if(h.start_at===P.start_at&&!P.isAnnule)continue}if(s.push(this.getTimetableRow(h)),d+1>=i.length||d+1<i.length&&y!==this.getFormattedDate(i[d+1]))this.config.enable_slider&&this.config.switch_to_next_day&&Ve(w,c)&&w<c&&(p=r+1),a.push(g`
+      </div>`;let t=this.hass.states[this.config.entity];if(t){let i=t.attributes["Emploi du temps"];if(i){if(i.length>0&&i[0].stored_in_store){let d=i[0].store_key;if(this._storedData&&this._storedData[d])i=this._storedData[d];else return this._fetchingKeys||(this._fetchingKeys={}),this._fetchingKeys[d]||(this._fetchingKeys[d]=!0,this.hass.callWS({type:"ecole_directe/get_stored_data",key:d}).then(p=>{this._storedData||(this._storedData={}),this._storedData[d]=p.data||[],this.requestUpdate()}).catch(p=>{console.error("Error fetching stored data for key",d,p)})),g`<div class="ed-card-no-data">Chargement de l'emploi du temps...</div>`}this.lunchBreakRendered=!1;let a=[],s=[],n=0,o=null,l=null,c=new Date,h=0;for(let d=0;d<i.length;d++){let p=i[d],y=this.getFormattedDate(p),x=new Date(p.end_at);if(p.isAnnule||(o===null&&(o=p.start_at),l=p.end_at),p.isAnnule&&d<i.length-1){let P=i[d+1];if(p.start_at===P.start_at&&!P.isAnnule)continue}if(s.push(this.getTimetableRow(p)),d+1>=i.length||d+1<i.length&&y!==this.getFormattedDate(i[d+1]))this.config.enable_slider&&this.config.switch_to_next_day&&Ie(x,c)&&x<c&&(h=n+1),a.push(g`
               <div
-                class="${this.config.enable_slider?"slider-enabled":""} ed-timetable-day-wrapper ${r===p?"active":""}"
+                class="${this.config.enable_slider?"slider-enabled":""} ed-timetable-day-wrapper ${n===h?"active":""}"
               >
-                ${this.getDayHeader(h,o,l,r)}
+                ${this.getDayHeader(p,o,l,n)}
                 <table>
                   ${s}
                 </table>
               </div>
-            `),s=[],this.lunchBreakRendered=!1,o=null,l=null,r++;else if(this.config.display_free_time_slots&&d+1<i.length){let P=new Date(h.end_at),ue=i[d+1],ge=new Date(ue.start_at);if(h.is_morning===ue.is_morning&&Math.floor((ge-P)/1e3/60)>30){let Ie=new Date;s.push(this.getBreakRow("Pas de cours",this.config.dim_ended_lessons&&ge<Ie))}}}return s.length>0&&a.push(g`<table>
+            `),s=[],this.lunchBreakRendered=!1,o=null,l=null,n++;else if(this.config.display_free_time_slots&&d+1<i.length){let P=new Date(p.end_at),ue=i[d+1],ge=new Date(ue.start_at);if(p.is_morning===ue.is_morning&&Math.floor((ge-P)/1e3/60)>30){let Be=new Date;s.push(this.getBreakRow("Pas de cours",this.config.dim_ended_lessons&&ge<Be))}}}return s.length>0&&a.push(g`<table>
               ${s}
             </table>`),g` <ha-card
           id="${this.config.entity}-card"
@@ -92,7 +95,7 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
           ${a}
         </ha-card>`}}return g`<div class="ed-card-no-data">
       Veuillez choisir une autre entité
-    </div>`}setConfig(t){if(!t.entity)throw new Error("Vous devez d\xE9finir une entit\xE9");let i={entity:null,display_header:!0,display_classroom:!0,display_teacher:!0,display_day_hours:!0,display_lunch_break:!0,dim_ended_lessons:!0,enable_slider:!1,switch_to_next_day:!1,display_free_time_slots:!0};this.config={...i,...t},this.header_title="Emploi du temps de ",this.no_data_message="Pas d'emploi du temps \xE0 afficher"}static get styles(){return ze`
+    </div>`}setConfig(t){if(!t.entity)throw new Error("Vous devez d\xE9finir une entit\xE9");let i={entity:null,display_header:!0,display_classroom:!0,display_teacher:!0,display_day_hours:!0,display_lunch_break:!0,dim_ended_lessons:!0,enable_slider:!1,switch_to_next_day:!1,display_free_time_slots:!0};this.config={...i,...t},this.header_title="Emploi du temps de ",this.no_data_message="Pas d'emploi du temps \xE0 afficher"}static get styles(){return Ue`
       ${super.styles}
       .ed-timetable-card-slider .ed-timetable-day-wrapper {
         display: none;
@@ -165,6 +168,23 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
       .lesson-canceled span.lesson-status {
         background-color: rgb(250, 50, 75);
       }
+      .lesson-modified span.lesson-name {
+        font-style: italic;
+      }
+      .lesson-modified-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: orange;
+        margin-left: 6px;
+        vertical-align: middle;
+      }
+      .lesson-replaced {
+        font-size: 0.85em;
+        font-style: italic;
+        opacity: 0.7;
+      }
       .lesson-ended {
         opacity: 0.3;
       }
@@ -172,9 +192,9 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
         + div:not(.slider-enabled).ed-timetable-day-wrapper {
         border-top: 1px solid white;
       }
-    `}static getStubConfig(){return{display_header:!0,display_lunch_break:!0,display_classroom:!0,display_teacher:!0,display_day_hours:!0,dim_ended_lessons:!0,enable_slider:!1,display_free_time_slots:!0,switch_to_next_day:!1}}static getConfigElement(){return document.createElement("ecole_directe-emploi_temps-card-editor")}};customElements.define("ecole_directe-emploi_temps-card",q);window.customCards=window.customCards||[];window.customCards.push({type:"ecole_directe-emploi_temps-card",name:"Carte de l'emploi du temps pour Ecole Directe",description:"Affiche l'emploi du temps pour Ecole Directe",documentationURL:"https://github.com/hacf-fr/EcoleDirecteHACards?tab=readme-ov-file#emploi_temps"});var T=globalThis,_e=n=>n,N=T.trustedTypes,fe=N?N.createPolicy("lit-html",{createHTML:n=>n}):void 0,xe="$lit$",v=`lit$${Math.random().toFixed(9).slice(2)}$`,Ae="?"+v,qe=`<${Ae}>`,E=document,B=()=>E.createComment(""),H=n=>n===null||typeof n!="object"&&typeof n!="function",J=Array.isArray,Ke=n=>J(n)||typeof n?.[Symbol.iterator]=="function",K=`[ 	
-\f\r]`,L=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,ye=/-->/g,ve=/>/g,x=RegExp(`>|${K}(?:([^\\s"'>=/]+)(${K}*=${K}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`,"g"),be=/'/g,$e=/"/g,Ee=/^(?:script|style|textarea|title)$/i,Q=n=>(e,...t)=>({_$litType$:n,strings:e,values:t}),dt=Q(1),ct=Q(2),ht=Q(3),D=Symbol.for("lit-noChange"),u=Symbol.for("lit-nothing"),we=new WeakMap,A=E.createTreeWalker(E,129);function De(n,e){if(!J(n)||!n.hasOwnProperty("raw"))throw Error("invalid template strings array");return fe!==void 0?fe.createHTML(e):e}var We=(n,e)=>{let t=n.length-1,i=[],a,s=e===2?"<svg>":e===3?"<math>":"",r=L;for(let o=0;o<t;o++){let l=n[o],c,p,d=-1,h=0;for(;h<l.length&&(r.lastIndex=h,p=r.exec(l),p!==null);)h=r.lastIndex,r===L?p[1]==="!--"?r=ye:p[1]!==void 0?r=ve:p[2]!==void 0?(Ee.test(p[2])&&(a=RegExp("</"+p[2],"g")),r=x):p[3]!==void 0&&(r=x):r===x?p[0]===">"?(r=a??L,d=-1):p[1]===void 0?d=-2:(d=r.lastIndex-p[2].length,c=p[1],r=p[3]===void 0?x:p[3]==='"'?$e:be):r===$e||r===be?r=x:r===ye||r===ve?r=L:(r=x,a=void 0);let y=r===x&&n[o+1].startsWith("/>")?" ":"";s+=r===L?l+qe:d>=0?(i.push(c),l.slice(0,d)+xe+l.slice(d)+v+y):l+v+(d===-2?o:y)}return[De(n,s+(n[t]||"<?>")+(e===2?"</svg>":e===3?"</math>":"")),i]},O=class n{constructor({strings:e,_$litType$:t},i){let a;this.parts=[];let s=0,r=0,o=e.length-1,l=this.parts,[c,p]=We(e,t);if(this.el=n.createElement(c,i),A.currentNode=this.el.content,t===2||t===3){let d=this.el.content.firstChild;d.replaceWith(...d.childNodes)}for(;(a=A.nextNode())!==null&&l.length<o;){if(a.nodeType===1){if(a.hasAttributes())for(let d of a.getAttributeNames())if(d.endsWith(xe)){let h=p[r++],y=a.getAttribute(d).split(v),w=/([.?@])?(.*)/.exec(h);l.push({type:1,index:s,name:w[2],strings:y,ctor:w[1]==="."?Y:w[1]==="?"?G:w[1]==="@"?X:F}),a.removeAttribute(d)}else d.startsWith(v)&&(l.push({type:6,index:s}),a.removeAttribute(d));if(Ee.test(a.tagName)){let d=a.textContent.split(v),h=d.length-1;if(h>0){a.textContent=N?N.emptyScript:"";for(let y=0;y<h;y++)a.append(d[y],B()),A.nextNode(),l.push({type:2,index:++s});a.append(d[h],B())}}}else if(a.nodeType===8)if(a.data===Ae)l.push({type:2,index:s});else{let d=-1;for(;(d=a.data.indexOf(v,d+1))!==-1;)l.push({type:7,index:s}),d+=v.length-1}s++}}static createElement(e,t){let i=E.createElement("template");return i.innerHTML=e,i}};function C(n,e,t=n,i){if(e===D)return e;let a=i!==void 0?t._$Co?.[i]:t._$Cl,s=H(e)?void 0:e._$litDirective$;return a?.constructor!==s&&(a?._$AO?.(!1),s===void 0?a=void 0:(a=new s(n),a._$AT(n,t,i)),i!==void 0?(t._$Co??(t._$Co=[]))[i]=a:t._$Cl=a),a!==void 0&&(e=C(n,a._$AS(n,e.values),a,i)),e}var W=class{constructor(e,t){this._$AV=[],this._$AN=void 0,this._$AD=e,this._$AM=t}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(e){let{el:{content:t},parts:i}=this._$AD,a=(e?.creationScope??E).importNode(t,!0);A.currentNode=a;let s=A.nextNode(),r=0,o=0,l=i[0];for(;l!==void 0;){if(r===l.index){let c;l.type===2?c=new I(s,s.nextSibling,this,e):l.type===1?c=new l.ctor(s,l.name,l.strings,this,e):l.type===6&&(c=new Z(s,this,e)),this._$AV.push(c),l=i[++o]}r!==l?.index&&(s=A.nextNode(),r++)}return A.currentNode=E,a}p(e){let t=0;for(let i of this._$AV)i!==void 0&&(i.strings!==void 0?(i._$AI(e,i,t),t+=i.strings.length-2):i._$AI(e[t])),t++}},I=class n{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(e,t,i,a){this.type=2,this._$AH=u,this._$AN=void 0,this._$AA=e,this._$AB=t,this._$AM=i,this.options=a,this._$Cv=a?.isConnected??!0}get parentNode(){let e=this._$AA.parentNode,t=this._$AM;return t!==void 0&&e?.nodeType===11&&(e=t.parentNode),e}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(e,t=this){e=C(this,e,t),H(e)?e===u||e==null||e===""?(this._$AH!==u&&this._$AR(),this._$AH=u):e!==this._$AH&&e!==D&&this._(e):e._$litType$!==void 0?this.$(e):e.nodeType!==void 0?this.T(e):Ke(e)?this.k(e):this._(e)}O(e){return this._$AA.parentNode.insertBefore(e,this._$AB)}T(e){this._$AH!==e&&(this._$AR(),this._$AH=this.O(e))}_(e){this._$AH!==u&&H(this._$AH)?this._$AA.nextSibling.data=e:this.T(E.createTextNode(e)),this._$AH=e}$(e){let{values:t,_$litType$:i}=e,a=typeof i=="number"?this._$AC(e):(i.el===void 0&&(i.el=O.createElement(De(i.h,i.h[0]),this.options)),i);if(this._$AH?._$AD===a)this._$AH.p(t);else{let s=new W(a,this),r=s.u(this.options);s.p(t),this.T(r),this._$AH=s}}_$AC(e){let t=we.get(e.strings);return t===void 0&&we.set(e.strings,t=new O(e)),t}k(e){J(this._$AH)||(this._$AH=[],this._$AR());let t=this._$AH,i,a=0;for(let s of e)a===t.length?t.push(i=new n(this.O(B()),this.O(B()),this,this.options)):i=t[a],i._$AI(s),a++;a<t.length&&(this._$AR(i&&i._$AB.nextSibling,a),t.length=a)}_$AR(e=this._$AA.nextSibling,t){for(this._$AP?.(!1,!0,t);e!==this._$AB;){let i=_e(e).nextSibling;_e(e).remove(),e=i}}setConnected(e){this._$AM===void 0&&(this._$Cv=e,this._$AP?.(e))}},F=class{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(e,t,i,a,s){this.type=1,this._$AH=u,this._$AN=void 0,this.element=e,this.name=t,this._$AM=a,this.options=s,i.length>2||i[0]!==""||i[1]!==""?(this._$AH=Array(i.length-1).fill(new String),this.strings=i):this._$AH=u}_$AI(e,t=this,i,a){let s=this.strings,r=!1;if(s===void 0)e=C(this,e,t,0),r=!H(e)||e!==this._$AH&&e!==D,r&&(this._$AH=e);else{let o=e,l,c;for(e=s[0],l=0;l<s.length-1;l++)c=C(this,o[i+l],t,l),c===D&&(c=this._$AH[l]),r||(r=!H(c)||c!==this._$AH[l]),c===u?e=u:e!==u&&(e+=(c??"")+s[l+1]),this._$AH[l]=c}r&&!a&&this.j(e)}j(e){e===u?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,e??"")}},Y=class extends F{constructor(){super(...arguments),this.type=3}j(e){this.element[this.name]=e===u?void 0:e}},G=class extends F{constructor(){super(...arguments),this.type=4}j(e){this.element.toggleAttribute(this.name,!!e&&e!==u)}},X=class extends F{constructor(e,t,i,a,s){super(e,t,i,a,s),this.type=5}_$AI(e,t=this){if((e=C(this,e,t,0)??u)===D)return;let i=this._$AH,a=e===u&&i!==u||e.capture!==i.capture||e.once!==i.once||e.passive!==i.passive,s=e!==u&&(i===u||a);a&&this.element.removeEventListener(this.name,this,i),s&&this.element.addEventListener(this.name,this,e),this._$AH=e}handleEvent(e){typeof this._$AH=="function"?this._$AH.call(this.options?.host??this.element,e):this._$AH.handleEvent(e)}},Z=class{constructor(e,t,i){this.element=e,this.type=6,this._$AN=void 0,this._$AM=t,this.options=i}get _$AU(){return this._$AM._$AU}_$AI(e){C(this,e)}};var Ye=T.litHtmlPolyfillSupport;Ye?.(O,I),(T.litHtmlVersions??(T.litHtmlVersions=[])).push("3.3.2");var ke={ATTRIBUTE:1,CHILD:2,PROPERTY:3,BOOLEAN_ATTRIBUTE:4,EVENT:5,ELEMENT:6},Ce=n=>(...e)=>({_$litDirective$:n,values:e}),U=class{constructor(e){}get _$AU(){return this._$AM._$AU}_$AT(e,t,i){this._$Ct=e,this._$AM=t,this._$Ci=i}_$AS(e,t){return this.update(e,t)}update(e,t){return this.render(...t)}};var j=class extends U{constructor(e){if(super(e),this.it=u,e.type!==ke.CHILD)throw Error(this.constructor.directiveName+"() can only be used in child bindings")}render(e){if(e===u||e==null)return this._t=void 0,this.it=e;if(e===D)return e;if(typeof e!="string")throw Error(this.constructor.directiveName+"() called with a non-string value");if(e===this.it)return this._t;this.it=e;let t=[e];return t.raw=t,this._t={_$litType$:this.constructor.resultType,strings:t,values:[]}}};j.directiveName="unsafeHTML",j.resultType=1;var Fe=Ce(j);var Se=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),m=Se.prototype.html,Ge=Se.prototype.css;Date.prototype.getWeekNumber=function(){var n=new Date(+this);return n.setHours(0,0,0,0),n.setDate(n.getDate()+4-(n.getDay()||7)),Math.ceil(((n-new Date(n.getFullYear(),0,1))/864e5+1)/7)};var ee=class extends _{constructor(){super(...arguments);this.lunchBreakRendered=!1}initCard(){}getFormattedDate(t){return new Date(t).toLocaleDateString("fr-FR",{weekday:"long",day:"2-digit",month:"2-digit"}).replace(/^(.)/,i=>i.toUpperCase())}getDayHeader(t,i){return m`<div class="ed-devoir-header">
+    `}static getStubConfig(){return{display_header:!0,display_lunch_break:!0,display_classroom:!0,display_teacher:!0,display_day_hours:!0,dim_ended_lessons:!0,enable_slider:!1,display_free_time_slots:!0,switch_to_next_day:!1}}static getConfigElement(){return document.createElement("ecole_directe-emploi_temps-card-editor")}};customElements.define("ecole_directe-emploi_temps-card",V);window.customCards=window.customCards||[];window.customCards.push({type:"ecole_directe-emploi_temps-card",name:"Carte de l'emploi du temps pour Ecole Directe",description:"Affiche l'emploi du temps pour Ecole Directe",documentationURL:"https://github.com/hacf-fr/EcoleDirecteHACards?tab=readme-ov-file#emploi_temps"});var H=globalThis,_e=r=>r,q=H.trustedTypes,fe=q?q.createPolicy("lit-html",{createHTML:r=>r}):void 0,xe="$lit$",b=`lit$${Math.random().toFixed(9).slice(2)}$`,Ae="?"+b,Ve=`<${Ae}>`,D=document,N=()=>D.createComment(""),T=r=>r===null||typeof r!="object"&&typeof r!="function",Q=Array.isArray,Ke=r=>Q(r)||typeof r?.[Symbol.iterator]=="function",K=`[ 	
+\f\r]`,L=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,ye=/-->/g,ve=/>/g,A=RegExp(`>|${K}(?:([^\\s"'>=/]+)(${K}*=${K}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`,"g"),be=/'/g,$e=/"/g,Ee=/^(?:script|style|textarea|title)$/i,X=r=>(e,...t)=>({_$litType$:r,strings:e,values:t}),dt=X(1),ct=X(2),pt=X(3),k=Symbol.for("lit-noChange"),u=Symbol.for("lit-nothing"),we=new WeakMap,E=D.createTreeWalker(D,129);function De(r,e){if(!Q(r)||!r.hasOwnProperty("raw"))throw Error("invalid template strings array");return fe!==void 0?fe.createHTML(e):e}var We=(r,e)=>{let t=r.length-1,i=[],a,s=e===2?"<svg>":e===3?"<math>":"",n=L;for(let o=0;o<t;o++){let l=r[o],c,h,d=-1,p=0;for(;p<l.length&&(n.lastIndex=p,h=n.exec(l),h!==null);)p=n.lastIndex,n===L?h[1]==="!--"?n=ye:h[1]!==void 0?n=ve:h[2]!==void 0?(Ee.test(h[2])&&(a=RegExp("</"+h[2],"g")),n=A):h[3]!==void 0&&(n=A):n===A?h[0]===">"?(n=a??L,d=-1):h[1]===void 0?d=-2:(d=n.lastIndex-h[2].length,c=h[1],n=h[3]===void 0?A:h[3]==='"'?$e:be):n===$e||n===be?n=A:n===ye||n===ve?n=L:(n=A,a=void 0);let y=n===A&&r[o+1].startsWith("/>")?" ":"";s+=n===L?l+Ve:d>=0?(i.push(c),l.slice(0,d)+xe+l.slice(d)+b+y):l+b+(d===-2?o:y)}return[De(r,s+(r[t]||"<?>")+(e===2?"</svg>":e===3?"</math>":"")),i]},O=class r{constructor({strings:e,_$litType$:t},i){let a;this.parts=[];let s=0,n=0,o=e.length-1,l=this.parts,[c,h]=We(e,t);if(this.el=r.createElement(c,i),E.currentNode=this.el.content,t===2||t===3){let d=this.el.content.firstChild;d.replaceWith(...d.childNodes)}for(;(a=E.nextNode())!==null&&l.length<o;){if(a.nodeType===1){if(a.hasAttributes())for(let d of a.getAttributeNames())if(d.endsWith(xe)){let p=h[n++],y=a.getAttribute(d).split(b),x=/([.?@])?(.*)/.exec(p);l.push({type:1,index:s,name:x[2],strings:y,ctor:x[1]==="."?Y:x[1]==="?"?G:x[1]==="@"?Z:F}),a.removeAttribute(d)}else d.startsWith(b)&&(l.push({type:6,index:s}),a.removeAttribute(d));if(Ee.test(a.tagName)){let d=a.textContent.split(b),p=d.length-1;if(p>0){a.textContent=q?q.emptyScript:"";for(let y=0;y<p;y++)a.append(d[y],N()),E.nextNode(),l.push({type:2,index:++s});a.append(d[p],N())}}}else if(a.nodeType===8)if(a.data===Ae)l.push({type:2,index:s});else{let d=-1;for(;(d=a.data.indexOf(b,d+1))!==-1;)l.push({type:7,index:s}),d+=b.length-1}s++}}static createElement(e,t){let i=D.createElement("template");return i.innerHTML=e,i}};function S(r,e,t=r,i){if(e===k)return e;let a=i!==void 0?t._$Co?.[i]:t._$Cl,s=T(e)?void 0:e._$litDirective$;return a?.constructor!==s&&(a?._$AO?.(!1),s===void 0?a=void 0:(a=new s(r),a._$AT(r,t,i)),i!==void 0?(t._$Co??(t._$Co=[]))[i]=a:t._$Cl=a),a!==void 0&&(e=S(r,a._$AS(r,e.values),a,i)),e}var W=class{constructor(e,t){this._$AV=[],this._$AN=void 0,this._$AD=e,this._$AM=t}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(e){let{el:{content:t},parts:i}=this._$AD,a=(e?.creationScope??D).importNode(t,!0);E.currentNode=a;let s=E.nextNode(),n=0,o=0,l=i[0];for(;l!==void 0;){if(n===l.index){let c;l.type===2?c=new B(s,s.nextSibling,this,e):l.type===1?c=new l.ctor(s,l.name,l.strings,this,e):l.type===6&&(c=new J(s,this,e)),this._$AV.push(c),l=i[++o]}n!==l?.index&&(s=E.nextNode(),n++)}return E.currentNode=D,a}p(e){let t=0;for(let i of this._$AV)i!==void 0&&(i.strings!==void 0?(i._$AI(e,i,t),t+=i.strings.length-2):i._$AI(e[t])),t++}},B=class r{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(e,t,i,a){this.type=2,this._$AH=u,this._$AN=void 0,this._$AA=e,this._$AB=t,this._$AM=i,this.options=a,this._$Cv=a?.isConnected??!0}get parentNode(){let e=this._$AA.parentNode,t=this._$AM;return t!==void 0&&e?.nodeType===11&&(e=t.parentNode),e}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(e,t=this){e=S(this,e,t),T(e)?e===u||e==null||e===""?(this._$AH!==u&&this._$AR(),this._$AH=u):e!==this._$AH&&e!==k&&this._(e):e._$litType$!==void 0?this.$(e):e.nodeType!==void 0?this.T(e):Ke(e)?this.k(e):this._(e)}O(e){return this._$AA.parentNode.insertBefore(e,this._$AB)}T(e){this._$AH!==e&&(this._$AR(),this._$AH=this.O(e))}_(e){this._$AH!==u&&T(this._$AH)?this._$AA.nextSibling.data=e:this.T(D.createTextNode(e)),this._$AH=e}$(e){let{values:t,_$litType$:i}=e,a=typeof i=="number"?this._$AC(e):(i.el===void 0&&(i.el=O.createElement(De(i.h,i.h[0]),this.options)),i);if(this._$AH?._$AD===a)this._$AH.p(t);else{let s=new W(a,this),n=s.u(this.options);s.p(t),this.T(n),this._$AH=s}}_$AC(e){let t=we.get(e.strings);return t===void 0&&we.set(e.strings,t=new O(e)),t}k(e){Q(this._$AH)||(this._$AH=[],this._$AR());let t=this._$AH,i,a=0;for(let s of e)a===t.length?t.push(i=new r(this.O(N()),this.O(N()),this,this.options)):i=t[a],i._$AI(s),a++;a<t.length&&(this._$AR(i&&i._$AB.nextSibling,a),t.length=a)}_$AR(e=this._$AA.nextSibling,t){for(this._$AP?.(!1,!0,t);e!==this._$AB;){let i=_e(e).nextSibling;_e(e).remove(),e=i}}setConnected(e){this._$AM===void 0&&(this._$Cv=e,this._$AP?.(e))}},F=class{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(e,t,i,a,s){this.type=1,this._$AH=u,this._$AN=void 0,this.element=e,this.name=t,this._$AM=a,this.options=s,i.length>2||i[0]!==""||i[1]!==""?(this._$AH=Array(i.length-1).fill(new String),this.strings=i):this._$AH=u}_$AI(e,t=this,i,a){let s=this.strings,n=!1;if(s===void 0)e=S(this,e,t,0),n=!T(e)||e!==this._$AH&&e!==k,n&&(this._$AH=e);else{let o=e,l,c;for(e=s[0],l=0;l<s.length-1;l++)c=S(this,o[i+l],t,l),c===k&&(c=this._$AH[l]),n||(n=!T(c)||c!==this._$AH[l]),c===u?e=u:e!==u&&(e+=(c??"")+s[l+1]),this._$AH[l]=c}n&&!a&&this.j(e)}j(e){e===u?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,e??"")}},Y=class extends F{constructor(){super(...arguments),this.type=3}j(e){this.element[this.name]=e===u?void 0:e}},G=class extends F{constructor(){super(...arguments),this.type=4}j(e){this.element.toggleAttribute(this.name,!!e&&e!==u)}},Z=class extends F{constructor(e,t,i,a,s){super(e,t,i,a,s),this.type=5}_$AI(e,t=this){if((e=S(this,e,t,0)??u)===k)return;let i=this._$AH,a=e===u&&i!==u||e.capture!==i.capture||e.once!==i.once||e.passive!==i.passive,s=e!==u&&(i===u||a);a&&this.element.removeEventListener(this.name,this,i),s&&this.element.addEventListener(this.name,this,e),this._$AH=e}handleEvent(e){typeof this._$AH=="function"?this._$AH.call(this.options?.host??this.element,e):this._$AH.handleEvent(e)}},J=class{constructor(e,t,i){this.element=e,this.type=6,this._$AN=void 0,this._$AM=t,this.options=i}get _$AU(){return this._$AM._$AU}_$AI(e){S(this,e)}};var Ye=H.litHtmlPolyfillSupport;Ye?.(O,B),(H.litHtmlVersions??(H.litHtmlVersions=[])).push("3.3.2");var ke={ATTRIBUTE:1,CHILD:2,PROPERTY:3,BOOLEAN_ATTRIBUTE:4,EVENT:5,ELEMENT:6},Ce=r=>(...e)=>({_$litDirective$:r,values:e}),z=class{constructor(e){}get _$AU(){return this._$AM._$AU}_$AT(e,t,i){this._$Ct=e,this._$AM=t,this._$Ci=i}_$AS(e,t){return this.update(e,t)}update(e,t){return this.render(...t)}};var j=class extends z{constructor(e){if(super(e),this.it=u,e.type!==ke.CHILD)throw Error(this.constructor.directiveName+"() can only be used in child bindings")}render(e){if(e===u||e==null)return this._t=void 0,this.it=e;if(e===k)return e;if(typeof e!="string")throw Error(this.constructor.directiveName+"() called with a non-string value");if(e===this.it)return this._t;this.it=e;let t=[e];return t.raw=t,this._t={_$litType$:this.constructor.resultType,strings:t,values:[]}}};j.directiveName="unsafeHTML",j.resultType=1;var Se=Ce(j);var Fe=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),m=Fe.prototype.html,Ge=Fe.prototype.css;Date.prototype.getWeekNumber=function(){var r=new Date(+this);return r.setHours(0,0,0,0),r.setDate(r.getDate()+4-(r.getDay()||7)),Math.ceil(((r-new Date(r.getFullYear(),0,1))/864e5+1)/7)};var ee=class extends _{constructor(){super(...arguments);this.lunchBreakRendered=!1}initCard(){}getFormattedDate(t){return new Date(t).toLocaleDateString("fr-FR",{weekday:"long",day:"2-digit",month:"2-digit"}).replace(/^(.)/,i=>i.toUpperCase())}getDayHeader(t,i){return m`<div class="ed-devoir-header">
       ${this.config.enable_slider?m`<span
             class="ed-devoir-header-arrow-left ${i===0?"disabled":""}"
             @click=${a=>this.changeDay("previous",a)}
@@ -188,7 +208,7 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
             @click=${a=>this.changeDay("next",a)}
             >→</span
           >`:""}
-    </div>`}changeDay(t,i){if(i.preventDefault(),i.target.classList.contains("disabled"))return;let a=i.target.parentElement.parentElement,s=a.previousElementSibling&&a.previousElementSibling.classList.contains("ed-devoir-day-wrapper"),r=a.nextElementSibling&&a.nextElementSibling.classList.contains("ed-devoir-day-wrapper"),o=null;t==="previous"&&s?o=a.previousElementSibling:t==="next"&&r&&(o=a.nextElementSibling),o&&(a.classList.remove("active"),o.classList.add("active"),s=o.previousElementSibling&&o.previousElementSibling.classList.contains("ed-devoir-day-wrapper"),r=o.nextElementSibling&&o.nextElementSibling.classList.contains("ed-devoir-day-wrapper"),s||o.querySelector(".ed-devoir-header-arrow-left").classList.add("disabled"),r||o.querySelector(".ed-devoir-header-arrow-right").classList.add("disabled"))}getdevoirRow(t,i){if(!t)return m``;let a=t.description||t.short_description||"",s=(typeof a=="string"?a:String(a)).trim().replace(/\n/g,"<br />");return m`
+    </div>`}changeDay(t,i){if(i.preventDefault(),i.target.classList.contains("disabled"))return;let a=i.target.parentElement.parentElement,s=a.previousElementSibling&&a.previousElementSibling.classList.contains("ed-devoir-day-wrapper"),n=a.nextElementSibling&&a.nextElementSibling.classList.contains("ed-devoir-day-wrapper"),o=null;t==="previous"&&s?o=a.previousElementSibling:t==="next"&&n&&(o=a.nextElementSibling),o&&(a.classList.remove("active"),o.classList.add("active"),s=o.previousElementSibling&&o.previousElementSibling.classList.contains("ed-devoir-day-wrapper"),n=o.nextElementSibling&&o.nextElementSibling.classList.contains("ed-devoir-day-wrapper"),s||o.querySelector(".ed-devoir-header-arrow-left").classList.add("disabled"),n||o.querySelector(".ed-devoir-header-arrow-right").classList.add("disabled"))}getdevoirRow(t,i){if(!t)return m``;let a=t.description||t.short_description||"",s=(typeof a=="string"?a:String(a)).trim().replace(/\n/g,"<br />");return m`
       <tr class="${t.effectue?"devoir-done":""}">
         <td class="devoir-detail">
           <label for="devoir-${i}">
@@ -196,7 +216,24 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
             ${t.interrogation?m`<span class="devoir-controle">(Contrôle)</span>`:m``}
           </label>
           <input type="checkbox" id="devoir-${i}" />
-          <span class="devoir-description">${Fe(s)}</span>
+          <span class="devoir-description">${Se(s)}</span>
+          ${Array.isArray(t.documents)&&t.documents.length>0?m`
+                <div class="devoir-documents">
+                  <ha-icon icon="mdi:file-document-multiple-outline"></ha-icon>
+                  <span>
+                    ${t.documents.length} document${t.documents.length>1?"s":""}
+                  </span>
+                </div>
+
+                <div class="devoir-document-list">
+                  ${t.documents.map(n=>m`
+                      <div class="devoir-document">
+                        <ha-icon icon="mdi:file-document-outline"></ha-icon>
+                        <span>${n.libelle}</span>
+                      </div>
+                    `)}
+                </div>
+              `:m``}
         </td>
         <td class="devoir-status">
           <span
@@ -215,7 +252,7 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
       </div>
     `}render(){if(!this.config||!this.hass)return m`<div class="ed-card-no-data">
         Veuillez configurer la carte
-      </div>`;let t=this.hass.states[this.config.entity];if(t){let i=t.attributes.Devoirs;if(i){if(i.length>0&&i[0].stored_in_store){let o=i[0].store_key;if(this._storedData&&this._storedData[o])i=this._storedData[o];else return this._fetchingKeys||(this._fetchingKeys={}),this._fetchingKeys[o]||(this._fetchingKeys[o]=!0,this.hass.callWS({type:"ecole_directe/get_stored_data",key:o}).then(l=>{this._storedData||(this._storedData={}),this._storedData[o]=l.data||[],this.requestUpdate()}).catch(l=>{console.error("Error fetching stored data for key",o,l)})),m`<div class="ed-card-no-data">Chargement des devoirs...</div>`}let a=[],s=[],r=0;if(i&&i.length>0){if(i[0].Erreur)return m`<div class="ed-card-no-data">${i[0].Erreur}</div>`;let o=this.getFormattedDate(i[0].date);for(let l=0;l<i.length;l++){let c=i[l],p=this.getFormattedDate(c.date);c.effectue===!0&&this.config.display_done_devoir===!1||(o!==p&&(s.length>0&&(a.push(this.getDayRow(i[l-1],s,r)),s=[]),o=p,r++),s.push(this.getdevoirRow(c,l)))}s.length>0&&a.push(this.getDayRow(i[i.length-1],s,r))}return a.length===0&&a.push(this.noDataMessage()),m` <ha-card
+      </div>`;let t=this.hass.states[this.config.entity];if(t){let i=t.attributes.Devoirs;if(i){if(i.length>0&&i[0].stored_in_store){let o=i[0].store_key;if(this._storedData&&this._storedData[o])i=this._storedData[o];else return this._fetchingKeys||(this._fetchingKeys={}),this._fetchingKeys[o]||(this._fetchingKeys[o]=!0,this.hass.callWS({type:"ecole_directe/get_stored_data",key:o}).then(l=>{this._storedData||(this._storedData={}),this._storedData[o]=l.data||[],this.requestUpdate()}).catch(l=>{console.error("Error fetching stored data for key",o,l)})),m`<div class="ed-card-no-data">Chargement des devoirs...</div>`}let a=[],s=[],n=0;if(i&&i.length>0){if(i[0].Erreur)return m`<div class="ed-card-no-data">${i[0].Erreur}</div>`;let o=this.getFormattedDate(i[0].date);for(let l=0;l<i.length;l++){let c=i[l],h=this.getFormattedDate(c.date);c.effectue===!0&&this.config.display_done_devoir===!1||(o!==h&&(s.length>0&&(a.push(this.getDayRow(i[l-1],s,n)),s=[]),o=h,n++),s.push(this.getdevoirRow(c,l)))}s.length>0&&a.push(this.getDayRow(i[i.length-1],s,n))}return a.length===0&&a.push(this.noDataMessage()),m` <ha-card
           id="${this.config.entity}-card"
           class="${this.config.enable_slider?"ed-devoir-card-slider":""}"
         >
@@ -297,31 +334,66 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
       .devoir-detail input {
         display: none;
       }
-    `}static getStubConfig(){return{display_header:!0,reduce_done_devoir:!0,display_done_devoir:!0,enable_slider:!1}}static getConfigElement(){return document.createElement("ecole_directe-devoirs-card-editor")}};customElements.define("ecole_directe-devoirs-card",ee);window.customCards=window.customCards||[];window.customCards.push({type:"ecole_directe-devoirs-card",name:"Carte des devoirs pour Ecole Directe",description:"Affiche les devoirs pour Ecole Directe",documentationURL:"https://github.com/hacf-fr/EcoleDirecteHACards?tab=readme-ov-file#devoirs"});var Re=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),b=Re.prototype.html,Xe=Re.prototype.css,te=class extends _{initCard(){this.items_attribute_key="notes",this.header_title="Notes de ",this.no_data_message="Aucune note disponible"}getFormattedDate(e){return new Date(e).toLocaleDateString("fr-FR",{weekday:"short",day:"2-digit",month:"2-digit"}).replace(/^(.)/,t=>t.toUpperCase())}getGradeRow(e){let t=parseFloat(e.note.replace(",",".")),i=[];if(this.config.compare_with_ratio!==null){let s=parseFloat(this.config.compare_with_ratio),r=t/parseFloat(e.sur.replace(",","."));i.push(r>=s?"above-ratio":"below-ratio")}else if(this.config.compare_with_class_average&&e.moyenne_classe){let s=parseFloat(e.moyenne_classe.replace(",","."));i.push(t>s?"above-average":"below-average")}let a=e.note_sur;if(this.config.grade_format==="short"&&(a=e.note),this.config.display_new_grade_notice){let s=new Date(e.date),r=new Date;s.getFullYear()===r.getFullYear()&&s.getMonth()===r.getMonth()&&s.getDate()===r.getDate()&&i.push("new-grade")}return b`
+      .devoir-documents {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 3px;
+        padding-top: 0px;
+        padding-top: 2px;
+        padding-bottom: 2px;
+        padding-left: 0px;
+        font-size: 0.85em;
+        opacity: 0.8;
+      }
+      .devoir-documents ha-icon {
+        --mdc-icon-size: 18px;
+      }
+      .devoir-document-list {
+        margin-top: 5px;
+        margin-left: 0px;
+        padding-top: 0px;
+        padding-left: 4px;
+      }
+      .devoir-document {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+        margin: 0px;
+        padding: 0px;
+        padding-left: 4px;
+        font-size: 0.82em;
+        opacity: 0.85;
+      }
+      .devoir-document ha-icon {
+        flex-shrink: 0;
+        --mdc-icon-size: 16px;
+      }
+    `}static getStubConfig(){return{display_header:!0,reduce_done_devoir:!0,display_done_devoir:!0,enable_slider:!1}}static getConfigElement(){return document.createElement("ecole_directe-devoirs-card-editor")}};customElements.define("ecole_directe-devoirs-card",ee);window.customCards=window.customCards||[];window.customCards.push({type:"ecole_directe-devoirs-card",name:"Carte des devoirs pour Ecole Directe",description:"Affiche les devoirs pour Ecole Directe",documentationURL:"https://github.com/hacf-fr/EcoleDirecteHACards?tab=readme-ov-file#devoirs"});var Re=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),$=Re.prototype.html,Ze=Re.prototype.css,te=class extends _{initCard(){this.items_attribute_key="notes",this.header_title="Notes de ",this.no_data_message="Aucune note disponible"}getFormattedDate(e){return new Date(e).toLocaleDateString("fr-FR",{weekday:"short",day:"2-digit",month:"2-digit"}).replace(/^(.)/,t=>t.toUpperCase())}getGradeRow(e){let t=parseFloat(e.note.replace(",",".")),i=[];if(this.config.compare_with_ratio!==null){let s=parseFloat(this.config.compare_with_ratio),n=t/parseFloat(e.sur.replace(",","."));i.push(n>=s?"above-ratio":"below-ratio")}else if(this.config.compare_with_class_average&&e.moyenne_classe){let s=parseFloat(e.moyenne_classe.replace(",","."));i.push(t>s?"above-average":"below-average")}let a=e.note_sur;if(this.config.grade_format==="short"&&(a=e.note),this.config.display_new_grade_notice){let s=new Date(e.date),n=new Date;s.getFullYear()===n.getFullYear()&&s.getMonth()===n.getMonth()&&s.getDate()===n.getDate()&&i.push("new-grade")}return $`
       <tr class="${i.join(" ")}">
         <td class="grade-color"><span></span></td>
         <td class="grade-description">
           <span class="grade-subject">${e.matiere}</span>
-          ${this.config.display_comment?b`<span class="grade-comment">${e.commentaire}</span>`:""}
-          ${this.config.display_date?b`<span class="grade-date"
+          ${this.config.display_comment?$`<span class="grade-comment">${e.commentaire}</span>`:""}
+          ${this.config.display_date?$`<span class="grade-date"
                 >${this.getFormattedDate(e.date)}</span
               >`:""}
-          ${this.config.display_coefficient&&e.coefficient?b`<span class="grade-coefficient"
+          ${this.config.display_coefficient&&e.coefficient?$`<span class="grade-coefficient"
                 >Coef. ${e.coefficient}</span
               >`:""}
         </td>
         <td class="grade-detail">
           <span class="grade-value">${a}</span>
-          ${this.config.display_class_average&&e.moyenne_classe?b`<span class="grade-class-average"
+          ${this.config.display_class_average&&e.moyenne_classe?$`<span class="grade-class-average"
                 >Moy. ${e.moyenne_classe}</span
               >`:""}
-          ${this.config.display_class_min&&e.min?b`<span class="grade-class-min">Min. ${e.min}</span>`:""}
-          ${this.config.display_class_max&&e.max?b`<span class="grade-class-max">Max. ${e.max}</span>`:""}
+          ${this.config.display_class_min&&e.min?$`<span class="grade-class-min">Min. ${e.min}</span>`:""}
+          ${this.config.display_class_max&&e.max?$`<span class="grade-class-max">Max. ${e.max}</span>`:""}
         </td>
       </tr>
-    `}getCardContent(){if(this.hass.states[this.config.entity]){let t=this.getItems(),i=this.config.max_grades??t.length,a=[],s=[];for(let r=0;r<i&&!(r>=t.length);r++){let o=t[r];a.push(this.getGradeRow(o))}return a.length>0?s.push(b`<table>
+    `}getCardContent(){if(this.hass.states[this.config.entity]){let t=this.getItems(),i=this.config.max_grades??t.length,a=[],s=[];for(let n=0;n<i&&!(n>=t.length);n++){let o=t[n];a.push(this.getGradeRow(o))}return a.length>0?s.push($`<table>
             ${a}
-          </table>`):s.push(this.noDataMessage()),s}}getDefaultConfig(){return{grade_format:"full",display_header:!0,display_date:!0,display_comment:!0,display_class_average:!0,compare_with_class_average:!0,compare_with_ratio:null,display_coefficient:!0,display_class_min:!0,display_class_max:!0,display_new_grade_notice:!0,max_grades:null}}static get styles(){return Xe`
+          </table>`):s.push(this.noDataMessage()),s}}getDefaultConfig(){return{grade_format:"full",display_header:!0,display_date:!0,display_comment:!0,display_class_average:!0,compare_with_class_average:!0,compare_with_ratio:null,display_coefficient:!0,display_class_min:!0,display_class_max:!0,display_new_grade_notice:!0,max_grades:null}}static get styles(){return Ze`
       ${super.styles}
       table {
         font-size: 0.9em;
@@ -404,7 +476,7 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
       .grade-class-min + .grade-class-max:before {
         content: " - ";
       }
-    `}static getStubConfig(){return{grade_format:"full",display_header:!0,display_date:!0,display_comment:!0,display_class_average:!0,compare_with_class_average:!0,compare_with_ratio:null,display_coefficient:!0,display_class_min:!0,display_class_max:!0,display_new_grade_notice:!0,max_grades:null}}static getConfigElement(){return document.createElement("ecole_directe-notes-card-editor")}};customElements.define("ecole_directe-notes-card",te);window.customCards=window.customCards||[];window.customCards.push({type:"ecole_directe-notes-card",name:"Carte des notes pour Ecole Directe",description:"Affiche les notes pour Ecole Directe",documentationURL:"https://github.com/hacf-fr/EcoleDirecteHACards?tab=readme-ov-file#notes"});var Le=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),$=Le.prototype.html,Ze=Le.prototype.css,ie=class extends _{initCard(){this.items_attribute_key="Disciplines",this.header_title="Moyennes de ",this.no_data_message="Aucune moyenne"}getOverallAverageRow(){let e=`${this.config.entity}`;if(!this.hass.states[e])return $``;let t=this.hass.states[e].state;if(!t)return $``;let i=parseFloat(t.replace(",",".")),a=[];if(this.config.compare_with_ratio!==null){let s=parseFloat(this.config.compare_with_ratio);a.push(i>=s?"above-ratio":"below-ratio")}return $`
+    `}static getStubConfig(){return{grade_format:"full",display_header:!0,display_date:!0,display_comment:!0,display_class_average:!0,compare_with_class_average:!0,compare_with_ratio:null,display_coefficient:!0,display_class_min:!0,display_class_max:!0,display_new_grade_notice:!0,max_grades:null}}static getConfigElement(){return document.createElement("ecole_directe-notes-card-editor")}};customElements.define("ecole_directe-notes-card",te);window.customCards=window.customCards||[];window.customCards.push({type:"ecole_directe-notes-card",name:"Carte des notes pour Ecole Directe",description:"Affiche les notes pour Ecole Directe",documentationURL:"https://github.com/hacf-fr/EcoleDirecteHACards?tab=readme-ov-file#notes"});var Le=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),w=Le.prototype.html,Je=Le.prototype.css,ie=class extends _{initCard(){this.items_attribute_key="Disciplines",this.header_title="Moyennes de ",this.no_data_message="Aucune moyenne"}getOverallAverageRow(){let e=`${this.config.entity}`;if(!this.hass.states[e])return w``;let t=this.hass.states[e].state;if(!t)return w``;let i=parseFloat(t.replace(",",".")),a=[];if(this.config.compare_with_ratio!==null){let s=parseFloat(this.config.compare_with_ratio);a.push(i>=s?"above-ratio":"below-ratio")}return w`
       <tr class="${a.join(" ")} overall-average">
         <td class="average-color"><span></span></td>
         <td class="average-description">
@@ -416,7 +488,7 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
           >
         </td>
       </tr>
-    `}getAverageRow(e){let t=parseFloat(e.moyenne.replace(",",".")),i=[];if(this.config.compare_with_ratio!==null){let a=parseFloat(this.config.compare_with_ratio);i.push(t>=a?"above-ratio":"below-ratio")}else if(this.config.compare_with_class_average&&e.moyenneClasse){let a=parseFloat(e.moyenneClasse.replace(",","."));i.push(t>a?"above-average":"below-average")}return $`
+    `}getAverageRow(e){let t=parseFloat(e.moyenne.replace(",",".")),i=[];if(this.config.compare_with_ratio!==null){let a=parseFloat(this.config.compare_with_ratio);i.push(t>=a?"above-ratio":"below-ratio")}else if(this.config.compare_with_class_average&&e.moyenneClasse){let a=parseFloat(e.moyenneClasse.replace(",","."));i.push(t>=a?"above-average":"below-average")}return w`
       <tr class="${i.join(" ")}">
         <td class="average-color">
           <span style="background-color:Grey"></span>
@@ -426,20 +498,20 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
         </td>
         <td class="average-detail">
           <span class="average-value">${e.moyenne}</span>
-          ${this.config.display_class_average&&e.moyenneClasse?$`<span class="average-class-average"
+          ${this.config.display_class_average&&e.moyenneClasse?w`<span class="average-class-average"
                 >Classe ${e.moyenneClasse}</span
               >`:""}
-          ${this.config.display_class_min&&e.moyenneMin?$`<span class="average-class-min"
+          ${this.config.display_class_min&&e.moyenneMin?w`<span class="average-class-min"
                 >Min. ${e.moyenneMin}</span
               >`:""}
-          ${this.config.display_class_max&&e.moyenneMax?$`<span class="average-class-max"
+          ${this.config.display_class_max&&e.moyenneMax?w`<span class="average-class-max"
                 >Max. ${e.moyenneMax}</span
               >`:""}
         </td>
       </tr>
-    `}getCardContent(){if(this.hass.states[this.config.entity]){let t=this.getItems(),i=[],a=[];this.config.display_overall_average&&a.push(this.getOverallAverageRow());for(let s=0;s<t.length;s++){let r=t[s];a.push(this.getAverageRow(r))}return a.length>0?i.push($`<table>
+    `}getCardContent(){if(this.hass.states[this.config.entity]){let t=this.getItems(),i=[],a=[];this.config.display_overall_average&&a.push(this.getOverallAverageRow());for(let s=0;s<t.length;s++){let n=t[s];a.push(this.getAverageRow(n))}return a.length>0?i.push(w`<table>
             ${a}
-          </table>`):i.push(this.noDataMessage()),i}return[]}getDefaultConfig(){return{display_header:!0,display_class_average:!0,compare_with_class_average:!0,compare_with_ratio:null,display_class_min:!0,display_class_max:!0,display_overall_average:!0}}static get styles(){return Ze`
+          </table>`):i.push(this.noDataMessage()),i}return[]}getDefaultConfig(){return{display_header:!0,display_class_average:!0,compare_with_class_average:!0,compare_with_ratio:null,display_class_min:!0,display_class_max:!0,display_overall_average:!0}}static get styles(){return Je`
       ${super.styles}
       table {
         font-size: 0.9em;
@@ -543,37 +615,57 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
       .average-class-min + .average-class-max:before {
         content: " - ";
       }
-    `}static getStubConfig(){return{display_header:!0,display_class_average:!0,compare_with_class_average:!0,compare_with_ratio:null,display_class_min:!0,display_class_max:!0}}static getConfigElement(){return document.createElement("ecole_directe-moyennes-card-editor")}};customElements.define("ecole_directe-moyennes-card",ie);window.customCards=window.customCards||[];window.customCards.push({type:"ecole_directe-moyennes-card",name:"Carte des moyennes pour Ecole Directe",description:"Affiche les moyennes pour Ecole Directe",documentationURL:"https://github.com/hacf-fr/EcoleDirecteHACards?tab=readme-ov-file#moyennes"});var Te=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),S=Te.prototype.html,Je=Te.prototype.css,ae=class extends _{initCard(){this.items_attribute_key="Evaluations",this.header_title="Evaluations de ",this.no_data_message="Pas d'\xE9valuation \xE0 afficher"}getFormattedDate(e){return new Date(e).toLocaleDateString("fr-FR",{weekday:"short",day:"2-digit",month:"2-digit"}).replace(/^(.)/,t=>t.toUpperCase())}getAcquisitionRow(e){return S`<tr class="acquisition-row">
-      <td>${e.competence}</td>
-      <td>${this.getAcquisitionIcon(e)}</td>
-    </tr>`}getAcquisitionIcon(e){let t=this.config.mapping_evaluations[e.valeur]||e.valeur,i="";return t==="A+"?i="+":t==="Abs"&&(i="a"),S`
-      <span
-        title="${e.descriptif}"
-        class="acquisition-icon acquisition-icon-${t}"
-      >
-        ${i}
-      </span>
-    `}getEvaluationRow(e,t){let i=e.elements_programme,a=[],s=[],r="grey";for(let o=0;o<i.length;o++)a.push(this.getAcquisitionIcon(i[o])),s.push(this.getAcquisitionRow(i[o]));return S`
-      <tr class="evaluation-row">
-        <td class="evaluation-color">
-          <span style="background-color:${r}"></span>
+    `}static getStubConfig(){return{display_header:!0,display_class_average:!0,compare_with_class_average:!0,compare_with_ratio:null,display_class_min:!0,display_class_max:!0}}static getConfigElement(){return document.createElement("ecole_directe-moyennes-card-editor")}};customElements.define("ecole_directe-moyennes-card",ie);window.customCards=window.customCards||[];window.customCards.push({type:"ecole_directe-moyennes-card",name:"Carte des moyennes pour Ecole Directe",description:"Affiche les moyennes pour Ecole Directe",documentationURL:"https://github.com/hacf-fr/EcoleDirecteHACards?tab=readme-ov-file#moyennes"});var He=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),v=He.prototype.html,Qe=He.prototype.css,ae=class extends _{initCard(){this.items_attribute_key="Evaluations",this.header_title="Evaluations de ",this.no_data_message="Pas d'\xE9valuation \xE0 afficher"}getFormattedDate(e){return new Date(e).toLocaleDateString("fr-FR",{weekday:"short",day:"2-digit",month:"2-digit"}).replace(/^(.)/,t=>t.toUpperCase())}getAcquisitionRow(e,t){return v`
+      <tr class="acquisition-row acquisition-row-${t}">
+        <td></td>
+        <td colspan="2">
+          <div class="acquisition-item">
+            <span class="acquisition-description">
+              <span class="acquisition-label">${e.competence}</span>${e.descriptif?v`<span class="acquisition-detail">${e.descriptif}</span>`:""}
+            </span>
+            ${this.getAcquisitionIcon(e)}
+          </div>
         </td>
-        <td class="evaluation-description">
-          <label for="evaluation-full-detail-${t}">
-            <span class="evaluation-subject">${e.matiere}</span>
-          </label>
-          <input type="checkbox" id="evaluation-full-detail-${t}" />
-          ${this.config.display_comment?S`<span class="evaluation-comment">${e.devoir}</span>`:""}
-          ${this.config.display_date?S`<span class="evaluation-date"
-                >${this.getFormattedDate(e.date)}</span
-              >`:""}
-        </td>
-        <td class="evaluation-detail">${a}</td>
       </tr>
-      ${s}
-    `}getCardContent(){if(this.hass.states[this.config.entity]){let t=this.getItems(),i=this.config.max_evaluations??t.length,a=[],s=[];for(let r=0;r<i&&!(r>=t.length);r++){let o=t[r];a.push(this.getEvaluationRow(o,r))}return a.length>0?s.push(S`<table>
+    `}getAcquisitionIcon(e){let t=this.config.mapping_evaluations[e.valeur]||e.valeur,i="";return t==="A+"?i="+":t==="Abs"&&(i="a"),v`
+      <div class="acquisition-status">
+        <span
+          title="${e.level||""}"
+          class="acquisition-icon acquisition-icon-${t}"
+        >
+          ${i}
+        </span>
+      </div>
+    `}toggleEvaluation(e){let t=e.currentTarget,i=t.closest(".evaluation-group");i&&i.classList.toggle("open",t.checked)}getEvaluationRow(e,t){let i=e.elements_programme,a=[],s=[],n="grey";for(let o=0;o<i.length;o++)a.push(this.getAcquisitionIcon(i[o])),s.push(this.getAcquisitionRow(i[o],t));return v`
+      <tbody class="evaluation-group">
+        <tr class="evaluation-row">
+          <td class="evaluation-color">
+            <span style="background-color:${n}"></span>
+          </td>
+          <td class="evaluation-description">
+            <label for="evaluation-full-detail-${t}">
+              <span class="evaluation-subject">${e.matiere}</span>
+            </label>
+            <input type="checkbox" id="evaluation-full-detail-${t}" @change="${this.toggleEvaluation}" />
+            ${this.config.display_comment?v`<span class="evaluation-comment">${e.devoir}</span>`:""}
+            ${this.config.display_date?v`<span class="evaluation-date"
+                  >${this.getFormattedDate(e.date)}</span
+                >`:""}
+          </td>
+          <td class="evaluation-detail">${a}</td>
+        </tr>
+        ${s}
+      </tbody>
+    `}getLegendHeader(){let t=this.hass.states[this.config.entity]?.attributes?.level_mapping;return t?v`
+      <div class="evaluation-legend">
+        <span class="legend-item"><span class="acquisition-icon acquisition-icon-4"></span> ${t[4]}</span>
+        <span class="legend-item"><span class="acquisition-icon acquisition-icon-3"></span> ${t[3]}</span>
+        <span class="legend-item"><span class="acquisition-icon acquisition-icon-2"></span> ${t[2]}</span>
+        <span class="legend-item"><span class="acquisition-icon acquisition-icon-1"></span> ${t[1]}</span>
+      </div>
+    `:v``}getCardContent(){if(this.hass.states[this.config.entity]){let t=this.getItems(),i=this.config.max_evaluations??t.length,a=[],s=[];s.push(this.getLegendHeader());for(let n=0;n<i&&!(n>=t.length);n++){let o=t[n];a.push(this.getEvaluationRow(o,n))}return a.length>0?s.push(v`<table>
             ${a}
-          </table>`):s.push(this.noDataMessage()),s}return[]}getDefaultConfig(){return{display_header:!0,display_description:!0,display_teacher:!0,display_date:!0,display_comment:!0,max_evaluations:null,mapping_evaluations:{}}}static get styles(){return Je`
+          </table>`):s.push(this.noDataMessage()),s}return[]}getDefaultConfig(){return{display_header:!0,display_description:!0,display_teacher:!0,display_date:!0,display_comment:!0,max_evaluations:null,mapping_evaluations:{}}}static get styles(){return Qe`
       ${super.styles}
       table {
         font-size: 0.9em;
@@ -589,12 +681,12 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
       }
       td.evaluation-color {
         width: 4px;
-        padding-top: 11px;
+        padding-top: 8px;
       }
       td.evaluation-color > span {
         display: inline-block;
         width: 4px;
-        height: 2rem;
+        height: 4rem;
         border-radius: 4px;
         background-color: grey;
       }
@@ -612,6 +704,7 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
       }
       .evaluation-description {
         display: block;
+        padding-left: 0px;
       }
       .evaluation-teacher {
         display: block;
@@ -632,6 +725,36 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
       }
       .evaluation-value {
         font-weight: bold;
+      }
+      .evaluation-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 6px;
+        align-items: center;
+        padding: 8px 12px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
+        font-size: 0.85em;
+        font-weight: normal;
+        color: var(--secondary-text-color, gray);
+      }
+      .evaluation-legend div, .legend-item {
+        padding: 0;
+        font-weight: normal;
+        font-size: inherit;
+      }
+      .legend-item {
+        padding-right: 5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px; /* espace propre entre la bulle et le texte */
+      }
+      .acquisition-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 0px 0px 0px;
+        white-space: nowrap;
       }
       .acquisition-icon {
         display: inline-block;
@@ -658,24 +781,55 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
       .acquisition-icon-1 {
         background-color: #f80a0a;
       }
-      .acquisition-row {
-        display: none;
-      }
       input[type="checkbox"] {
         display: none;
       }
-      /** FIXME
-        .evaluation-row:has(input:checked) .acquisition-icon {
-            display:none;
-        }
-        .evaluation-row:has(input:checked) + .acquisition-row {
-            display: table-row;
-        }
-        */
-      .acquisition-row td:nth-child(2) {
-        text-align: right;
+      .evaluation-group.open .evaluation-row .evaluation-detail {
+        display: none;
       }
-    `}static getStubConfig(){return{display_header:!0,display_description:!0,display_teacher:!0,display_date:!0,display_comment:!0,max_evaluations:null,mapping_evaluations:{}}}static getConfigElement(){return document.createElement("ecole_directe-evaluations-card-editor")}};customElements.define("ecole_directe-evaluations-card",ae);window.customCards=window.customCards||[];window.customCards.push({type:"ecole_directe-evaluations-card",name:"Carte des \xE9valuations pour Ecole Directe",description:"Affiche les \xE9valuations pour Ecole Directe",documentationURL:"https://github.com/hacf-fr/EcoleDirecteHACards?tab=readme-ov-file#evaluations"});var He=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),M=He.prototype.html,Qe=He.prototype.css,se=class extends _{getAbsencesRetardsRow(e){let t=M`
+      .evaluation-description label {
+        cursor:pointer;
+      }
+      .acquisition-row {
+        display:none;
+      }
+      .evaluation-group.open .acquisition-row {
+        display:table-row;
+      }
+      input[type="checkbox"] {
+        display:none;
+      }
+      .acquisition-row td {
+        padding: 0px 10px 5px 0px;
+      }
+      .acquisition-item {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding: 3px 0;
+      }
+      .acquisition-description {
+        min-width: 0;
+        padding-right: 10px;
+      }
+      .acquisition-label {
+        display: block;
+        font-weight: 500;
+      }
+      .acquisition-detail {
+        display: block;
+        font-size: 0.85em;
+        color: gray;
+        margin-top: 2px;
+      }
+      .acquisition-item .acquisition-icon {
+        flex-shrink: 0;
+        margin-left: 8px;
+      }
+      .acquisition-row td:nth-child(2) {
+        text-align: left;
+      }
+    `}static getStubConfig(){return{display_header:!0,display_description:!0,display_teacher:!0,display_date:!0,display_comment:!0,max_evaluations:null,mapping_evaluations:{}}}static getConfigElement(){return document.createElement("ecole_directe-evaluations-card-editor")}};customElements.define("ecole_directe-evaluations-card",ae);window.customCards=window.customCards||[];window.customCards.push({type:"ecole_directe-evaluations-card",name:"Carte des \xE9valuations pour Ecole Directe",description:"Affiche les \xE9valuations pour Ecole Directe",documentationURL:"https://github.com/hacf-fr/EcoleDirecteHACards?tab=readme-ov-file#evaluations"});var Te=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),M=Te.prototype.html,Xe=Te.prototype.css,se=class extends _{getAbsencesRetardsRow(e){let t=M`
       <tr>
         <td class="absence-status">
           <span
@@ -697,7 +851,7 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
       </tr>
     `;return M`${t}`}initCard(){this.hass.states[this.config.entity].attributes.Absences?(this.items_attribute_key="Absences",this.header_title="Absences de ",this.no_data_message="Aucune absence"):(this.items_attribute_key="Retards",this.header_title="Retards de ",this.no_data_message="Aucun retard")}getCardContent(){if(this.hass.states[this.config.entity]){let t=this.getItems(),i=[],a=[];for(let s=0;s<t.length&&!(this.config.max&&this.config.max<s);s++)a.push(this.getAbsencesRetardsRow(t[s]));return t.length>0?i.push(M`<table>
             ${a}
-          </table>`):i.push(this.noDataMessage()),i}}getDefaultConfig(){return{display_header:!0,max:null}}static get styles(){return Qe`
+          </table>`):i.push(this.noDataMessage()),i}}getDefaultConfig(){return{display_header:!0,max:null}}static get styles(){return Xe`
       ${super.styles}
       table {
         clear: both;
@@ -747,7 +901,7 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
       table + div {
         border-top: 1px solid white;
       }
-    `}static getStubConfig(){return{display_header:!0,max:null}}static getConfigElement(){return document.createElement("ecole_directe-absences-retards-card-editor")}};customElements.define("ecole_directe-absences-retards-card",se);window.customCards=window.customCards||[];window.customCards.push({type:"ecole_directe-absences-retards-card",name:"Carte Absences/Retards pour Ecole Directe",description:"Affiche les absences ou les retards pour Ecole Directe",documentationURL:"https://github.com/hacf-fr/EcoleDirecteHACards?tab=readme-ov-file#absences"});var ne=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),R=ne.prototype.html,et=ne.prototype.css,re=class extends ne{static get properties(){return{hass:{},_config:{}}}setConfig(e){this._config=e,this.loadEntityPicker()}_valueChanged(e){let t=Object.assign({},this._config);typeof e.target.checked<"u"?t[e.target.configValue]=e.target.checked:t[e.target.configValue]=e.target.value==""?null:e.target.value,this._config=t;let i=new CustomEvent("config-changed",{detail:{config:t},bubbles:!0,composed:!0});this.dispatchEvent(i)}buildSelectField(e,t,i,a,s){let r=[];for(let o=0;o<i.length;o++){let l=i[o];r.push(R`<ha-list-item .value="${l.value}"
+    `}static getStubConfig(){return{display_header:!0,max:null}}static getConfigElement(){return document.createElement("ecole_directe-absences-retards-card-editor")}};customElements.define("ecole_directe-absences-retards-card",se);window.customCards=window.customCards||[];window.customCards.push({type:"ecole_directe-absences-retards-card",name:"Carte Absences/Retards pour Ecole Directe",description:"Affiche les absences ou les retards pour Ecole Directe",documentationURL:"https://github.com/hacf-fr/EcoleDirecteHACards?tab=readme-ov-file#absences"});var re=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),R=re.prototype.html,et=re.prototype.css,ne=class extends re{static get properties(){return{hass:{},_config:{}}}setConfig(e){this._config=e,this.loadEntityPicker()}_valueChanged(e){let t=Object.assign({},this._config);typeof e.target.checked<"u"?t[e.target.configValue]=e.target.checked:t[e.target.configValue]=e.target.value==""?null:e.target.value,this._config=t;let i=new CustomEvent("config-changed",{detail:{config:t},bubbles:!0,composed:!0});this.dispatchEvent(i)}buildSelectField(e,t,i,a,s){let n=[];for(let o=0;o<i.length;o++){let l=i[o];n.push(R`<ha-list-item .value="${l.value}"
           >${l.label}</ha-list-item
         >`)}return R`
       <ha-select
@@ -757,7 +911,7 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
         @change=${this._valueChanged}
         @closed=${o=>o.stopPropagation()}
       >
-        ${r}
+        ${n}
       </ha-select>
     `}buildSwitchField(e,t,i,a){return typeof i!="boolean"&&(i=a),R`
       <ha-formfield class="switch-wrapper" .label="${e}">
@@ -794,7 +948,7 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
         .value=${i||""}
         .configValue=${t}
         .includeDomains="sensor"
-        .entityFilter="${r=>s.test(r.entity_id)}"
+        .entityFilter="${n=>s.test(n.entity_id)}"
         @value-changed=${this._valueChanged}
         allow-custom-entity
       ></ha-entity-picker>
@@ -813,7 +967,7 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
         width: 100%;
         padding-top: 15px;
       }
-    `}},f=re;var tt=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),Oe=tt.prototype.html,oe=class extends f{render(){return!this.hass||!this._config?Oe``:Oe`
+    `}},f=ne;var tt=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),Oe=tt.prototype.html,oe=class extends f{render(){return!this.hass||!this._config?Oe``:Oe`
       ${this.buildEntityPickerField("Timetable entity","entity",this._config.entity,"emploi_du_temps_(semaine_en_cours|semaine_suivante|semaine_apres_suivante|aujourd_hui|demain|jour_suivant)")}
       ${this.buildSwitchField("Display header","display_header",this._config.display_header,!0)}
       ${this.buildSwitchField("Display classroom","display_classroom",this._config.display_classroom,!0)}
@@ -850,7 +1004,7 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
       ${this.buildSwitchField("Display date","display_date",this._config.display_date)}
       ${this.buildSwitchField("Display comment","display_comment",this._config.display_comment)}
       ${this.buildNumberField("Max evaluations","max_evaluations",this._config.max_evaluations)}
-    `}};customElements.define("ecole_directe-evaluations-card-editor",ce);var rt=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),Ne=rt.prototype.html,he=class extends f{render(){return!this.hass||!this._config?Ne``:Ne`
+    `}};customElements.define("ecole_directe-evaluations-card-editor",ce);var nt=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),qe=nt.prototype.html,pe=class extends f{render(){return!this.hass||!this._config?qe``:qe`
       ${this.buildEntityPickerField("Cpateur moyennes","entity",this._config.entity,"moyenne_generale")}
       ${this.buildSwitchField("Display header","display_header",this._config.display_header)}
       ${this.buildSwitchField("Display class average","display_class_average",this._config.display_class_average)}
@@ -859,11 +1013,11 @@ var V=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),k=V.prototy
       ${this.buildSwitchField("Display class min","display_class_min",this._config.display_class_min)}
       ${this.buildSwitchField("Display class max","display_class_max",this._config.display_class_max)}
       ${this.buildSwitchField("Display overall average","display_overall_average",this._config.display_overall_average,!0)}
-    `}};customElements.define("ecole_directe-moyennes-card-editor",he);var nt=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),Be=nt.prototype.html,pe=class extends f{render(){return!this.hass||!this._config?Be``:Be`
+    `}};customElements.define("ecole_directe-moyennes-card-editor",pe);var rt=Object.getPrototypeOf(customElements.get("ha-panel-lovelace")),Ne=rt.prototype.html,he=class extends f{render(){return!this.hass||!this._config?Ne``:Ne`
       ${this.buildEntityPickerField("Absences/Retards entity","entity",this._config.entity,"(absences|retards)")}
       ${this.buildSwitchField("Display header","display_header",this._config.display_header)}
       ${this.buildNumberField("Max","max",this._config.max)}
-    `}};customElements.define("ecole_directe-absences-retards-card-editor",pe);
+    `}};customElements.define("ecole_directe-absences-retards-card-editor",he);
 /*! Bundled license information:
 
 lit-html/lit-html.js:

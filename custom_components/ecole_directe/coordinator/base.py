@@ -99,6 +99,12 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         LOGGER.debug("timezone: %s", self.timezone)
         # Initialize QCM data store for persistence
         self._qcm_store = Store(hass, 1, f"ecole_directe_qcm_{entry.entry_id}")
+        # Initialize attributes store for oversized attributes persistence
+        self._attributes_store = Store(hass, 1, f"ed_attributes_{entry.entry_id}")
+        self._stored_attributes: dict[str, Any] = {}
+        # Trusted device (cn/cv) returned by Ecole Directe after the QCM,
+        # persisted with the QCM data so that the next logins skip the QCM.
+        self._trusted_device: dict[str, str] | None = None
 
     async def _async_setup(self) -> None:
         """
@@ -129,7 +135,22 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             self.data["qcm_selected_options"] = saved_qcm.get(
                 "qcm_selected_options", {}
             )
+            trusted_device = saved_qcm.get("trusted_device")
+            if (
+                isinstance(trusted_device, dict)
+                and trusted_device.get("cn")
+                and trusted_device.get("cv")
+            ):
+                self._trusted_device = trusted_device
             LOGGER.debug("Loaded saved QCM data: %s", saved_qcm)
+
+        # Load saved attributes data from disk
+        saved_attributes = await self._attributes_store.async_load()
+        if isinstance(saved_attributes, dict):
+            self._stored_attributes = saved_attributes
+            LOGGER.debug(
+                "Loaded saved attributes data for %s keys", len(self._stored_attributes)
+            )
 
         # Check for legacy ecoledirecte_qcm.json file, migrate and delete it
         await self.async_migrate_legacy_qcm_file()
@@ -205,6 +226,21 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         # Persist QCM data to disk
         self.hass.async_create_task(self._async_save_qcm_data())
 
+    async def _async_remember_trusted_device(self, client: EDApiClient) -> None:
+        """Persist the trusted device (cn/cv) when Ecole Directe issued a new one."""
+        if not client.cn or not client.cv:
+            return
+        current = self._trusted_device or {}
+        if current.get("cn") == client.cn and current.get("cv") == client.cv:
+            return
+        self._trusted_device = {
+            "cn": client.cn,
+            "cv": client.cv,
+            "saved_at": datetime.now(self.timezone).isoformat(timespec="seconds"),
+        }
+        await self._async_save_qcm_data()
+        LOGGER.info("Ecole Directe trusted device saved: next logins will skip the QCM")
+
     async def _async_save_qcm_data(self) -> None:
         """Save QCM data to disk for persistence."""
         if self.data is None:
@@ -213,9 +249,23 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         qcm_data = {
             "qcm_questions": self.data.get("qcm_questions", {}),
             "qcm_selected_options": self.data.get("qcm_selected_options", {}),
+            "trusted_device": self._trusted_device,
         }
         await self._qcm_store.async_save(qcm_data)
         LOGGER.debug("Saved QCM data to store: %s", qcm_data)
+
+    @callback
+    def async_save_attributes(self, key: str, attributes: Any) -> None:
+        """Save oversized attributes to store."""
+        self._stored_attributes[key] = attributes
+        self._attributes_store.async_delay_save(
+            lambda: self._stored_attributes,
+            delay=5,
+        )
+
+    def get_stored_attributes(self, key: str) -> Any | None:
+        """Get stored attributes from store."""
+        return self._stored_attributes.get(key)
 
     async def async_migrate_legacy_qcm_file(self) -> None:
         """Check if legacy QCM file exists, read it, convert it to current usage and delete it."""
@@ -359,6 +409,10 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                             continue
                         client.qcm_json[question] = [selected_option]
 
+                if self._trusted_device is not None:
+                    client.cn = self._trusted_device["cn"]
+                    client.cv = self._trusted_device["cv"]
+
                 try:
                     await client.login()
                 except QCMException:
@@ -367,6 +421,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 except Exception:
                     LOGGER.critical("Unknown error on login")
                     return self.data
+
+                await self._async_remember_trusted_device(client)
 
                 # Preserve QCM data across updates so saved questions persist
                 previous_qcm_questions = (self.data or {}).get("qcm_questions", {})

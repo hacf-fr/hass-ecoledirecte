@@ -88,13 +88,17 @@ class EDHomeworksSensor(EDGenericSensor):
             attributes.append({"Erreur": f"{self._key} n'existe pas."})
 
         if is_too_big(attributes):
-            attributes = []
-            attributes.append(
-                {
-                    "Erreur": "Les attributs sont trop volumineux. Essayez de désactiver les tags HTML. https://www.hacf.fr/ecole-directe/#retrait-des-tags-html"
-                }
+            LOGGER.warning(
+                "[%s] Les attributs sont trop volumineux, sauvegarde dans le Store",
+                self._attr_name,
             )
-            LOGGER.warning("[%s] Les attributs sont trop volumineux!", self._attr_name)
+            self.coordinator.async_save_attributes(self._key, attributes)
+            attributes = [
+                {
+                    "stored_in_store": True,
+                    "store_key": self._key,
+                }
+            ]
         result = super().extra_state_attributes
         result.update(
             {

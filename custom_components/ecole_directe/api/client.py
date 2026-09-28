@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self
 
 import anyio
+from aiohttp import CookieJar
 from ecoledirecte_api.client import EDClient, QCMException
 from ecoledirecte_api.const import ED_OK
 
@@ -124,6 +125,11 @@ class EDApiClient:
         self.username = user
         self.password = pwd
         self.qcm_json: dict[str, list[str]] = {}
+        # Trusted device returned by Ecole Directe after a successful QCM.
+        # Set both before login() to skip the QCM; read both after login()
+        # to persist the (possibly renewed) couple.
+        self.cn: str | None = None
+        self.cv: str | None = None
         self.log_folder = self.hass.config.config_dir + INTEGRATION_PATH + "logs/"
         self.test_folder = self.hass.config.config_dir + INTEGRATION_PATH + "test/"
         Path(self.log_folder).mkdir(parents=True, exist_ok=True)
@@ -143,8 +149,11 @@ class EDApiClient:
 
     async def close(self) -> None:
         """Close the client."""
-        if self.ed_client is not None:
-            await self.ed_client.close()
+        # ed_client only exists once login() ran: leaving the context after an
+        # early failure must not raise (see #255).
+        ed_client = getattr(self, "ed_client", None)
+        if ed_client is not None:
+            await ed_client.close()
 
     async def save_question(self, qcm_json: Any) -> None:
         """Handle a new QCM question."""
@@ -163,15 +172,67 @@ class EDApiClient:
         """Set the selected QCM answer for the next login attempt."""
         self.qcm_json[question] = [answer]
 
-    async def login(self) -> Any:
-        """Login to Ecole Directe."""
-        self.ed_client: EDClient = EDClient(
+    def _new_ed_client(self) -> EDClient:
+        """Create a library client wired to the QCM callback."""
+        ed_client = EDClient(
             username=self.username,
             password=self.password,
             qcm_json=self.qcm_json,
         )
-        self.ed_client.on_new_question(self.save_question)
+        ed_client.on_new_question(self.save_question)
+        return ed_client
+
+    @staticmethod
+    def _is_login_ok(login: Any) -> bool:
+        """Return True when the login response carries a usable session."""
+        return (
+            isinstance(login, dict)
+            and login.get("code") == ED_OK
+            and isinstance(login.get("data"), dict)
+            and bool(login["data"].get("accounts"))
+        )
+
+    async def login(self) -> Any:
+        """
+        Login to Ecole Directe.
+
+        Every login without a trusted device is seen by Ecole Directe as a
+        "new device": it requires the QCM and counts towards the account
+        lockout ("tentatives infructueuses de connexion"), which triggers
+        after a handful of such logins. The cn/cv couple returned after a
+        successful QCM identifies this device; sent back in the "fa" field of
+        the next logins (as the official mobile application does) it makes
+        the QCM unnecessary. The coordinator persists it between updates.
+        """
+        self.ed_client: EDClient = self._new_ed_client()
+        trusted = bool(self.cn and self.cv)
+        if trusted:
+            # The library skips the password-only login (and thus the QCM)
+            # only when cn/cv are set and cookie_jar is not None.
+            self.ed_client.cn = self.cn
+            self.ed_client.cv = self.cv
+            self.ed_client.cookie_jar = CookieJar()
+            LOGGER.debug("Login with trusted device (no QCM)")
         login = await self.ed_client.login()
+
+        if trusted and not self._is_login_ok(login):
+            # Trusted device revoked or expired (typically code 250): fall back
+            # to a full login, Ecole Directe will ask the QCM again and return
+            # a new cn/cv couple.
+            LOGGER.warning(
+                "Trusted device no longer accepted by Ecole Directe (code %s): "
+                "new QCM validation",
+                login.get("code") if isinstance(login, dict) else login,
+            )
+            await self.ed_client.close()
+            self.cn = None
+            self.cv = None
+            self.ed_client = self._new_ed_client()
+            login = await self.ed_client.login()
+
+        # Expose the (possibly renewed) trusted device for persistence.
+        self.cn = self.ed_client.cn
+        self.cv = self.ed_client.cv
         LOGGER.debug(login)
         LOGGER.info(
             "Connection OK - identifiant: [%s]",

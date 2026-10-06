@@ -273,14 +273,15 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         return None
 
     @asynccontextmanager
-    async def async_open_document(
-        self, eleve_key: str, document: dict
-    ) -> AsyncIterator[AsyncIterator[bytes]]:
+    async def async_logged_in_client(self) -> AsyncIterator[EDApiClient]:
         """
-        Log in and open a homework document for streaming.
+        Log in a fresh, short-lived client for an on-demand API call.
 
-        The Ecole Directe session stays open until the caller leaves the context,
-        i.e. until the whole document has been streamed.
+        The client stored in self.data["session"] is closed at the end of each
+        refresh: reusing it would silently log in again behind EDApiClient's
+        back (no QCM handling, renewed trusted device lost, stale account
+        switch, session never closed). The client is closed when the caller
+        leaves the context.
         """
         async with EDApiClient(
             self.config_entry.data["username"],
@@ -290,7 +291,19 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             self._prepare_client(client)
             await client.login()
             await self._async_remember_trusted_device(client)
+            yield client
 
+    @asynccontextmanager
+    async def async_open_document(
+        self, eleve_key: str, document: dict
+    ) -> AsyncIterator[AsyncIterator[bytes]]:
+        """
+        Log in and open a homework document for streaming.
+
+        The Ecole Directe session stays open until the caller leaves the context,
+        i.e. until the whole document has been streamed.
+        """
+        async with self.async_logged_in_client() as client:
             eleve = next(
                 (e for e in client.eleves if e.get_fullname_lower() == eleve_key),
                 None,

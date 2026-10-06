@@ -261,6 +261,20 @@ class EDDevoirCard extends BaseEDCard {
     `;
   }
 
+  toggleDevoirEffectue(devoir, e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (devoir.eleve_id == null || devoir.devoir_id == null) {
+      console.error("ecole_directe-devoirs-card: missing eleve_id/devoir_id on devoir", devoir);
+      return;
+    }
+    this.hass.callService("ecole_directe", "devoir_effectue", {
+      eleve_id: devoir.eleve_id,
+      devoir_id: devoir.devoir_id,
+      effectue: !devoir.effectue,
+    });
+  }
+
   getdevoirRow(devoir, index) {
     if (!devoir) {
       return html``;
@@ -298,6 +312,13 @@ class EDDevoirCard extends BaseEDCard {
         </td>
         <td class="devoir-status">
           <span
+            class="devoir-status-toggle"
+            role="button"
+            tabindex="0"
+            title="${devoir.effectue
+              ? "Marquer comme non fait"
+              : "Marquer comme fait"}"
+            @click=${(e) => this.toggleDevoirEffectue(devoir, e)}
             >${devoir.effectue
               ? html`<ha-icon icon="mdi:check"></ha-icon>`
               : html`<ha-icon icon="mdi:account-clock"></ha-icon>`}</span
@@ -507,6 +528,9 @@ class EDDevoirCard extends BaseEDCard {
       }
       td.devoir-status {
         width: 5%;
+      }
+      .devoir-status-toggle {
+        cursor: pointer;
       }
       .reduce-done .devoir-done label:hover {
         cusor: pointer;

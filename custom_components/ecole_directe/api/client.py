@@ -392,14 +392,18 @@ class EDApiClient:
                             "aFaire" in matiere
                             and matiere["id"] == homework_json["idDevoir"]
                         ):
-                            hw = self.get_homework(matiere, key, decode_html)
+                            hw = self.get_homework(
+                                matiere, key, decode_html, eleve.eleve_id
+                            )
                             homeworks.append(hw)
             if homeworks is not None:
                 homeworks.sort(key=operator.itemgetter("date"))
 
         return homeworks
 
-    def get_homework(self, data: dict, pour_le: str, clean_content: bool) -> dict:
+    def get_homework(
+        self, data: dict, pour_le: str, clean_content: bool, eleve_id: str
+    ) -> dict:
         """Get homework information."""
         a_faire = data.get("aFaire") if isinstance(data.get("aFaire"), dict) else {}
         contenu_raw = a_faire.get("contenu")
@@ -414,6 +418,7 @@ class EDApiClient:
             contenu = re.sub(CLEANR, "", contenu)
         return {
             "devoir_id": data.get("id"),
+            "eleve_id": eleve_id,
             "date": datetime.strptime(pour_le, "%Y-%m-%d"),
             "matiere": data.get("matiere"),
             "short_description": contenu[0:HOMEWORK_DESC_MAX_LENGTH],

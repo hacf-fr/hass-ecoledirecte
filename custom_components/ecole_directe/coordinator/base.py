@@ -12,6 +12,7 @@ https://developers.home-assistant.io/docs/integration_fetching_data#coordinated-
 from __future__ import annotations
 
 import asyncio
+import functools
 import json
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta, tzinfo
@@ -118,10 +119,6 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         self._document_cache_dir = Path(
             hass.config.config_dir + INTEGRATION_PATH + "documents/"
         )
-        self._document_cache_dir.mkdir(parents=True, exist_ok=True)
-        for leftover in self._document_cache_dir.glob("*.part"):
-            # Crash/restart recovery: a previous download never finished.
-            leftover.unlink(missing_ok=True)
         self._document_download_locks: dict[str, asyncio.Lock] = {}
 
     async def _async_setup(self) -> None:
@@ -172,6 +169,10 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
         # Check for legacy ecoledirecte_qcm.json file, migrate and delete it
         await self.async_migrate_legacy_qcm_file()
+
+        # Create the document cache dir and clear any unfinished downloads
+        # left over from a crash/restart. Filesystem access, so off the loop.
+        await self.hass.async_add_executor_job(self._init_document_cache_dir)
 
         LOGGER.debug("Coordinator setup complete for %s", self.config_entry.entry_id)
 
@@ -307,6 +308,26 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             self._document_cache_dir / f"{self.config_entry.entry_id}_{document_id}.bin"
         )
 
+    def _init_document_cache_dir(self) -> None:
+        """Create the document cache dir and clear any unfinished downloads."""
+        self._document_cache_dir.mkdir(parents=True, exist_ok=True)
+        for leftover in self._document_cache_dir.glob("*.part"):
+            # Crash/restart recovery: a previous download never finished.
+            leftover.unlink(missing_ok=True)
+
+    def _cached_document_if_valid(self, cache_path: Path, taille: Any) -> Path | None:
+        """Return cache_path if a valid cached copy is already on disk."""
+        if not cache_path.exists():
+            return None
+        if not isinstance(taille, int) or cache_path.stat().st_size == taille:
+            cache_path.touch()  # bump mtime for the LRU eviction below
+            return cache_path
+        LOGGER.warning(
+            "Cached document %s has the wrong size, redownloading", cache_path.name
+        )
+        cache_path.unlink(missing_ok=True)
+        return None
+
     async def async_get_document_path(self, eleve_key: str, document: dict) -> Path:
         """
         Return a local file holding this document's full content.
@@ -320,21 +341,18 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         cache_path = self._document_cache_path(document_id)
         taille = document.get("taille")
 
-        if cache_path.exists():
-            if not isinstance(taille, int) or cache_path.stat().st_size == taille:
-                cache_path.touch()  # bump mtime for the LRU eviction below
-                return cache_path
-            LOGGER.warning(
-                "Cached document %s has the wrong size, redownloading", document_id
-            )
-            cache_path.unlink(missing_ok=True)
+        cached = await self.hass.async_add_executor_job(
+            self._cached_document_if_valid, cache_path, taille
+        )
+        if cached is not None:
+            return cached
 
         lock = self._document_download_locks.setdefault(
             str(document_id), asyncio.Lock()
         )
         async with lock:
             try:
-                if cache_path.exists():
+                if await self.hass.async_add_executor_job(cache_path.exists):
                     # Another request finished downloading while we waited for the lock.
                     return cache_path
 
@@ -346,12 +364,18 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     ):
                         async for chunk in chunks:
                             await file.write(chunk)
-                    tmp_path.rename(cache_path)
+                    await self.hass.async_add_executor_job(
+                        tmp_path.rename, cache_path
+                    )
                 except Exception:
-                    tmp_path.unlink(missing_ok=True)
+                    await self.hass.async_add_executor_job(
+                        functools.partial(tmp_path.unlink, missing_ok=True)
+                    )
                     raise
 
-                self._evict_document_cache(keep=cache_path)
+                await self.hass.async_add_executor_job(
+                    self._evict_document_cache, cache_path
+                )
                 return cache_path
             finally:
                 self._document_download_locks.pop(str(document_id), None)

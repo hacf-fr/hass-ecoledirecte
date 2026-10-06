@@ -28,10 +28,19 @@ async def async_handle_devoir_effectue(
             devoir_id,
             effectue,
         )
-        client = entry.runtime_data.client
+        # entry.runtime_data.client is only constructed, never logged in: the
+        # coordinator logs in a fresh client on every refresh and keeps the
+        # authenticated one in its data instead (see coordinator/base.py).
+        session_data = entry.runtime_data.coordinator.data or {}
+        client = session_data.get("session")
+        if client is None:
+            msg = "Ecole Directe client not yet authenticated"
+            raise HomeAssistantError(msg)
         await client.post_homework(
             eleve_id=eleve_id, devoir_id=devoir_id, effectue=effectue
         )
+        # Update entities now instead of waiting for the next scheduled poll.
+        await entry.runtime_data.coordinator.async_request_refresh()
     except Exception as err:
         LOGGER.exception("Error on service devoir_effectue call")
         msg = f"Failed to mark homework as done: {err}"

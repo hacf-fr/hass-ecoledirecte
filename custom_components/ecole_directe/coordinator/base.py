@@ -11,8 +11,11 @@ https://developers.home-assistant.io/docs/integration_fetching_data#coordinated-
 
 from __future__ import annotations
 
+import asyncio
 import json
+from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta, tzinfo
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import anyio
@@ -41,12 +44,15 @@ from custom_components.ecole_directe.const import (
     FAKE_ON,
     FILENAME_QCM,
     GRADES_TO_DISPLAY,
+    INTEGRATION_PATH,
     LOGGER,
+    MAX_DOCUMENT_CACHE_BYTES,
     MAX_QUESTIONS,
 )
 from custom_components.ecole_directe.helpers import get_unique_id
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
     from logging import Logger
 
     from homeassistant.core import HomeAssistant
@@ -105,6 +111,18 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         # Trusted device (cn/cv) returned by Ecole Directe after the QCM,
         # persisted with the QCM data so that the next logins skip the QCM.
         self._trusted_device: dict[str, str] | None = None
+        # Local cache of downloaded homework documents: Ecole Directe has no
+        # server-side Range support, so without a cache every seek/replay in
+        # the devoirs card would re-download the whole file. Stored next to
+        # logs/test fixtures (see EDApiClient), lost (harmlessly) on update.
+        self._document_cache_dir = Path(
+            hass.config.config_dir + INTEGRATION_PATH + "documents/"
+        )
+        self._document_cache_dir.mkdir(parents=True, exist_ok=True)
+        for leftover in self._document_cache_dir.glob("*.part"):
+            # Crash/restart recovery: a previous download never finished.
+            leftover.unlink(missing_ok=True)
+        self._document_download_locks: dict[str, asyncio.Lock] = {}
 
     async def _async_setup(self) -> None:
         """
@@ -225,6 +243,134 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         self.data.setdefault("qcm_selected_options", {})[question] = option
         # Persist QCM data to disk
         self.hass.async_create_task(self._async_save_qcm_data())
+
+    def _prepare_client(self, client: EDApiClient) -> None:
+        """Give a new client the selected QCM answers and the trusted device."""
+        if self.data is not None:
+            for question, selected_option in self.data.get(
+                "qcm_selected_options", {}
+            ).items():
+                if selected_option is None:
+                    continue
+                client.qcm_json[question] = [selected_option]
+
+        if self._trusted_device is not None:
+            client.cn = self._trusted_device["cn"]
+            client.cv = self._trusted_device["cv"]
+
+    def find_homework_document(self, document_id: str) -> tuple[str, dict] | None:
+        """Find a homework document by id, return the student key and the document."""
+        if not self.data:
+            return None
+        for key, homeworks in self.data.items():
+            if not key.endswith("_homeworks") or not isinstance(homeworks, list):
+                continue
+            for homework in homeworks:
+                for document in homework.get("documents") or []:
+                    if str(document.get("id")) == document_id:
+                        return key.removesuffix("_homeworks"), document
+        return None
+
+    @asynccontextmanager
+    async def async_open_document(
+        self, eleve_key: str, document: dict
+    ) -> AsyncIterator[AsyncIterator[bytes]]:
+        """
+        Log in and open a homework document for streaming.
+
+        The Ecole Directe session stays open until the caller leaves the context,
+        i.e. until the whole document has been streamed.
+        """
+        async with EDApiClient(
+            self.config_entry.data["username"],
+            self.config_entry.data["password"],
+            self.hass,
+        ) as client:
+            self._prepare_client(client)
+            await client.login()
+            await self._async_remember_trusted_device(client)
+
+            eleve = next(
+                (e for e in client.eleves if e.get_fullname_lower() == eleve_key),
+                None,
+            )
+            if eleve is not None and eleve.account_id_login is not None:
+                await client.switch_account(eleve.account_id_login)
+
+            yield client.iter_document(
+                document["id"], document.get("type") or "FICHIER_CDT"
+            )
+
+    def _document_cache_path(self, document_id: Any) -> Path:
+        """Local cache path for a homework document, namespaced per config entry."""
+        return (
+            self._document_cache_dir / f"{self.config_entry.entry_id}_{document_id}.bin"
+        )
+
+    async def async_get_document_path(self, eleve_key: str, document: dict) -> Path:
+        """
+        Return a local file holding this document's full content.
+
+        Downloads and caches it from Ecole Directe first if it isn't already
+        on disk, so repeated requests (Safari alone issues several Range
+        requests just to start playback) don't each redownload the whole
+        file: Ecole Directe has no server-side Range support of its own.
+        """
+        document_id = document["id"]
+        cache_path = self._document_cache_path(document_id)
+        taille = document.get("taille")
+
+        if cache_path.exists():
+            if not isinstance(taille, int) or cache_path.stat().st_size == taille:
+                cache_path.touch()  # bump mtime for the LRU eviction below
+                return cache_path
+            LOGGER.warning(
+                "Cached document %s has the wrong size, redownloading", document_id
+            )
+            cache_path.unlink(missing_ok=True)
+
+        lock = self._document_download_locks.setdefault(
+            str(document_id), asyncio.Lock()
+        )
+        async with lock:
+            try:
+                if cache_path.exists():
+                    # Another request finished downloading while we waited for the lock.
+                    return cache_path
+
+                tmp_path = cache_path.with_suffix(".part")
+                try:
+                    async with (
+                        self.async_open_document(eleve_key, document) as chunks,
+                        await anyio.open_file(tmp_path, "wb") as file,
+                    ):
+                        async for chunk in chunks:
+                            await file.write(chunk)
+                    tmp_path.rename(cache_path)
+                except Exception:
+                    tmp_path.unlink(missing_ok=True)
+                    raise
+
+                self._evict_document_cache(keep=cache_path)
+                return cache_path
+            finally:
+                self._document_download_locks.pop(str(document_id), None)
+
+    def _evict_document_cache(self, keep: Path) -> None:
+        """Delete the oldest cached documents once the cache exceeds its budget."""
+        try:
+            others = sorted(
+                (p for p in self._document_cache_dir.glob("*.bin") if p != keep),
+                key=lambda p: p.stat().st_mtime,
+            )
+            total = keep.stat().st_size + sum(p.stat().st_size for p in others)
+            for stale in others:
+                if total <= MAX_DOCUMENT_CACHE_BYTES:
+                    break
+                total -= stale.stat().st_size
+                stale.unlink(missing_ok=True)
+        except OSError:
+            LOGGER.exception("Error evicting the document cache")
 
     async def _async_remember_trusted_device(self, client: EDApiClient) -> None:
         """Persist the trusted device (cn/cv) when Ecole Directe issued a new one."""
@@ -401,17 +547,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 self.config_entry.data["password"],
                 self.hass,
             ) as client:
-                if self.data is not None:
-                    for question, selected_option in self.data.get(
-                        "qcm_selected_options", {}
-                    ).items():
-                        if selected_option is None:
-                            continue
-                        client.qcm_json[question] = [selected_option]
-
-                if self._trusted_device is not None:
-                    client.cn = self._trusted_device["cn"]
-                    client.cv = self._trusted_device["cv"]
+                self._prepare_client(client)
 
                 try:
                     await client.login()

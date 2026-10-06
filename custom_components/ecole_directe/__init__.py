@@ -36,6 +36,7 @@ from .const import (
 from .coordinator import EDDataUpdateCoordinator
 from .data import EDConfigEntry, EDData
 from .frontend import JSModuleRegistration
+from .frontend.document_view import EDDocumentView
 from .service_actions import async_setup_services
 
 if TYPE_CHECKING:
@@ -127,6 +128,9 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     # Enregistrer les commandes websocket
     websocket_api.async_register_command(hass, websocket_get_version)
     websocket_api.async_register_command(hass, websocket_get_stored_data)
+
+    # Vue HTTP pour télécharger les documents des devoirs
+    hass.http.register_view(EDDocumentView())
 
     async def _setup_frontend(_event: EventType = None) -> None:
         await async_register_frontend(hass)

@@ -40,6 +40,7 @@ from custom_components.ecole_directe.const import (
     EVENT_TYPE,
     FAKE_ON,
     FILENAME_QCM,
+    FORCED_MODULES,
     GRADES_TO_DISPLAY,
     LOGGER,
     MAX_QUESTIONS,
@@ -423,6 +424,14 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     return self.data
 
                 await self._async_remember_trusted_device(client)
+
+                # Some schools stop declaring a module for a pupil (enable=false)
+                # while the API still answers: optionally fetch them anyway.
+                if self.config_entry.options.get("forcer_modules", False):
+                    for eleve in client.eleves:
+                        for code in FORCED_MODULES:
+                            if code not in eleve.modules:
+                                eleve.modules.append(code)
 
                 # Preserve QCM data across updates so saved questions persist
                 previous_qcm_questions = (self.data or {}).get("qcm_questions", {})

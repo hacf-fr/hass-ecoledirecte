@@ -33,6 +33,9 @@ MAX_DOCUMENT_CACHE_BYTES: Final[int] = 100 * 1024 * 1024
 DEFAULT_ENABLE_DEBUGGING: Final[bool] = False
 FAKE_ON: Final[bool] = False
 
+# Modules fetched even when the school disables them (option forcer_modules)
+FORCED_MODULES: Final[tuple[str, ...]] = ("NOTES", "EDT", "VIE_SCOLAIRE")
+
 # Lire la version depuis manifest.json
 MANIFEST_PATH: Final[Path] = Path(__file__).parent / "manifest.json"
 with Path.open(MANIFEST_PATH, encoding="utf-8") as f:

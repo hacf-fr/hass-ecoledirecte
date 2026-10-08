@@ -397,6 +397,7 @@ class EDApiClient:
         response["evaluations"] = []
         response["disciplines"] = []
         data = json_resp["data"]
+        response["periodes"] = get_periodes_moyennes_from_data(data)
         index1 = 0
         index2 = 0
         if "periodes" in data:
@@ -457,71 +458,6 @@ class EDApiClient:
                 if len(evaluation) > 0:
                     response["evaluations"].append(evaluation)
         return response
-
-    async def get_periodes_moyennes(
-        self,
-        eleve: EDEleve,
-        annee_scolaire: str,
-    ) -> list[dict]:
-        """Récupère l'ensemble des périodes avec leurs moyennes générales."""
-        if FAKE_ON:
-            json_resp = await load_json_file(
-                self.test_folder + f"{eleve.eleve_id}_get_grades_evaluations.json"
-            )
-        else:
-            json_resp = await self.ed_client.get_grades_evaluations(
-                eleve_id=eleve.eleve_id,
-                annee_scolaire=annee_scolaire,
-            )
-
-        if "data" not in json_resp or "periodes" not in json_resp["data"]:
-            LOGGER.warning(
-                "get_periodes_moyennes: données introuvables [%s]", json_resp
-            )
-            return []
-
-        periodes_result = []
-        data = json_resp["data"]
-
-        # Trier les périodes par date de début
-        periodes = sorted(data["periodes"], key=operator.itemgetter("dateDebut"))
-
-        for periode_json in periodes:
-            # On extrait les infos de base de la période
-            periode_info = {
-                "idPeriode": periode_json.get("idPeriode"),
-                "codePeriode": periode_json.get("codePeriode"),
-                "nomPeriode": periode_json.get("periode"),
-                "annuel": periode_json.get("annuel", False),
-                "examenBlanc": periode_json.get("examenBlanc", False),
-                "cloture": periode_json.get("cloture", False),
-                "dateDebut": periode_json.get("dateDebut"),
-                "dateFin": periode_json.get("dateFin"),
-                "moyenne_generale": {},
-            }
-
-            # Extraire la moyenne générale de la période
-            ensemble = periode_json.get("ensembleMatieres", {})
-            if ensemble:
-                periode_info["moyenne_generale"] = {
-                    "moyenneGenerale": (
-                        ensemble.get("moyenneGenerale") or ""
-                    ).replace(",", "."),
-                    "moyenneClasse": (
-                        ensemble.get("moyenneClasse") or ""
-                    ).replace(",", "."),
-                    "moyenneMin": (
-                        ensemble.get("moyenneMin") or ""
-                    ).replace(",", "."),
-                    "moyenneMax": (
-                        ensemble.get("moyenneMax") or ""
-                    ).replace(",", "."),
-                    "dateCalcul": ensemble.get("dateCalcul", ""),
-                }
-
-            periodes_result.append(periode_info)
-
-        return periodes_result
 
     async def get_vie_scolaire(self, eleve: EDEleve) -> dict:
         """Get vie scolaire (absences, retards, etc.)."""
@@ -685,6 +621,43 @@ class EDApiClient:
         await self.ed_client.get_classe(classe_id=classe_id)
 
 
+def get_periodes_moyennes_from_data(data: dict) -> list[dict]:
+    """Récupère l'ensemble des périodes avec leurs moyennes générales."""
+    periodes_result = []
+    # Trier les périodes par date de début
+    periodes = sorted(data.get("periodes", []), key=operator.itemgetter("dateDebut"))
+
+    for periode_json in periodes:
+        # On extrait les infos de base de la période
+        periode_info = {
+            "idPeriode": periode_json.get("idPeriode"),
+            "codePeriode": periode_json.get("codePeriode"),
+            "nomPeriode": periode_json.get("periode"),
+            "annuel": periode_json.get("annuel", False),
+            "examenBlanc": periode_json.get("examenBlanc", False),
+            "cloture": periode_json.get("cloture", False),
+            "dateDebut": periode_json.get("dateDebut"),
+            "dateFin": periode_json.get("dateFin"),
+            "moyenne_generale": {},
+        }
+        # Extraire la moyenne générale de la période
+        ensemble = periode_json.get("ensembleMatieres", {})
+        if ensemble:
+            periode_info["moyenne_generale"] = {
+                "moyenneGenerale": (ensemble.get("moyenneGenerale") or "").replace(
+                    ",", "."
+                ),
+                "moyenneClasse": (ensemble.get("moyenneClasse") or "").replace(
+                    ",", "."
+                ),
+                "moyenneMin": (ensemble.get("moyenneMin") or "").replace(",", "."),
+                "moyenneMax": (ensemble.get("moyenneMax") or "").replace(",", "."),
+                "dateCalcul": ensemble.get("dateCalcul", ""),
+            }
+        periodes_result.append(periode_info)
+    return periodes_result
+
+
 async def load_json_file(file_path: str) -> dict:
     """Load JSON file."""
     async with await anyio.open_file(file_path, "r") as f:
@@ -809,6 +782,7 @@ def get_disciplines_periode(data: Any) -> list:
         raise
     return disciplines
 
+
 LEVEL_MAPPING: dict[str, str] = {
     "1": "Non atteint",
     "2": "Partiellement atteint",
@@ -816,11 +790,13 @@ LEVEL_MAPPING: dict[str, str] = {
     "4": "Dépassé",
 }
 
+
 def get_level(valeur: str | None) -> str:
     """Retourne le niveau sous forme de texte selon la valeur."""
     if valeur is None:
         return "Inconnu"
     return LEVEL_MAPPING.get(str(valeur), "Inconnu")
+
 
 def get_evaluation(data: Any, fallback_matiere: str | None = None) -> dict:
     """Get evaluation information."""

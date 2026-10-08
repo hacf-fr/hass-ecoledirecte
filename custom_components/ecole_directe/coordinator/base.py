@@ -378,9 +378,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     ):
                         async for chunk in chunks:
                             await file.write(chunk)
-                    await self.hass.async_add_executor_job(
-                        tmp_path.rename, cache_path
-                    )
+                    await self.hass.async_add_executor_job(tmp_path.rename, cache_path)
                 except Exception:
                     await self.hass.async_add_executor_job(
                         functools.partial(tmp_path.unlink, missing_ok=True)

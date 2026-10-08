@@ -126,6 +126,8 @@ Entité | Description
 `[...]_sanctions` | sanctions
 `[...]_encouragements` | encouragements
 
+La liste complète des capteurs, de leurs états et de leurs attributs est décrite dans la [documentation des capteurs](docs/user/capteurs.md).
+
 Il y a des événements qui sont déclenché sous certaines conditions. Ils peuvent être utiliser comme déclencheur dans des automatisations.
 
 Evénement | Description

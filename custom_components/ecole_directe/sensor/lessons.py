@@ -78,7 +78,7 @@ class EDLessonsSensor(EDGenericSensor):
         attributes = []
         canceled_counter: int = 0
         modified_counter: int = 0
-        single_day = self._suffix in ["today", "tomorrow", "next_day"]
+        single_day = self._suffix in ["_today", "_tomorrow", "_next_day"]
         if self._key in self.coordinator.data:
             lessons = self.coordinator.data[self._key]
             lunch_break_time = datetime.strptime(

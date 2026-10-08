@@ -209,9 +209,34 @@ class EDTimetableCard extends BaseEDCard {
     const stateObj = this.hass.states[this.config.entity];
 
     if (stateObj) {
-      const lessons = stateObj.attributes["Emploi du temps"];
+      let lessons = stateObj.attributes["Emploi du temps"];
 
       if (lessons) {
+        if (lessons.length > 0 && lessons[0].stored_in_store) {
+          const storeKey = lessons[0].store_key;
+          if (this._storedData && this._storedData[storeKey]) {
+            lessons = this._storedData[storeKey];
+          } else {
+            if (!this._fetchingKeys) this._fetchingKeys = {};
+            if (!this._fetchingKeys[storeKey]) {
+              this._fetchingKeys[storeKey] = true;
+              this.hass
+                .callWS({
+                  type: "ecole_directe/get_stored_data",
+                  key: storeKey,
+                })
+                .then((res: any) => {
+                  if (!this._storedData) this._storedData = {};
+                  this._storedData[storeKey] = res.data || [];
+                  this.requestUpdate();
+                })
+                .catch((err: any) => {
+                  console.error("Error fetching stored data for key", storeKey, err);
+                });
+            }
+            return html`<div class="ed-card-no-data">Chargement de l'emploi du temps...</div>`;
+          }
+        }
         this.lunchBreakRendered = false;
 
         const itemTemplates = [];

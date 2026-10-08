@@ -21,7 +21,7 @@ If not provided, ask for:
 Run all validation tools first:
 
 ```bash
-script/check           # Type checking + linting + spell check
+script/check           # Type checking + linting
 script/lint-check      # Read-only lint check
 script/type-check      # Pyright only
 ```

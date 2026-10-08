@@ -61,6 +61,14 @@ fi
 ## without resulting to symlinks.
 export PYTHONPATH="${PYTHONPATH:-}:${PWD}/custom_components"
 
+# Build frontend cards
+log_header "Building frontend cards"
+if [[ ! -d "node_modules" ]]; then
+    log_step "Installing npm dependencies"
+    npm ci
+fi
+npm run build
+
 log_header "Starting Home Assistant in development mode"
 log_info "Config directory: ${PWD}/config"
 log_info "Debug logging: enabled"

@@ -9,7 +9,7 @@
 # Install with: uv pip install -r requirements_dev.txt
 
 # Linting and formatting
-ruff==0.16.7
+ruff==0.16.9
 
 # Type Checking
 # HA Core uses mypy, but we prefer pyright for better IDE integration and speed
@@ -24,4 +24,4 @@ zlib_ng==1.0.0
 isal==1.8.0
 pre-commit
 Unidecode>=1.4.0
-ecoledirecte>=0.3.1
+ecoledirecte>=0.3.2

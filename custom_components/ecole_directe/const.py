@@ -27,6 +27,8 @@ DEFAULT_LUNCH_BREAK_TIME: Final[str] = "13:00"
 MAX_STATE_ATTRS_BYTES: Final[int] = 16384
 AUGUST: Final[int] = 8
 MAX_QUESTIONS: Final[int] = 2
+# Oldest cached homework documents are evicted once the cache exceeds this.
+MAX_DOCUMENT_CACHE_BYTES: Final[int] = 100 * 1024 * 1024
 
 DEFAULT_ENABLE_DEBUGGING: Final[bool] = False
 FAKE_ON: Final[bool] = False

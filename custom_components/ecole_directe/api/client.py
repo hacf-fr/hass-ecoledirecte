@@ -36,6 +36,7 @@ from ..const import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
     from types import TracebackType
 
     from homeassistant.core import HomeAssistant
@@ -431,6 +432,29 @@ class EDApiClient:
         )
         LOGGER.debug("post_homework response: %s", response)
         return response["code"] == ED_OK
+
+    async def iter_document(
+        self, file_id: int | str, file_type: str, chunk_size: int = 65536
+    ) -> AsyncIterator[bytes]:
+        """
+        Download a document and yield its content chunk by chunk.
+
+        Despite the library's docstring ("encoded file"), Ecole Directe sends
+        the raw file bytes directly: chunks are forwarded unchanged, which
+        keeps memory usage constant whatever the size of the file.
+        """
+        stream = await self.ed_client.download_file(file_id, file_type)
+        first = True
+        async for chunk in stream.iter_chunked(chunk_size):
+            if first:
+                first = False
+                if chunk.lstrip().startswith(b"{"):
+                    # JSON error message instead of the file
+                    error = (chunk + await stream.read())[:500]
+                    LOGGER.warning("download_file %s error: %s", file_id, error)
+                    msg = f"Ecole Directe refused to send document {file_id}"
+                    raise EDApiClientError(msg)
+            yield chunk
 
     async def get_grades_evaluations(
         self,

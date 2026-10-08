@@ -487,6 +487,7 @@ class EDApiClient:
         response["evaluations"] = []
         response["disciplines"] = []
         data = json_resp["data"]
+        response["periodes"] = get_periodes_moyennes_from_data(data)
         index1 = 0
         index2 = 0
         if "periodes" in data:
@@ -708,6 +709,43 @@ class EDApiClient:
     async def get_classe(self, classe_id: str) -> None:
         """Get classe."""
         await self.ed_client.get_classe(classe_id=classe_id)
+
+
+def get_periodes_moyennes_from_data(data: dict) -> list[dict]:
+    """Récupère l'ensemble des périodes avec leurs moyennes générales."""
+    periodes_result = []
+    # Trier les périodes par date de début
+    periodes = sorted(data.get("periodes", []), key=operator.itemgetter("dateDebut"))
+
+    for periode_json in periodes:
+        # On extrait les infos de base de la période
+        periode_info = {
+            "idPeriode": periode_json.get("idPeriode"),
+            "codePeriode": periode_json.get("codePeriode"),
+            "nomPeriode": periode_json.get("periode"),
+            "annuel": periode_json.get("annuel", False),
+            "examenBlanc": periode_json.get("examenBlanc", False),
+            "cloture": periode_json.get("cloture", False),
+            "dateDebut": periode_json.get("dateDebut"),
+            "dateFin": periode_json.get("dateFin"),
+            "moyenne_generale": {},
+        }
+        # Extraire la moyenne générale de la période
+        ensemble = periode_json.get("ensembleMatieres", {})
+        if ensemble:
+            periode_info["moyenne_generale"] = {
+                "moyenneGenerale": (ensemble.get("moyenneGenerale") or "").replace(
+                    ",", "."
+                ),
+                "moyenneClasse": (ensemble.get("moyenneClasse") or "").replace(
+                    ",", "."
+                ),
+                "moyenneMin": (ensemble.get("moyenneMin") or "").replace(",", "."),
+                "moyenneMax": (ensemble.get("moyenneMax") or "").replace(",", "."),
+                "dateCalcul": ensemble.get("dateCalcul", ""),
+            }
+        periodes_result.append(periode_info)
+    return periodes_result
 
 
 async def load_json_file(file_path: str) -> dict:

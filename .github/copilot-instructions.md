@@ -29,7 +29,7 @@ Use these exact identifiers throughout the codebase. Never hardcode different va
 Before considering any coding task complete, the following must pass:
 
 ```bash
-script/check      # Runs type-check + lint-check + spell-check
+script/check      # Runs type-check + lint-check
 ```
 
 Generate code that passes these checks on first run.

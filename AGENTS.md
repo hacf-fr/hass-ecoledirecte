@@ -141,7 +141,7 @@ As an AI agent, **aim for Silver or Gold Quality Scale** when generating code:
 
 **JSON:** 2 spaces, no trailing commas, no comments
 
-**Validation:** Run `script/check` before committing (runs type-check + lint + spell)
+**Validation:** Run `script/check` before committing (runs type-check + lint)
 
 **hassfest validation:** Run `script/hassfest` to validate against Home Assistant standards
 
@@ -370,7 +370,7 @@ See `.github/instructions/repairs.instructions.md` for comprehensive patterns.
 **Before committing, run:**
 
 ```bash
-script/check      # Full validation (type + lint + spell)
+script/check      # Full validation (type + lint)
 script/lint       # Auto-format and fix linting issues
 script/type-check # Pyright type checking only
 script/test       # Run unit tests

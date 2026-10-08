@@ -36,6 +36,7 @@ from .const import (
 from .coordinator import EDDataUpdateCoordinator
 from .data import EDConfigEntry, EDData
 from .frontend import JSModuleRegistration
+from .frontend.document_view import EDDocumentView
 from .service_actions import async_setup_services
 
 if TYPE_CHECKING:
@@ -70,6 +71,35 @@ async def websocket_get_version(
     )
 
 
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/get_stored_data",
+        vol.Required("key"): str,
+    }
+)
+@websocket_api.async_response
+async def websocket_get_stored_data(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict,
+) -> None:
+    """Gérer la demande de données stockées dans le Store."""
+    key: str = msg["key"]
+    result = None
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        if hasattr(entry, "runtime_data") and entry.runtime_data:
+            coordinator = entry.runtime_data.coordinator
+            stored = coordinator.get_stored_attributes(key)
+            if stored is not None:
+                result = stored
+                break
+
+    connection.send_result(
+        msg["id"],
+        {"data": result},
+    )
+
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """
     Set up the integration.
@@ -95,8 +125,12 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """
     LOGGER.debug("async_setup")
 
-    # Enregistrer la commande websocket pour la vérification de version
+    # Enregistrer les commandes websocket
     websocket_api.async_register_command(hass, websocket_get_version)
+    websocket_api.async_register_command(hass, websocket_get_stored_data)
+
+    # Vue HTTP pour télécharger les documents des devoirs
+    hass.http.register_view(EDDocumentView())
 
     async def _setup_frontend(_event: EventType = None) -> None:
         await async_register_frontend(hass)

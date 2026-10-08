@@ -14,6 +14,9 @@ const css = LitElement.prototype.css;
   return Math.ceil((((d as any) - (new Date(d.getFullYear(), 0, 1) as any)) / 8.64e7 + 1) / 7);
 };
 
+const AUDIO_EXTENSIONS = ["mp3", "m4a", "aac", "wav", "ogg", "oga", "opus", "flac"];
+const VIDEO_EXTENSIONS = ["mp4", "webm", "mov", "m4v"];
+
 class EDDevoirCard extends BaseEDCard {
   lunchBreakRendered = false;
 
@@ -105,14 +108,173 @@ class EDDevoirCard extends BaseEDCard {
     }
   }
 
+  getMediaKind(libelle) {
+    const extension = String(libelle || "").split(".").pop().toLowerCase();
+    if (AUDIO_EXTENSIONS.includes(extension)) {
+      return "audio";
+    }
+    if (VIDEO_EXTENSIONS.includes(extension)) {
+      return "video";
+    }
+    return "file";
+  }
+
+  // URL signée : le navigateur télécharge / lit le document en flux,
+  // sans le garder en mémoire côté JavaScript.
+  async getDocumentUrl(document, download) {
+    const res: any = await this.hass.callWS({
+      type: "auth/sign_path",
+      path: `/api/ecole_directe/document/${encodeURIComponent(document.id)}${
+        download ? "?download=1" : ""
+      }`,
+      expires: 3600,
+    });
+    return this.hass.hassUrl(res.path);
+  }
+
+  setDocumentState(document, state) {
+    this._documentStates = { ...(this._documentStates || {}), [document.id]: state };
+    this.requestUpdate();
+  }
+
+  async downloadDocument(document, e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.setDocumentState(document, "loading");
+    try {
+      const link = window.document.createElement("a");
+      link.href = await this.getDocumentUrl(document, true);
+      link.download = document.libelle || "";
+      link.rel = "noopener";
+      window.document.body.appendChild(link);
+      link.click();
+      link.remove();
+      this.setDocumentState(document, null);
+    } catch (err) {
+      console.error("Error downloading document", document.id, err);
+      this.setDocumentState(document, "error");
+    }
+  }
+
+  async playDocument(document, kind, e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const alreadyOpen = this._player && this._player.id === document.id;
+    // Un seul lecteur ouvert à la fois
+    this.closePlayer();
+    if (alreadyOpen) {
+      return;
+    }
+    this.setDocumentState(document, "loading");
+    try {
+      const url = await this.getDocumentUrl(document, false);
+      this._player = { id: document.id, kind, url };
+      this.setDocumentState(document, null);
+    } catch (err) {
+      console.error("Error opening document", document.id, err);
+      this.setDocumentState(document, "error");
+    }
+  }
+
+  closePlayer(e = null) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    // Arrêter la lecture et libérer le tampon du navigateur
+    const media = this.shadowRoot?.querySelector<HTMLMediaElement>(
+      ".devoir-document-player audio, .devoir-document-player video"
+    );
+    if (media) {
+      media.pause();
+      media.removeAttribute("src");
+      media.load();
+    }
+    if (this._player) {
+      this._player = null;
+      this.requestUpdate();
+    }
+  }
+
+  disconnectedCallback() {
+    this.closePlayer();
+    super.disconnectedCallback();
+  }
+
+  getDocumentRow(document) {
+    const kind = this.getMediaKind(document.libelle);
+    const state = this._documentStates?.[document.id];
+    const player =
+      this._player && this._player.id === document.id ? this._player : null;
+    const icon =
+      kind === "audio"
+        ? "mdi:file-music-outline"
+        : kind === "video"
+          ? "mdi:file-video-outline"
+          : "mdi:file-document-outline";
+
+    return html`
+      <div class="devoir-document">
+        <span
+          class="devoir-document-link"
+          title="${kind === "file" ? "Télécharger" : "Lire"}"
+          @click=${(e) =>
+            kind === "file"
+              ? this.downloadDocument(document, e)
+              : this.playDocument(document, kind, e)}
+        >
+          <ha-icon icon="${icon}"></ha-icon>
+          <span>${document.libelle}</span>
+        </span>
+        ${kind !== "file"
+          ? html`<ha-icon
+              class="devoir-document-action"
+              icon="mdi:download"
+              title="Télécharger"
+              @click=${(e) => this.downloadDocument(document, e)}
+            ></ha-icon>`
+          : html``}
+        ${state === "loading"
+          ? html`<span class="devoir-document-status">Chargement…</span>`
+          : state === "error"
+            ? html`<span class="devoir-document-status error">Erreur</span>`
+            : html``}
+      </div>
+      ${player
+        ? html`<div class="devoir-document-player">
+            ${player.kind === "audio"
+              ? html`<audio controls autoplay src="${player.url}"></audio>`
+              : html`<video
+                  controls
+                  autoplay
+                  playsinline
+                  src="${player.url}"
+                ></video>`}
+            <ha-icon
+              class="devoir-document-action"
+              icon="mdi:close"
+              title="Fermer"
+              @click=${(e) => this.closePlayer(e)}
+            ></ha-icon>
+          </div>`
+        : html``}
+    `;
+  }
+
   getdevoirRow(devoir, index) {
-    let description = devoir.description.trim().replace(/\n/g, "<br />");
+    if (!devoir) {
+      return html``;
+    }
+    const rawDesc = devoir.description || devoir.short_description || "";
+    const description = (typeof rawDesc === "string" ? rawDesc : String(rawDesc))
+      .trim()
+      .replace(/\n/g, "<br />");
 
     return html`
       <tr class="${devoir.effectue ? "devoir-done" : ""}">
         <td class="devoir-detail">
           <label for="devoir-${index}">
-            <span class="devoir-subject">${devoir.matiere}</span>
+            <span class="devoir-subject">${devoir.matiere || ""}</span>
             ${devoir.interrogation
               ? html`<span class="devoir-controle">(Contrôle)</span>`
               : html``}
@@ -129,14 +291,7 @@ class EDDevoirCard extends BaseEDCard {
                 </div>
 
                 <div class="devoir-document-list">
-                  ${devoir.documents.map(
-                    (d) => html`
-                      <div class="devoir-document">
-                        <ha-icon icon="mdi:file-document-outline"></ha-icon>
-                        <span>${d.libelle}</span>
-                      </div>
-                    `
-                  )}
+                  ${devoir.documents.map((d) => this.getDocumentRow(d))}
                 </div>
               `
             : html``}
@@ -177,8 +332,33 @@ class EDDevoirCard extends BaseEDCard {
     const stateObj = this.hass.states[this.config.entity];
 
     if (stateObj) {
-      const devoir = stateObj.attributes["Devoirs"];
+      let devoir = stateObj.attributes["Devoirs"];
       if (devoir) {
+        if (devoir.length > 0 && devoir[0].stored_in_store) {
+          const storeKey = devoir[0].store_key;
+          if (this._storedData && this._storedData[storeKey]) {
+            devoir = this._storedData[storeKey];
+          } else {
+            if (!this._fetchingKeys) this._fetchingKeys = {};
+            if (!this._fetchingKeys[storeKey]) {
+              this._fetchingKeys[storeKey] = true;
+              this.hass
+                .callWS({
+                  type: "ecole_directe/get_stored_data",
+                  key: storeKey,
+                })
+                .then((res: any) => {
+                  if (!this._storedData) this._storedData = {};
+                  this._storedData[storeKey] = res.data || [];
+                  this.requestUpdate();
+                })
+                .catch((err: any) => {
+                  console.error("Error fetching stored data for key", storeKey, err);
+                });
+            }
+            return html`<div class="ed-card-no-data">Chargement des devoirs...</div>`;
+          }
+        }
         const itemTemplates = [];
         let dayTemplates = [];
         let daysCount = 0;
@@ -331,10 +511,18 @@ class EDDevoirCard extends BaseEDCard {
       .reduce-done .devoir-done label:hover {
         cusor: pointer;
       }
-      .reduce-done .devoir-done .devoir-description {
+      .reduce-done .devoir-done .devoir-description,
+      .reduce-done .devoir-done .devoir-documents,
+      .reduce-done .devoir-done .devoir-document-list {
         display: none;
       }
       .reduce-done .devoir-done input:checked + .devoir-description {
+        display: block;
+      }
+      .reduce-done .devoir-done input:checked ~ .devoir-documents {
+        display: flex;
+      }
+      .reduce-done .devoir-done input:checked ~ .devoir-document-list {
         display: block;
       }
       .devoir-detail input {
@@ -374,6 +562,40 @@ class EDDevoirCard extends BaseEDCard {
       .devoir-document ha-icon {
         flex-shrink: 0;
         --mdc-icon-size: 16px;
+      }
+      .devoir-document-link {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+        cursor: pointer;
+      }
+      .devoir-document-link:hover span {
+        text-decoration: underline;
+      }
+      .devoir-document-action {
+        cursor: pointer;
+      }
+      .devoir-document-status {
+        font-style: italic;
+        opacity: 0.8;
+      }
+      .devoir-document-status.error {
+        color: var(--error-color, red);
+      }
+      .devoir-document-player {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 0 4px 4px;
+      }
+      .devoir-document-player audio,
+      .devoir-document-player video {
+        flex: 1;
+        min-width: 0;
+        max-width: 100%;
+      }
+      .devoir-document-player ha-icon {
+        --mdc-icon-size: 18px;
       }
     `;
   }

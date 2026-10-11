@@ -14,7 +14,7 @@ import base64
 import json
 import operator
 import re
-from datetime import datetime, time
+from datetime import date, datetime, time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self
 
@@ -811,6 +811,23 @@ def get_matiere(data: Any, fallback_matiere: str | None = None) -> str | None:
     return data.get("libelleMatiere")
 
 
+def parse_date(value: Any) -> date | None:
+    """Normalize a date value into a Python date."""
+    if value in (None, ""):
+        return None
+    if not isinstance(value, str):
+        return None
+
+    text = value.strip()
+    if not text:
+        return None
+
+    try:
+        return datetime.strptime(text, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
 def get_grade(data: Any, fallback_matiere: str | None = None) -> dict:
     """Get grade information."""
     elements_programme = []
@@ -819,7 +836,7 @@ def get_grade(data: Any, fallback_matiere: str | None = None) -> dict:
             elements_programme.append(get_competence(element))
 
     return {
-        "date": data.get("date"),
+        "date": parse_date(data.get("date")),
         "matiere": get_matiere(data, fallback_matiere),
         "commentaire": data.get("devoir"),
         "note": data.get("valeur"),
@@ -830,7 +847,7 @@ def get_grade(data: Any, fallback_matiere: str | None = None) -> dict:
         "max": str(data.get("maxClasse") or "").replace(".", ","),
         "min": str(data.get("minClasse") or "").replace(".", ","),
         "non_significatif": data.get("nonSignificatif"),
-        "date_saisie": data.get("dateSaisie"),
+        "date_saisie": parse_date(data.get("dateSaisie")),
         "elements_programme": elements_programme,
     }
 
@@ -901,8 +918,8 @@ def get_evaluation(data: Any, fallback_matiere: str | None = None) -> dict:
 
         return {
             "devoir": data.get("devoir"),
-            "date": data.get("date"),
-            "date_saisie": data.get("dateSaisie"),
+            "date": parse_date(data.get("date")),
+            "date_saisie": parse_date(data.get("dateSaisie")),
             "matiere": get_matiere(data, fallback_matiere),
             "elements_programme": [
                 {
@@ -933,7 +950,7 @@ def get_vie_scolaire_element(viescolaire: Any) -> dict:
     """Vie scolaire format."""
     try:
         return {
-            "date": viescolaire["date"],
+            "date": parse_date(viescolaire["date"]),
             "type_element": viescolaire["typeElement"],
             "display_date": viescolaire["displayDate"],
             "justifie": viescolaire["justifie"],

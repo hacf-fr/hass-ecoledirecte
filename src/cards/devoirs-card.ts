@@ -261,18 +261,47 @@ class EDDevoirCard extends BaseEDCard {
     `;
   }
 
-  toggleDevoirEffectue(devoir, e) {
+  isEffectuePending(devoir) {
+    return this._pendingEffectue?.has(devoir.devoir_id) ?? false;
+  }
+
+  setEffectuePending(devoir, pending) {
+    const ids = new Set(this._pendingEffectue || []);
+    if (pending) {
+      ids.add(devoir.devoir_id);
+    } else {
+      ids.delete(devoir.devoir_id);
+    }
+    this._pendingEffectue = ids;
+    this.requestUpdate();
+  }
+
+  async toggleDevoirEffectue(devoir, e) {
     e.preventDefault();
     e.stopPropagation();
     if (devoir.eleve_id == null || devoir.devoir_id == null) {
       console.error("ecole_directe-devoirs-card: missing eleve_id/devoir_id on devoir", devoir);
       return;
     }
-    this.hass.callService("ecole_directe", "devoir_effectue", {
-      eleve_id: devoir.eleve_id,
-      devoir_id: devoir.devoir_id,
-      effectue: !devoir.effectue,
-    });
+    if (this.isEffectuePending(devoir)) {
+      return;
+    }
+    // Le service attend l'aller-retour vers Ecole Directe puis le
+    // rafraîchissement des données avant de répondre : afficher un spinner
+    // en attendant, la ligne garde son état jusqu'à la mise à jour de l'entité.
+    this.setEffectuePending(devoir, true);
+    try {
+      await this.hass.callService("ecole_directe", "devoir_effectue", {
+        eleve_id: devoir.eleve_id,
+        devoir_id: devoir.devoir_id,
+        effectue: !devoir.effectue,
+      });
+    } catch (err) {
+      // Home Assistant affiche déjà une notification d'erreur
+      console.error("Error calling devoir_effectue", devoir.devoir_id, err);
+    } finally {
+      this.setEffectuePending(devoir, false);
+    }
   }
 
   getdevoirRow(devoir, index) {
@@ -283,9 +312,11 @@ class EDDevoirCard extends BaseEDCard {
     const description = (typeof rawDesc === "string" ? rawDesc : String(rawDesc))
       .trim()
       .replace(/\n/g, "<br />");
+    const effectue = devoir.effectue;
+    const pending = this.isEffectuePending(devoir);
 
     return html`
-      <tr class="${devoir.effectue ? "devoir-done" : ""}">
+      <tr class="${effectue ? "devoir-done" : ""}">
         <td class="devoir-detail">
           <label for="devoir-${index}">
             <span class="devoir-subject">${devoir.matiere || ""}</span>
@@ -312,16 +343,20 @@ class EDDevoirCard extends BaseEDCard {
         </td>
         <td class="devoir-status">
           <span
-            class="devoir-status-toggle"
+            class="devoir-status-toggle ${pending ? "pending" : ""}"
             role="button"
             tabindex="0"
-            title="${devoir.effectue
-              ? "Marquer comme non fait"
-              : "Marquer comme fait"}"
+            title="${pending
+              ? "Mise à jour…"
+              : effectue
+                ? "Marquer comme non fait"
+                : "Marquer comme fait"}"
             @click=${(e) => this.toggleDevoirEffectue(devoir, e)}
-            >${devoir.effectue
-              ? html`<ha-icon icon="mdi:check"></ha-icon>`
-              : html`<ha-icon icon="mdi:account-clock"></ha-icon>`}</span
+            >${pending
+              ? html`<ha-icon class="spin" icon="mdi:loading"></ha-icon>`
+              : effectue
+                ? html`<ha-icon icon="mdi:check"></ha-icon>`
+                : html`<ha-icon icon="mdi:account-clock"></ha-icon>`}</span
           >
         </td>
       </tr>
@@ -531,6 +566,19 @@ class EDDevoirCard extends BaseEDCard {
       }
       .devoir-status-toggle {
         cursor: pointer;
+      }
+      .devoir-status-toggle.pending {
+        cursor: progress;
+      }
+      .devoir-status-toggle ha-icon.spin {
+        /* transform ne s'applique pas à un élément inline */
+        display: inline-flex;
+        animation: devoir-spin 1s linear infinite;
+      }
+      @keyframes devoir-spin {
+        to {
+          transform: rotate(360deg);
+        }
       }
       .reduce-done .devoir-done label:hover {
         cusor: pointer;

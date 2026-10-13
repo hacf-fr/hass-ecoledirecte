@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import voluptuous as vol
 from homeassistant.core import ServiceCall, SupportsResponse, callback
+from homeassistant.helpers import config_validation as cv
 
 from custom_components.ecole_directe.const import (
     DOMAIN,
@@ -51,7 +53,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             domain=DOMAIN,
             service=SERVICE_DEVOIR_EFFECTUE,
             service_func=handle_devoir_effectue,
-            schema=None,
+            schema=vol.Schema(
+                {
+                    vol.Required("eleve_id"): vol.Coerce(int),
+                    vol.Required("devoir_id"): vol.Coerce(int),
+                    vol.Optional("effectue", default=True): cv.boolean,
+                }
+            ),
             supports_response=SupportsResponse.NONE,
         )
 

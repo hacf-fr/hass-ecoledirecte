@@ -28,10 +28,23 @@ async def async_handle_devoir_effectue(
             devoir_id,
             effectue,
         )
-        client = entry.runtime_data.client
-        await client.post_homework(
-            eleve_id=eleve_id, devoir_id=devoir_id, effectue=effectue
-        )
+        # The client kept in coordinator.data["session"] is closed at the end of
+        # each refresh: log in a fresh one (see async_logged_in_client).
+        coordinator = entry.runtime_data.coordinator
+        async with coordinator.async_logged_in_client() as client:
+            eleve = next(
+                (e for e in client.eleves if e.eleve_id == str(eleve_id)), None
+            )
+            if eleve is not None and eleve.account_id_login is not None:
+                await client.switch_account(eleve.account_id_login)
+            done = await client.post_homework(
+                eleve_id=eleve_id, devoir_id=devoir_id, effectue=effectue
+            )
+        if not done:
+            msg = "Ecole Directe refused the update"
+            raise HomeAssistantError(msg)
+        # Update entities now instead of waiting for the next scheduled poll.
+        await coordinator.async_request_refresh()
     except Exception as err:
         LOGGER.exception("Error on service devoir_effectue call")
         msg = f"Failed to mark homework as done: {err}"

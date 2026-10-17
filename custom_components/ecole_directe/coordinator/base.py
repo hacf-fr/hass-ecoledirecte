@@ -662,6 +662,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     if FAKE_ON or "EDFORMS" in client.modules:
                         try:
                             self.data["formulaires"] = await client.get_formulaires(
+                                year_data,
                                 client.account_type,
                                 client.id,
                             )

@@ -693,9 +693,13 @@ class EDApiClient:
         )
         return json_resp
 
-    async def get_formulaires(self, account_type: str, id_entity: str) -> list[Any]:
+    async def get_formulaires(
+        self, annee_forms: str, account_type: str, id_entity: str
+    ) -> list[Any]:
         """Get formulaires."""
-        json_resp = await self.ed_client.get_formulaires(account_type, id_entity)
+        json_resp = await self.ed_client.get_formulaires(
+            annee_forms, account_type=account_type, id_entity=id_entity
+        )
         await save_json_file(
             json_resp,
             self.log_folder + "get_formulaires.json",

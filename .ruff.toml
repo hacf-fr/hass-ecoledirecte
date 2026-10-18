@@ -1,6 +1,8 @@
 # The contents of this file is based on https://github.com/home-assistant/core/blob/dev/pyproject.toml
 
 target-version = "py314"
+extend-exclude = ["tests/generer_planning.py"]
+force-exclude = true
 
 [lint]
 select = ["ALL"]
@@ -64,4 +66,3 @@ convention = "google"
 "tests/**" = [
     "S101", # Use of assert detected
 ]
-

@@ -52,6 +52,7 @@ class EDLessonsSensor(EDGenericSensor):
         self._end_at = None
         self._lunch_break_start_at = None
         self._lunch_break_end_at = None
+        self._date = None
 
     @property
     def name(self) -> str | None:

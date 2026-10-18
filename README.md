@@ -101,7 +101,7 @@ Enable Debugging | Off
 
 Cette intégration fournit plusieurs entités, toujours préfixées avec `ed_PRENOM_NOM` (où `PRENOM` et `NOM` sont remplacé).
 Les entités sont mises à jour toutes les 30 minutes.
-Dans vos dashboards, vous pouvez utiliser les cartes incluses dans cette intégration [EcoleDirecteHACards](https://github.com/hacf-fr/hass-ecoledirecte/tree/main/src/cards).
+Dans vos dashboards, vous pouvez utiliser les cartes incluses dans cette intégration [EcoleDirecteHACards](https://github.com/hacf-fr/hass-ecoledirecte/tree/main/src/cards). Consultez la [documentation des cartes Lovelace](docs/user/cartes.md) pour découvrir les options et fonctionnalités avancées (affichage multi-semaines, masquage des cours passés, etc.).
 
 Entité | Description
 ------ | -----------

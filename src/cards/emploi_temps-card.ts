@@ -849,5 +849,5 @@ window.customCards.push({
   name: "Carte de l'emploi du temps pour Ecole Directe",
   description: "Affiche l'emploi du temps pour Ecole Directe",
   documentationURL:
-    "https://github.com/hacf-fr/EcoleDirecteHACards?tab=readme-ov-file#emploi_temps",
+    "https://github.com/hacf-fr/hass-ecoledirecte/blob/main/docs/user/cartes.md#carte-emploi-du-temps-ecole_directe-emploi_temps-card",
 });

@@ -45,16 +45,23 @@ class EDEvaluationsCard extends BaseEDCard {
     const remappedEvaluations =
       this.config.mapping_evaluations[acquisition.valeur] || acquisition.valeur;
     let icon = "";
-    if (remappedEvaluations === "A+") {
-      icon = "+";
-    } else if (remappedEvaluations === "Abs") {
-      icon = "a";
+    if (remappedEvaluations === "Inconnu") {
+      icon = "?";
+    }
+    if (remappedEvaluations === "-1") {
+      icon = "A";
+    }
+    if (remappedEvaluations === "-2") {
+      icon = "D";
+    }
+    if (remappedEvaluations === "-3") {
+      icon = "N";
     }
     return html`
       <div class="acquisition-status">
         <span
           title="${acquisition.level || ''}"
-          class="acquisition-icon acquisition-icon-${remappedEvaluations}"
+          class="acquisition-icon acquisition-icon${remappedEvaluations}"
         >
           ${icon}
         </span>
@@ -117,10 +124,13 @@ class EDEvaluationsCard extends BaseEDCard {
 
     return html`
       <div class="evaluation-legend">
-        <span class="legend-item"><span class="acquisition-icon acquisition-icon-4"></span> ${levels["4"]}</span>
-        <span class="legend-item"><span class="acquisition-icon acquisition-icon-3"></span> ${levels["3"]}</span>
-        <span class="legend-item"><span class="acquisition-icon acquisition-icon-2"></span> ${levels["2"]}</span>
-        <span class="legend-item"><span class="acquisition-icon acquisition-icon-1"></span> ${levels["1"]}</span>
+        <span class="legend-item"><span class="acquisition-icon acquisition-icon4"></span> ${levels["4"]}</span>
+        <span class="legend-item"><span class="acquisition-icon acquisition-icon3"></span> ${levels["3"]}</span>
+        <span class="legend-item"><span class="acquisition-icon acquisition-icon2"></span> ${levels["2"]}</span>
+        <span class="legend-item"><span class="acquisition-icon acquisition-icon1"></span> ${levels["1"]}</span>
+        <span class="legend-item"><span class="acquisition-icon acquisition-icon-1">A</span> ${levels["-1"]}</span>
+        <span class="legend-item"><span class="acquisition-icon acquisition-icon-2">D</span> ${levels["-2"]}</span>
+        <span class="legend-item"><span class="acquisition-icon acquisition-icon-3">N</span> ${levels["-3"]}</span>
       </div>
     `;
   }
@@ -281,17 +291,25 @@ class EDEvaluationsCard extends BaseEDCard {
         text-align: center;
         line-height: 14px;
       }
-      .acquisition-icon-4 {
-        background-color: rgb(0, 176, 80);
-      }
-      .acquisition-icon-3 {
+      .acquisition-icon4 {
         background-color: rgb(0, 112, 192);
       }
-      .acquisition-icon-2 {
+      .acquisition-icon3 {
+        background-color: rgb(0, 176, 80);
+      }
+      .acquisition-icon2 {
         background-color: rgb(255, 192, 0);
       }
-      .acquisition-icon-1 {
-        background-color: #f80a0a;
+      .acquisition-icon1 {
+        background-color: rgb(255, 0, 0);
+      }
+      .acquisition-icon-1,
+      .acquisition-icon-2,
+      .acquisition-icon-3,
+      .acquisition-iconInconnu {
+        background-color: rgb(255, 255, 255);
+        color: rgb(0, 0, 0);
+        font-weight: normal;
       }
       input[type="checkbox"] {
         display: none;

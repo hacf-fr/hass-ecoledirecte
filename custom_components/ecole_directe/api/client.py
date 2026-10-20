@@ -887,6 +887,9 @@ LEVEL_MAPPING: dict[str, str] = {
     "2": "Partiellement atteint",
     "3": "Atteint",
     "4": "Dépassé",
+    "-1": "Absent",
+    "-2": "Dispensé",
+    "-3": "Non évalué",
 }
 
 

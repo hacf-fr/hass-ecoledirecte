@@ -128,19 +128,22 @@ Entité | Description
 
 La liste complète des capteurs, de leurs états et de leurs attributs est décrite dans la [documentation des capteurs](docs/user/capteurs.md).
 
-Il y a des événements qui sont déclenché sous certaines conditions. Ils peuvent être utiliser comme déclencheur dans des automatisations.
+Des événements sont émis sur le bus Home Assistant (`ecole_directe_event`) lors des mises à jour pour vous permettre de déclencher des automatisations personnalisées. Consultez la [documentation des événements et automatisations](docs/user/evenements.md) pour retrouver le détail de chaque charge utile et des exemples d'automatisations prêtes à l'emploi.
 
 Evénement | Description
 --------- | -----------
-`new_formulaire` | nouveau formulaire
-`new_devoir` | nouveau devoir
-`new_note` | nouvelle note
-`new_evaluation` | nouvelle evaluation
-`new_absence` | nouvelle absence
-`new_retard` | nouveau retard
-`new_sanction` | nouvelle sanction
-`new_encouragement` | nouvel encouragement
-`new_qcm` | nouveau qcm
+`new_devoir` | Nouveau devoir à faire
+`new_note` | Nouvelle note publiée
+`new_evaluation` | Nouvelle évaluation par compétences
+`edt_changement` | Modification de l'emploi du temps (cours annulé, déplacé, changement de salle...)
+`new_absence` | Nouvelle absence enregistrée
+`new_retard` | Nouveau retard enregistré
+`new_sanction` | Nouvelle sanction enregistrée
+`new_encouragement` | Nouvel encouragement ou distinction
+`new_formulaire` | Nouveau formulaire administratif disponible
+`new_postit` | Nouveau post-it dans un espace de travail
+`new_activity` | Nouvelle activité ou fichier dans un espace de travail
+`new_qcm` | Nouvelle question de double authentification (2FA)
 
 ## Activer les logs de debug
 

@@ -215,6 +215,7 @@ import pytest
 
 from custom_components.ecole_directe.sensor import async_setup_entry
 
+
 @pytest.mark.unit
 async def test_sensor_setup(hass, config_entry, coordinator):
     """Test sensor platform setup."""

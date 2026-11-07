@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """
 Error handling and recovery strategies for the coordinator.
 

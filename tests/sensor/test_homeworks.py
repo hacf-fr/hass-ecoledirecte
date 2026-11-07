@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """Tests for the ecole_directe homeworks sensor platform."""
 
 from __future__ import annotations
@@ -232,8 +235,8 @@ async def test_homeworks_sensors_setup_entry(
     device_reg = dr.async_get(hass)
 
     # Verify device is registered
-    device = device_reg.async_get_device(
-        identifiers={(DOMAIN, "ED - Benjamin No Name")}
+    device = device_reg.async_get_device_by_identifier(
+        (DOMAIN, "ED - Benjamin No Name"), mock_config_entry.entry_id
     )
     assert device is not None
     assert device.name == "ED - Benjamin No Name"
@@ -296,7 +299,7 @@ async def test_service_devoir_effectue_success(
     )
 
     mock_api_client.post_homework.assert_called_once_with(
-        eleve_id="2232",
+        eleve_id=2232,
         devoir_id=2641,
         effectue=True,
     )

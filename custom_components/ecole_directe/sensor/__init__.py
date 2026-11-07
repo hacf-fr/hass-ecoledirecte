@@ -1,8 +1,13 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """Sensor platform for ecole_directe."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+
+from homeassistant.core import callback
 
 from custom_components.ecole_directe.const import (
     DOMAIN,
@@ -40,6 +45,7 @@ from .sanctions import ENTITY_DESCRIPTIONS as SANCTIONS_DESCRIPTIONS
 from .sanctions import EDSanctionsSensor
 from .wallet import ENTITY_DESCRIPTIONS as WALLETS_DESCRIPTIONS
 from .wallet import EDWalletSensor
+from .workspaces import EDWorkspaceSensor, _get_workspace_id
 
 if TYPE_CHECKING:
     from homeassistant.components.sensor import SensorEntityDescription
@@ -77,6 +83,24 @@ async def async_setup_entry(
     coordinator: EDDataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id][
         "coordinator"
     ]
+
+    added_workspace_ids: set[str] = set()
+
+    @callback
+    def add_workspace_sensors() -> None:
+        """Add sensors for workspaces discovered during coordinator updates."""
+        new_sensors = []
+        for workspace in (coordinator.data or {}).get("workspaces", []):
+            workspace_id = _get_workspace_id(workspace)
+            if workspace_id is None or workspace_id in added_workspace_ids:
+                continue
+            added_workspace_ids.add(workspace_id)
+            new_sensors.append(EDWorkspaceSensor(coordinator, workspace, workspace_id))
+        if new_sensors:
+            async_add_entities(new_sensors)
+
+    add_workspace_sensors()
+    config_entry.async_on_unload(coordinator.async_add_listener(add_workspace_sensors))
 
     if (
         coordinator.data is not None

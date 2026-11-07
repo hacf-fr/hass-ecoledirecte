@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """Enregistrement des modules JavaScript."""
 
 from __future__ import annotations

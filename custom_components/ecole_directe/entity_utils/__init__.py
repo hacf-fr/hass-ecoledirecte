@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """Entity utilities package for ecole_directe."""
 
 from .device_info import create_device_info, update_device_info

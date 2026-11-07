@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """Lessons sensor for ecole_directe."""
 
 from __future__ import annotations

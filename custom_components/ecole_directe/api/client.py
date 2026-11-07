@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """
 API Client for ecole_directe.
 
@@ -14,9 +17,10 @@ import base64
 import json
 import operator
 import re
+from contextlib import suppress
 from datetime import datetime, time
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict, cast
 
 import anyio
 from aiohttp import CookieJar
@@ -64,7 +68,7 @@ class EDApiClientAuthenticationError(
 class EDEleve:
     """Student information."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0917
         self,
         modules: list[str],
         data: Any = None,
@@ -110,6 +114,50 @@ class EDEleve:
     def get_fullname(self) -> str:
         """Student fullname."""
         return f"{self.eleve_firstname} {self.eleve_lastname}"
+
+
+class EDWorkspacePostitAuthor(TypedDict):
+    """Author information for a workspace post-it."""
+
+    civilite: str
+    id: str
+    nom: str
+    particule: str
+    prenom: str
+    type: str
+
+
+class EDWorkspacePostit(TypedDict):
+    """Structured workspace post-it returned by Ecole Directe."""
+
+    auteur: EDWorkspacePostitAuthor
+    cible: list[str]
+    ciblesEtab: list[object]
+    contenu: str
+    dateCreation: str
+    dateDebut: str
+    dateFin: str
+    id: int
+    ordre: int
+    type: str
+
+
+class EDWorkspaceActivityMember(TypedDict):
+    """Workspace activity member information."""
+
+    id: int
+    profil: str
+
+
+class EDWorkspaceActivity(TypedDict):
+    """Structured workspace activity returned by Ecole Directe."""
+
+    cible: str
+    date: str
+    descriptif: str
+    id: int
+    membre: EDWorkspaceActivityMember
+    cloud_details: NotRequired[dict[str, Any]]
 
 
 class EDApiClient:
@@ -693,6 +741,96 @@ class EDApiClient:
         )
         return json_resp
 
+    async def get_workspaces(
+        self, user_id: str | int, account_type: str | int
+    ) -> list[dict[str, Any]]:
+        """Get structured workspaces for an account."""
+        json_resp = await self.ed_client.get_all_espaces_travail(
+            user_id=user_id,
+            account_type=account_type,
+        )
+        await save_json_file(
+            json_resp, self.log_folder + f"{user_id}_get_workspaces.json"
+        )
+        if "data" not in json_resp or not isinstance(json_resp.get("data"), list):
+            LOGGER.warning("get_workspaces: [%s]", json_resp)
+            return []
+
+        data = json_resp["data"]
+        response = []
+        for wk_json in data:
+            if isinstance(wk_json, dict) and wk_json.get("estMembre", False):
+                response.append(get_workspace(wk_json))
+
+        return response
+
+    async def get_workspace_activities(
+        self,
+        workspace_id: str | int,
+        user_id: str | int,
+        account_type: str,
+    ) -> list[EDWorkspaceActivity]:
+        """Get structured activities for a workspace."""
+        response = await self.ed_client.get_activites_espace_travail(
+            espace_id=workspace_id,
+            user_id=user_id,
+            account_type=account_type,
+        )
+        await save_json_file(
+            response,
+            self.log_folder + f"workspace_{workspace_id}_activities.json",
+        )
+        activities = cast("list[EDWorkspaceActivity]", response.get("data", []))
+        for activity in activities:
+            if activity.get("cible") != "CLOUD":
+                continue
+
+            activity_id = (
+                activity.get("date").replace(":", "").replace("-", "").replace(" ", "")
+            )
+            activity_id = activity_id[:-2]
+            if activity_id is None:
+                LOGGER.warning(
+                    "get_workspace_activities: CLOUD activity has no identifier: %s",
+                    activity,
+                )
+                continue
+
+            cloud_response = (
+                await self.ed_client.get_details_cloudactivites_espace_travail(
+                    espace_id=workspace_id,
+                    user_id=activity.get("membre", {}).get("id", user_id),
+                    account_type=activity.get("membre", {}).get("profil", account_type),
+                    activityId=str(activity_id),
+                )
+            )
+            await save_json_file(
+                cloud_response,
+                self.log_folder
+                + f"workspace_{workspace_id}_activity_{activity_id}_cloud_details.json",
+            )
+            activity["cloud_details"] = cloud_response.get("data", {})
+
+        return activities
+
+    async def get_workspace_postits(
+        self, workspace_id: str | int
+    ) -> list[EDWorkspacePostit]:
+        """Get structured post-its for a workspace."""
+        response = await self.ed_client.get_postits(espace_id=workspace_id)
+        await save_json_file(
+            response,
+            self.log_folder + f"workspace_{workspace_id}_postits.json",
+        )
+        postits = cast("list[EDWorkspacePostit]", response.get("data", []))
+        for postit in postits:
+            if "contenu" in postit and isinstance(postit["contenu"], str):
+                with suppress(Exception):
+                    postit["contenu"] = base64.b64decode(postit["contenu"]).decode(
+                        "utf-8"
+                    )
+        return postits
+
     async def get_formulaires(
         self, annee_forms: str, account_type: str, id_entity: str
     ) -> list[Any]:
@@ -702,7 +840,7 @@ class EDApiClient:
         )
         await save_json_file(
             json_resp,
-            self.log_folder + "get_formulaires.json",
+            self.log_folder + f"{id_entity}_get_formulaires.json",
         )
 
         response = []
@@ -987,4 +1125,32 @@ def get_formulaire(data: Any) -> dict:
     return {
         "titre": data["titre"],
         "created": data["created"],
+    }
+
+
+def get_workspace(data: Any) -> dict[str, Any]:
+    """Get workspace information."""
+    if not isinstance(data, dict):
+        return {}
+
+    contenu = ""
+    resume_raw = data.get("resume")
+    if resume_raw:
+        try:
+            contenu = base64.b64decode(resume_raw).decode("utf-8")
+        except Exception:
+            contenu = str(resume_raw)
+
+    return {
+        "agenda": data.get("agenda"),
+        "cloud": data.get("cloud"),
+        "creeLe": data.get("creeLe"),
+        "creePar": data.get("creePar"),
+        "estMembre": data.get("estMembre"),
+        "id": data.get("id"),
+        "ouvert": data.get("ouvert"),
+        "public": data.get("public"),
+        "resume": contenu,
+        "titre": data.get("titre"),
+        "type": data.get("type"),
     }

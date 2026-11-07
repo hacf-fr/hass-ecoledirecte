@@ -15,6 +15,30 @@ Evénement | Description
 `new_sanction` | nouvelle sanction
 `new_encouragement` | nouvel encouragement
 `new_qcm` | nouveau qcm
+`new_postit` | nouveau post-it dans un espace de travail
+`new_activity` | nouvelle activité dans un espace de travail
+
+Les événements des espaces de travail sont émis après comparaison avec les données
+de la mise à jour précédente. Aucun événement n'est émis au premier chargement.
+Les événements `new_postit` et `new_activity` signalent un nouvel identifiant ou
+timestamp dans l'espace concerné.
+
+## Espaces de travail
+
+```yaml
+alias: Ecole Directe - notification d'activité d'un espace de travail
+trigger:
+  - platform: event
+    event_type: ecole_directe_event
+    event_data:
+      type: new_activity
+action:
+  - service: notify.persistent_notification
+    data:
+      title: Nouvelle activité Ecole Directe
+      message: "{{ trigger.event.data.data }}"
+mode: queued
+```
 
 ## new_formulaire
 

@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 #!/usr/bin/env python3
 """
 Génère un fichier de planning au format get_lessons, pour la semaine en cours et les 2 semaines suivantes, à partir d'un fichier source.

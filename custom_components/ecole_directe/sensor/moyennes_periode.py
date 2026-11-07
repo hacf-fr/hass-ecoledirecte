@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """Moyennes par période sensor pour Ecole Directe."""
 
 from __future__ import annotations

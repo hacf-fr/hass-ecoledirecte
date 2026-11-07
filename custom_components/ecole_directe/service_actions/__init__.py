@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """Service actions package for ecole_directe."""
 
 from __future__ import annotations

@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """
 Ecole Directe integration.
 
@@ -129,7 +132,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     websocket_api.async_register_command(hass, websocket_get_version)
     websocket_api.async_register_command(hass, websocket_get_stored_data)
 
-    # Vue HTTP pour télécharger les documents des devoirs
+    # Vue HTTP pour télécharger les documents
     hass.http.register_view(EDDocumentView())
 
     async def _setup_frontend(_event: EventType = None) -> None:

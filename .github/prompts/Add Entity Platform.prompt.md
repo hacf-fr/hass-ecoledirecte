@@ -236,6 +236,7 @@ script/develop         # Start Home Assistant for testing
 ```python
 from homeassistant.helpers.device_registry import DeviceInfo
 
+
 class ED[EntityName](
     EDEntity,
     [PlatformEntityClass],

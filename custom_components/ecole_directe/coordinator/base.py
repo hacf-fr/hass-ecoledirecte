@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """
 Core DataUpdateCoordinator implementation for ecole_directe.
 
@@ -11,8 +14,12 @@ https://developers.home-assistant.io/docs/integration_fetching_data#coordinated-
 
 from __future__ import annotations
 
+import asyncio
+import functools
 import json
+from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta, tzinfo
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import anyio
@@ -40,18 +47,26 @@ from custom_components.ecole_directe.const import (
     EVENT_TYPE,
     FAKE_ON,
     FILENAME_QCM,
+    FORCED_MODULES,
     GRADES_TO_DISPLAY,
+    INTEGRATION_PATH,
     LOGGER,
+    MAX_DOCUMENT_CACHE_BYTES,
     MAX_QUESTIONS,
 )
 from custom_components.ecole_directe.helpers import get_unique_id
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
     from logging import Logger
 
     from homeassistant.core import HomeAssistant
 
-    from custom_components.ecole_directe.api.client import EDEleve
+    from custom_components.ecole_directe.api.client import (
+        EDEleve,
+        EDWorkspaceActivity,
+        EDWorkspacePostit,
+    )
     from custom_components.ecole_directe.data import EDConfigEntry
 
 
@@ -99,6 +114,20 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         LOGGER.debug("timezone: %s", self.timezone)
         # Initialize QCM data store for persistence
         self._qcm_store = Store(hass, 1, f"ecole_directe_qcm_{entry.entry_id}")
+        # Initialize attributes store for oversized attributes persistence
+        self._attributes_store = Store(hass, 1, f"ed_attributes_{entry.entry_id}")
+        self._stored_attributes: dict[str, Any] = {}
+        # Trusted device (cn/cv) returned by Ecole Directe after the QCM,
+        # persisted with the QCM data so that the next logins skip the QCM.
+        self._trusted_device: dict[str, str] | None = None
+        # Local cache of downloaded homework documents: Ecole Directe has no
+        # server-side Range support, so without a cache every seek/replay in
+        # the devoirs card would re-download the whole file. Stored next to
+        # logs/test fixtures (see EDApiClient), lost (harmlessly) on update.
+        self._document_cache_dir = Path(
+            hass.config.config_dir + INTEGRATION_PATH + "documents/"
+        )
+        self._document_download_locks: dict[str, asyncio.Lock] = {}
 
     async def _async_setup(self) -> None:
         """
@@ -129,10 +158,29 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             self.data["qcm_selected_options"] = saved_qcm.get(
                 "qcm_selected_options", {}
             )
+            trusted_device = saved_qcm.get("trusted_device")
+            if (
+                isinstance(trusted_device, dict)
+                and trusted_device.get("cn")
+                and trusted_device.get("cv")
+            ):
+                self._trusted_device = trusted_device
             LOGGER.debug("Loaded saved QCM data: %s", saved_qcm)
+
+        # Load saved attributes data from disk
+        saved_attributes = await self._attributes_store.async_load()
+        if isinstance(saved_attributes, dict):
+            self._stored_attributes = saved_attributes
+            LOGGER.debug(
+                "Loaded saved attributes data for %s keys", len(self._stored_attributes)
+            )
 
         # Check for legacy ecoledirecte_qcm.json file, migrate and delete it
         await self.async_migrate_legacy_qcm_file()
+
+        # Create the document cache dir and clear any unfinished downloads
+        # left over from a crash/restart. Filesystem access, so off the loop.
+        await self.hass.async_add_executor_job(self._init_document_cache_dir)
 
         LOGGER.debug("Coordinator setup complete for %s", self.config_entry.entry_id)
 
@@ -205,6 +253,250 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         # Persist QCM data to disk
         self.hass.async_create_task(self._async_save_qcm_data())
 
+    def _prepare_client(self, client: EDApiClient) -> None:
+        """Give a new client the selected QCM answers and the trusted device."""
+        if self.data is not None:
+            for question, selected_option in self.data.get(
+                "qcm_selected_options", {}
+            ).items():
+                if selected_option is None:
+                    continue
+                client.qcm_json[question] = [selected_option]
+
+        if self._trusted_device is not None:
+            client.cn = self._trusted_device["cn"]
+            client.cv = self._trusted_device["cv"]
+
+    def find_homework_document(self, document_id: str) -> tuple[str, dict] | None:
+        """Find a homework document by id, return the student key and the document."""
+        if not self.data:
+            return None
+        for key, homeworks in self.data.items():
+            if not key.endswith("_homeworks") or not isinstance(homeworks, list):
+                continue
+            for homework in homeworks:
+                for document in homework.get("documents") or []:
+                    if str(document.get("id")) == document_id:
+                        return key.removesuffix("_homeworks"), document
+        return None
+
+    def find_workspace_document(
+        self, workspace_id: str, document_id: str
+    ) -> dict[str, Any] | None:
+        """Find a file added to a workspace cloud activity."""
+        if not self.data:
+            return None
+        activities = self.data.get("wk_activities", {}).get(workspace_id, [])
+        for activity in activities:
+            cloud_details = activity.get("cloud_details")
+            if isinstance(cloud_details, dict):
+                cloud_details = cloud_details.get("data", cloud_details)
+            if isinstance(cloud_details, dict):
+                cloud_details = [cloud_details]
+            if not isinstance(cloud_details, list):
+                continue
+            for detail in cloud_details:
+                if (
+                    isinstance(detail, dict)
+                    and detail.get("action") == "ajoutFichier"
+                    and str(detail.get("id")) == document_id
+                ):
+                    return detail
+        return None
+
+    @asynccontextmanager
+    async def async_logged_in_client(self) -> AsyncIterator[EDApiClient]:
+        """
+        Log in a fresh, short-lived client for an on-demand API call.
+
+        The client stored in self.data["session"] is closed at the end of each
+        refresh: reusing it would silently log in again behind EDApiClient's
+        back (no QCM handling, renewed trusted device lost, stale account
+        switch, session never closed). The client is closed when the caller
+        leaves the context.
+        """
+        async with EDApiClient(
+            self.config_entry.data["username"],
+            self.config_entry.data["password"],
+            self.hass,
+        ) as client:
+            self._prepare_client(client)
+            await client.login()
+            await self._async_remember_trusted_device(client)
+            yield client
+
+    @asynccontextmanager
+    async def async_open_document(
+        self, eleve_key: str, document: dict
+    ) -> AsyncIterator[AsyncIterator[bytes]]:
+        """
+        Log in and open a homework document for streaming.
+
+        The Ecole Directe session stays open until the caller leaves the context,
+        i.e. until the whole document has been streamed.
+        """
+        async with self.async_logged_in_client() as client:
+            eleve = next(
+                (e for e in client.eleves if e.get_fullname_lower() == eleve_key),
+                None,
+            )
+            if eleve is not None and eleve.account_id_login is not None:
+                await client.switch_account(eleve.account_id_login)
+
+            yield client.iter_document(
+                document["id"], document.get("type") or "FICHIER_CDT"
+            )
+
+    def _document_cache_path(self, document_id: Any) -> Path:
+        """Local cache path for a homework document, namespaced per config entry."""
+        return (
+            self._document_cache_dir / f"{self.config_entry.entry_id}_{document_id}.bin"
+        )
+
+    def _init_document_cache_dir(self) -> None:
+        """Create the document cache dir and clear any unfinished downloads."""
+        self._document_cache_dir.mkdir(parents=True, exist_ok=True)
+        for leftover in self._document_cache_dir.glob("*.part"):
+            # Crash/restart recovery: a previous download never finished.
+            leftover.unlink(missing_ok=True)
+
+    def _cached_document_if_valid(self, cache_path: Path, taille: Any) -> Path | None:
+        """Return cache_path if a valid cached copy is already on disk."""
+        if not cache_path.exists():
+            return None
+        if not isinstance(taille, int) or cache_path.stat().st_size == taille:
+            cache_path.touch()  # bump mtime for the LRU eviction below
+            return cache_path
+        LOGGER.warning(
+            "Cached document %s has the wrong size, redownloading", cache_path.name
+        )
+        cache_path.unlink(missing_ok=True)
+        return None
+
+    async def async_get_document_path(self, eleve_key: str, document: dict) -> Path:
+        """
+        Return a local file holding this document's full content.
+
+        Downloads and caches it from Ecole Directe first if it isn't already
+        on disk, so repeated requests (Safari alone issues several Range
+        requests just to start playback) don't each redownload the whole
+        file: Ecole Directe has no server-side Range support of its own.
+        """
+        document_id = document["id"]
+        cache_path = self._document_cache_path(document_id)
+        taille = document.get("taille")
+
+        cached = await self.hass.async_add_executor_job(
+            self._cached_document_if_valid, cache_path, taille
+        )
+        if cached is not None:
+            return cached
+
+        lock = self._document_download_locks.setdefault(
+            str(document_id), asyncio.Lock()
+        )
+        async with lock:
+            try:
+                if await self.hass.async_add_executor_job(cache_path.exists):
+                    # Another request finished downloading while we waited for the lock.
+                    return cache_path
+
+                tmp_path = cache_path.with_suffix(".part")
+                try:
+                    async with (
+                        self.async_open_document(eleve_key, document) as chunks,
+                        await anyio.open_file(tmp_path, "wb") as file,
+                    ):
+                        async for chunk in chunks:
+                            await file.write(chunk)
+                    await self.hass.async_add_executor_job(tmp_path.rename, cache_path)
+                except Exception:
+                    await self.hass.async_add_executor_job(
+                        functools.partial(tmp_path.unlink, missing_ok=True)
+                    )
+                    raise
+
+                await self.hass.async_add_executor_job(
+                    self._evict_document_cache, cache_path
+                )
+                return cache_path
+            finally:
+                self._document_download_locks.pop(str(document_id), None)
+
+    async def async_get_workspace_document_path(
+        self, workspace_id: str, document: dict[str, Any]
+    ) -> Path:
+        """Download and cache a file from a workspace cloud activity."""
+        document_id = str(document["id"])
+        cache_path = self._document_cache_dir / (
+            f"{self.config_entry.entry_id}_workspace_{workspace_id}_{document_id}.bin"
+        )
+        cached = await self.hass.async_add_executor_job(
+            self._cached_document_if_valid, cache_path, None
+        )
+        if cached is not None:
+            return cached
+
+        lock_key = f"workspace_{workspace_id}_{document_id}"
+        lock = self._document_download_locks.setdefault(lock_key, asyncio.Lock())
+        async with lock:
+            try:
+                if await self.hass.async_add_executor_job(cache_path.exists):
+                    return cache_path
+
+                tmp_path = cache_path.with_suffix(".part")
+                try:
+                    async with (
+                        self.async_logged_in_client() as client,
+                        await anyio.open_file(tmp_path, "wb") as file,
+                    ):
+                        async for chunk in client.iter_document(document_id, "CLOUD"):
+                            await file.write(chunk)
+                    await self.hass.async_add_executor_job(tmp_path.rename, cache_path)
+                except Exception:
+                    await self.hass.async_add_executor_job(
+                        functools.partial(tmp_path.unlink, missing_ok=True)
+                    )
+                    raise
+
+                await self.hass.async_add_executor_job(
+                    self._evict_document_cache, cache_path
+                )
+                return cache_path
+            finally:
+                self._document_download_locks.pop(lock_key, None)
+
+    def _evict_document_cache(self, keep: Path) -> None:
+        """Delete the oldest cached documents once the cache exceeds its budget."""
+        try:
+            others = sorted(
+                (p for p in self._document_cache_dir.glob("*.bin") if p != keep),
+                key=lambda p: p.stat().st_mtime,
+            )
+            total = keep.stat().st_size + sum(p.stat().st_size for p in others)
+            for stale in others:
+                if total <= MAX_DOCUMENT_CACHE_BYTES:
+                    break
+                total -= stale.stat().st_size
+                stale.unlink(missing_ok=True)
+        except OSError:
+            LOGGER.exception("Error evicting the document cache")
+
+    async def _async_remember_trusted_device(self, client: EDApiClient) -> None:
+        """Persist the trusted device (cn/cv) when Ecole Directe issued a new one."""
+        if not client.cn or not client.cv:
+            return
+        current = self._trusted_device or {}
+        if current.get("cn") == client.cn and current.get("cv") == client.cv:
+            return
+        self._trusted_device = {
+            "cn": client.cn,
+            "cv": client.cv,
+            "saved_at": datetime.now(self.timezone).isoformat(timespec="seconds"),
+        }
+        await self._async_save_qcm_data()
+        LOGGER.info("Ecole Directe trusted device saved: next logins will skip the QCM")
+
     async def _async_save_qcm_data(self) -> None:
         """Save QCM data to disk for persistence."""
         if self.data is None:
@@ -213,9 +505,23 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         qcm_data = {
             "qcm_questions": self.data.get("qcm_questions", {}),
             "qcm_selected_options": self.data.get("qcm_selected_options", {}),
+            "trusted_device": self._trusted_device,
         }
         await self._qcm_store.async_save(qcm_data)
         LOGGER.debug("Saved QCM data to store: %s", qcm_data)
+
+    @callback
+    def async_save_attributes(self, key: str, attributes: Any) -> None:
+        """Save oversized attributes to store."""
+        self._stored_attributes[key] = attributes
+        self._attributes_store.async_delay_save(
+            lambda: self._stored_attributes,
+            delay=5,
+        )
+
+    def get_stored_attributes(self, key: str) -> Any | None:
+        """Get stored attributes from store."""
+        return self._stored_attributes.get(key)
 
     async def async_migrate_legacy_qcm_file(self) -> None:
         """Check if legacy QCM file exists, read it, convert it to current usage and delete it."""
@@ -304,6 +610,84 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     "Error while migrating legacy QCM file '%s': %s", file_path_str, err
                 )
 
+    async def _async_update_workspaces(
+        self,
+        client: EDApiClient,
+        previous_data: dict[str, Any] | None,
+    ) -> None:
+        """Fetch workspace data and emit events for changes since the last update."""
+        data_keys = ("workspaces", "wk_activities", "wk_postits")
+        try:
+            workspaces = await client.get_workspaces(client.id, client.account_type)
+            activities_by_workspace: dict[str, list[EDWorkspaceActivity]] = {}
+            postits_by_workspace: dict[str, list[EDWorkspacePostit]] = {}
+
+            for workspace in workspaces:
+                workspace_id = _get_workspace_id(workspace)
+                if workspace_id is None:
+                    LOGGER.warning(
+                        "Ignoring workspace without an identifier: %s", workspace
+                    )
+                    continue
+                activities_by_workspace[
+                    workspace_id
+                ] = await client.get_workspace_activities(
+                    workspace_id,
+                    client.id,
+                    str(client.account_type),
+                )
+                postits_by_workspace[workspace_id] = await client.get_workspace_postits(
+                    workspace_id
+                )
+
+            self.data["workspaces"] = workspaces
+            self.data["wk_activities"] = activities_by_workspace
+            self.data["wk_postits"] = postits_by_workspace
+        except Exception:
+            for key in data_keys:
+                if previous_data is not None and key in previous_data:
+                    self.data[key] = previous_data[key]
+            LOGGER.exception("Error getting workspace data from Ecole Directe")
+            return
+
+        self._compare_workspace_items(
+            previous_data,
+            "wk_postits",
+            "new_postit",
+        )
+        self._compare_workspace_items(
+            previous_data,
+            "wk_activities",
+            "new_activity",
+        )
+
+    def _compare_workspace_items(
+        self,
+        previous_data: dict[str, Any] | None,
+        data_key: str,
+        event_type: str,
+    ) -> None:
+        """Emit events only for workspace items with new identifiers or timestamps."""
+        if previous_data is None or data_key not in previous_data:
+            return
+
+        previous_items = previous_data[data_key]
+        current_items = self.data.get(data_key, {})
+        previous_signatures = {
+            (workspace_id, _workspace_item_signature(item))
+            for workspace_id, items in previous_items.items()
+            for item in items
+            if _workspace_item_signature(item) is not None
+        }
+        for workspace_id, items in current_items.items():
+            for item in items:
+                signature = _workspace_item_signature(item)
+                if (
+                    signature is not None
+                    and (workspace_id, signature) not in previous_signatures
+                ):
+                    self.trigger_event(event_type, None, item)
+
     async def _async_update_data(self) -> Any:
         """
         Fetch data from API endpoint.
@@ -351,13 +735,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 self.config_entry.data["password"],
                 self.hass,
             ) as client:
-                if self.data is not None:
-                    for question, selected_option in self.data.get(
-                        "qcm_selected_options", {}
-                    ).items():
-                        if selected_option is None:
-                            continue
-                        client.qcm_json[question] = [selected_option]
+                self._prepare_client(client)
 
                 try:
                     await client.login()
@@ -367,6 +745,16 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 except Exception:
                     LOGGER.critical("Unknown error on login")
                     return self.data
+
+                await self._async_remember_trusted_device(client)
+
+                # Some schools stop declaring a module for a pupil (enable=false)
+                # while the API still answers: optionally fetch them anyway.
+                if self.config_entry.options.get("forcer_modules", False):
+                    for eleve in client.eleves:
+                        for code in FORCED_MODULES:
+                            if code not in eleve.modules:
+                                eleve.modules.append(code)
 
                 # Preserve QCM data across updates so saved questions persist
                 previous_qcm_questions = (self.data or {}).get("qcm_questions", {})
@@ -379,6 +767,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     "qcm_questions": previous_qcm_questions,
                     "qcm_selected_options": previous_qcm_selected_options,
                 }
+                await self._async_update_workspaces(client, previous_data)
 
                 current_year = datetime.now(self.timezone).year
                 if datetime.now(self.timezone).month >= AUGUST:
@@ -426,6 +815,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     if FAKE_ON or "EDFORMS" in client.modules:
                         try:
                             self.data["formulaires"] = await client.get_formulaires(
+                                year_data,
                                 client.account_type,
                                 client.id,
                             )
@@ -635,6 +1025,10 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                                 "new_evaluation",
                                 eleve,
                             )
+
+                            self.data[
+                                f"{eleve.get_fullname_lower()}_periodes_moyennes"
+                            ] = grades_evaluations.get("periodes", [])
                         except Exception:
                             LOGGER.exception("Error getting grades from ecole directe")
 
@@ -650,7 +1044,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
 
                             lessons = await client.get_lessons(
                                 eleve,
-                                today.strftime("%Y-%m-%d"),
+                                current_week_begin.strftime("%Y-%m-%d"),
                                 current_week_plus_21.strftime("%Y-%m-%d"),
                                 lunch_break_time,
                             )
@@ -692,7 +1086,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                                             lesson["start"]
                                             .astimezone(self.timezone)
                                             .date()
-                                            >= today
+                                            >= current_week_begin
                                             and lesson["start"]
                                             .astimezone(self.timezone)
                                             .date()
@@ -1078,8 +1472,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
         try:
             prefix = eleve.get_fullname_lower()
             keys = [f"{prefix}_timetable_{i}" for i in (1, 2, 3)]
-            previous = [l for k in keys for l in (previous_data.get(k) or [])]
-            current = [l for k in keys for l in (self.data.get(k) or [])]
+            previous = [m for k in keys for m in (previous_data.get(k) or [])]
+            current = [n for k in keys for n in (self.data.get(k) or [])]
             if not previous:
                 return
 
@@ -1092,8 +1486,8 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 "is_modifie",
                 "is_annule",
             ]
-            previous_by_key = {self._lesson_key(l): l for l in previous}
-            known_days = {l["start"].astimezone(self.timezone).date() for l in previous}
+            previous_by_key = {self._lesson_key(m): m for m in previous}
+            known_days = {n["start"].astimezone(self.timezone).date() for n in previous}
 
             for item in current:
                 day = item["start"].astimezone(self.timezone).date()
@@ -1127,6 +1521,39 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 )
         except Exception:
             LOGGER.exception("Error comparing timetables")
+
+
+def _get_workspace_id(workspace: dict[str, Any]) -> str | None:
+    """Return a workspace identifier from an API object."""
+    for key in ("id", "idEspace", "espaceId", "workspaceId"):
+        value = workspace.get(key)
+        if value is not None:
+            return str(value)
+    return None
+
+
+def _workspace_item_signature(
+    item: dict[str, Any],
+) -> tuple[str | None, str | None] | None:
+    """Return an identifier/timestamp pair for an activity or post-it."""
+    identifier = next(
+        (str(item[key]) for key in ("id") if item.get(key) is not None),
+        None,
+    )
+    timestamp = next(
+        (
+            str(item[key])
+            for key in (
+                "dateCreation",
+                "date",
+            )
+            if item.get(key) is not None
+        ),
+        None,
+    )
+    if identifier is None and timestamp is None:
+        return None
+    return identifier, timestamp
 
 
 def get_next_day_list(

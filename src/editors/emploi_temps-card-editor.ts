@@ -12,12 +12,29 @@ class EDTimetableCardEditor extends BaseEDCardEditor {
       return html``;
     }
 
+    const entityValue =
+      this._config.entity ||
+      (Array.isArray(this._config.entities) && this._config.entities[0]) ||
+      "";
+
     return html`
       ${this.buildEntityPickerField(
         "Timetable entity",
         "entity",
-        this._config.entity,
+        entityValue,
         "emploi_du_temps_(semaine_en_cours|semaine_suivante|semaine_apres_suivante|aujourd_hui|demain|jour_suivant)"
+      )}
+      ${this.buildSwitchField(
+        "Display next week",
+        "display_next_week",
+        this._config.display_next_week,
+        false
+      )}
+      ${this.buildSwitchField(
+        "Display week after next",
+        "display_week_after_next",
+        this._config.display_week_after_next,
+        false
       )}
       ${this.buildSwitchField(
         "Display header",
@@ -49,11 +66,16 @@ class EDTimetableCardEditor extends BaseEDCardEditor {
         this._config.display_lunch_break,
         true
       )}
-      ${this.buildSwitchField(
-        "Dim ended lessons",
-        "dim_ended_lessons",
-        this._config.dim_ended_lessons,
-        true
+      ${this.buildSelectField(
+        "Ended lessons",
+        "ended_lessons",
+        [
+          { value: "none", label: "Normal" },
+          { value: "dim", label: "Dim" },
+          { value: "hide", label: "Caché" },
+        ],
+        this._config.ended_lessons,
+        "dim"
       )}
       ${this.buildSwitchField(
         "Enable slider",

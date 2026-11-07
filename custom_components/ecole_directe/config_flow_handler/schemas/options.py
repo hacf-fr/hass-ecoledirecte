@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """
 Options flow schemas.
 
@@ -67,6 +70,10 @@ def get_options_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
                 "notes_affichees",
                 default=defaults.get("notes_affichees", GRADES_TO_DISPLAY),
             ): int,
+            vol.Optional(
+                "forcer_modules",
+                default=defaults.get("forcer_modules", False),
+            ): selector.BooleanSelector(),
             vol.Optional(
                 "enable_debugging",
                 default=defaults.get("enable_debugging", DEFAULT_ENABLE_DEBUGGING),

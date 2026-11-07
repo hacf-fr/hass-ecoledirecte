@@ -31,7 +31,7 @@ async-timeout>=4.0.0
 - `colorlog` - Colored logging for development scripts
 - Performance tools (`zlib_ng`, `isal`) - Optional optimization packages
 
-**Note:** Most development tools (ruff, pre-commit, codespell, pylint) are already provided by Home Assistant core's `requirements_test.txt` and `requirements_test_pre_commit.txt`, which are installed automatically via `script/setup/bootstrap`.
+**Note:** Most development tools (ruff, pre-commit, pylint) are already provided by Home Assistant core's `requirements_test.txt` and `requirements_test_pre_commit.txt`, which are installed automatically via `script/setup/bootstrap`.
 
 ### `requirements_test.txt` - Testing Framework
 
@@ -109,7 +109,6 @@ The `script/setup/bootstrap` automatically installs dependencies from multiple s
 
 3. **Pre-commit dependencies** (`requirements_test_pre_commit.txt`)
    - ruff (linting and formatting)
-   - codespell (spell checking)
    - pre-commit (hook framework)
    - pylint (linting)
 

@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """Evaluations sensor for ecole_directe."""
 
 from __future__ import annotations
@@ -9,6 +12,8 @@ from homeassistant.components.sensor import (
 )
 
 from custom_components.ecole_directe.sensor.generic import EDGenericSensor
+
+from ..api.client import LEVEL_MAPPING
 
 if TYPE_CHECKING:
     from custom_components.ecole_directe.api.client import EDEleve
@@ -47,15 +52,16 @@ class EDEvaluationsSensor(EDGenericSensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
-        if self._key in self.coordinator.data:
-            evaluations = self.coordinator.data[self._key]
+        if self.coordinator.data and self._key in self.coordinator.data:
+            evaluations = self.coordinator.data[self._key] or []
             for evaluation in evaluations:
                 attributes.append(evaluation)
 
-        result = super().extra_state_attributes
+        result = super().extra_state_attributes or {}
         result.update(
             {
                 "Evaluations": attributes,
+                "level_mapping": LEVEL_MAPPING,
             }
         )
         return result

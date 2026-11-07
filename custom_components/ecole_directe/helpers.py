@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """Helpers for ecole_directe."""
 
 from unidecode import unidecode

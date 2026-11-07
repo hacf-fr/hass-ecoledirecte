@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """Lessons sensor for ecole_directe."""
 
 from __future__ import annotations
@@ -52,6 +55,7 @@ class EDLessonsSensor(EDGenericSensor):
         self._end_at = None
         self._lunch_break_start_at = None
         self._lunch_break_end_at = None
+        self._date = None
 
     @property
     def name(self) -> str | None:
@@ -76,10 +80,11 @@ class EDLessonsSensor(EDGenericSensor):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
         attributes = []
-        single_day = self._suffix in ["today", "tomorrow", "next_day"]
+        canceled_counter: int = 0
+        modified_counter: int = 0
+        single_day = self._suffix in ["_today", "_tomorrow", "_next_day"]
         if self._key in self.coordinator.data:
             lessons = self.coordinator.data[self._key]
-            canceled_counter = None
             lunch_break_time = datetime.strptime(
                 DEFAULT_LUNCH_BREAK_TIME,
                 "%H:%M",
@@ -91,18 +96,37 @@ class EDLessonsSensor(EDGenericSensor):
                 self._lunch_break_start_at = None
                 self._lunch_break_end_at = None
                 self._date = None
-                canceled_counter = 0
+                canceled_by_key = {
+                    (
+                        lesson["start_at"],
+                        lesson["end_at"],
+                        lesson["groupe_id"],
+                    ): lesson
+                    for lesson in lessons
+                    if lesson["is_annule"]
+                }
                 for lesson in lessons:
-                    index = lessons.index(lesson)
-
-                    if not (
-                        lesson["start_time"] == lessons[index - 1]["start_time"]
-                        and lesson["is_annule"]
-                    ):
-                        attributes.append(lesson)
-                        self._date = lesson["start"].strftime("%Y-%m-%d")
                     if lesson["is_annule"]:
                         canceled_counter += 1
+                        continue
+
+                    key = (
+                        lesson["start_at"],
+                        lesson["end_at"],
+                        lesson["groupe_id"],
+                    )
+
+                    canceled = canceled_by_key.get(key)
+
+                    if canceled:
+                        lesson["remplace"] = canceled["lesson"]
+
+                    attributes.append(lesson)
+                    self._date = lesson["start"].strftime("%Y-%m-%d")
+
+                    if lesson["is_modifie"]:
+                        modified_counter += 1
+
                     if single_day and lesson["is_annule"] is False:
                         start = lesson["start"].strftime("%H:%M")
                         if self._start_at is None or start < self._start_at:
@@ -123,22 +147,23 @@ class EDLessonsSensor(EDGenericSensor):
                             self._lunch_break_end_at = lesson["start"]
             if is_too_big(attributes):
                 LOGGER.warning(
-                    "[%s] Les attributs sont trop volumineux! %s",
+                    "[%s] Les attributs sont trop volumineux, sauvegarde dans le Store",
                     self._attr_name,
-                    attributes,
                 )
-                attributes = []
-                attributes.append(
+                self.coordinator.async_save_attributes(self._key, attributes)
+                attributes = [
                     {
-                        "Erreur": "Les attributs sont trop volumineux. Essayez de désactiver les tags HTML. https://www.hacf.fr/ecole-directe/#retrait-des-tags-html"
+                        "stored_in_store": True,
+                        "store_key": self._key,
                     }
-                )
+                ]
 
         result = super().extra_state_attributes
         result.update(
             {
                 "Emploi du temps": attributes,
                 "Cours annulés": canceled_counter,
+                "Cours modifiés": modified_counter,
             }
         )
 

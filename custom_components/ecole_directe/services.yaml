@@ -33,9 +33,11 @@ devoir_effectue:
       # (default = false)
       advanced: false
       # Example value that can be passed for this field
-      example: "False"
+      example: false
       # The default field value
-      default: "True"
+      default: true
+      selector:
+        boolean: {}
 reload_data:
   name: Reload Data
   description: Force a refresh of the integration data from the API

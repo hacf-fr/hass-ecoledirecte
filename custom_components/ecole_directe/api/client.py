@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """
 API Client for ecole_directe.
 
@@ -14,11 +17,13 @@ import base64
 import json
 import operator
 import re
+from contextlib import suppress
 from datetime import datetime, time
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict, cast
 
 import anyio
+from aiohttp import CookieJar
 from ecoledirecte_api.client import EDClient, QCMException
 from ecoledirecte_api.const import ED_OK
 
@@ -35,6 +40,7 @@ from ..const import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
     from types import TracebackType
 
     from homeassistant.core import HomeAssistant
@@ -110,6 +116,50 @@ class EDEleve:
         return f"{self.eleve_firstname} {self.eleve_lastname}"
 
 
+class EDWorkspacePostitAuthor(TypedDict):
+    """Author information for a workspace post-it."""
+
+    civilite: str
+    id: str
+    nom: str
+    particule: str
+    prenom: str
+    type: str
+
+
+class EDWorkspacePostit(TypedDict):
+    """Structured workspace post-it returned by Ecole Directe."""
+
+    auteur: EDWorkspacePostitAuthor
+    cible: list[str]
+    ciblesEtab: list[object]
+    contenu: str
+    dateCreation: str
+    dateDebut: str
+    dateFin: str
+    id: int
+    ordre: int
+    type: str
+
+
+class EDWorkspaceActivityMember(TypedDict):
+    """Workspace activity member information."""
+
+    id: int
+    profil: str
+
+
+class EDWorkspaceActivity(TypedDict):
+    """Structured workspace activity returned by Ecole Directe."""
+
+    cible: str
+    date: str
+    descriptif: str
+    id: int
+    membre: EDWorkspaceActivityMember
+    cloud_details: NotRequired[dict[str, Any]]
+
+
 class EDApiClient:
     """Ecole Directe client with Token and cookie."""
 
@@ -124,6 +174,11 @@ class EDApiClient:
         self.username = user
         self.password = pwd
         self.qcm_json: dict[str, list[str]] = {}
+        # Trusted device returned by Ecole Directe after a successful QCM.
+        # Set both before login() to skip the QCM; read both after login()
+        # to persist the (possibly renewed) couple.
+        self.cn: str | None = None
+        self.cv: str | None = None
         self.log_folder = self.hass.config.config_dir + INTEGRATION_PATH + "logs/"
         self.test_folder = self.hass.config.config_dir + INTEGRATION_PATH + "test/"
         Path(self.log_folder).mkdir(parents=True, exist_ok=True)
@@ -143,8 +198,11 @@ class EDApiClient:
 
     async def close(self) -> None:
         """Close the client."""
-        if self.ed_client is not None:
-            await self.ed_client.close()
+        # ed_client only exists once login() ran: leaving the context after an
+        # early failure must not raise (see #255).
+        ed_client = getattr(self, "ed_client", None)
+        if ed_client is not None:
+            await ed_client.close()
 
     async def save_question(self, qcm_json: Any) -> None:
         """Handle a new QCM question."""
@@ -163,15 +221,67 @@ class EDApiClient:
         """Set the selected QCM answer for the next login attempt."""
         self.qcm_json[question] = [answer]
 
-    async def login(self) -> Any:
-        """Login to Ecole Directe."""
-        self.ed_client: EDClient = EDClient(
+    def _new_ed_client(self) -> EDClient:
+        """Create a library client wired to the QCM callback."""
+        ed_client = EDClient(
             username=self.username,
             password=self.password,
             qcm_json=self.qcm_json,
         )
-        self.ed_client.on_new_question(self.save_question)
+        ed_client.on_new_question(self.save_question)
+        return ed_client
+
+    @staticmethod
+    def _is_login_ok(login: Any) -> bool:
+        """Return True when the login response carries a usable session."""
+        return (
+            isinstance(login, dict)
+            and login.get("code") == ED_OK
+            and isinstance(login.get("data"), dict)
+            and bool(login["data"].get("accounts"))
+        )
+
+    async def login(self) -> Any:
+        """
+        Login to Ecole Directe.
+
+        Every login without a trusted device is seen by Ecole Directe as a
+        "new device": it requires the QCM and counts towards the account
+        lockout ("tentatives infructueuses de connexion"), which triggers
+        after a handful of such logins. The cn/cv couple returned after a
+        successful QCM identifies this device; sent back in the "fa" field of
+        the next logins (as the official mobile application does) it makes
+        the QCM unnecessary. The coordinator persists it between updates.
+        """
+        self.ed_client: EDClient = self._new_ed_client()
+        trusted = bool(self.cn and self.cv)
+        if trusted:
+            # The library skips the password-only login (and thus the QCM)
+            # only when cn/cv are set and cookie_jar is not None.
+            self.ed_client.cn = self.cn
+            self.ed_client.cv = self.cv
+            self.ed_client.cookie_jar = CookieJar()
+            LOGGER.debug("Login with trusted device (no QCM)")
         login = await self.ed_client.login()
+
+        if trusted and not self._is_login_ok(login):
+            # Trusted device revoked or expired (typically code 250): fall back
+            # to a full login, Ecole Directe will ask the QCM again and return
+            # a new cn/cv couple.
+            LOGGER.warning(
+                "Trusted device no longer accepted by Ecole Directe (code %s): "
+                "new QCM validation",
+                login.get("code") if isinstance(login, dict) else login,
+            )
+            await self.ed_client.close()
+            self.cn = None
+            self.cv = None
+            self.ed_client = self._new_ed_client()
+            login = await self.ed_client.login()
+
+        # Expose the (possibly renewed) trusted device for persistence.
+        self.cn = self.ed_client.cn
+        self.cv = self.ed_client.cv
         LOGGER.debug(login)
         LOGGER.info(
             "Connection OK - identifiant: [%s]",
@@ -330,29 +440,40 @@ class EDApiClient:
                             "aFaire" in matiere
                             and matiere["id"] == homework_json["idDevoir"]
                         ):
-                            hw = self.get_homework(matiere, key, decode_html)
+                            hw = self.get_homework(
+                                matiere, key, decode_html, eleve.eleve_id
+                            )
                             homeworks.append(hw)
             if homeworks is not None:
                 homeworks.sort(key=operator.itemgetter("date"))
 
         return homeworks
 
-    def get_homework(self, data: dict, pour_le: str, clean_content: bool) -> dict:
+    def get_homework(
+        self, data: dict, pour_le: str, clean_content: bool, eleve_id: str
+    ) -> dict:
         """Get homework information."""
-        if "contenu" in data["aFaire"]:
-            contenu = base64.b64decode(data["aFaire"]["contenu"]).decode("utf-8")
+        a_faire = data.get("aFaire") if isinstance(data.get("aFaire"), dict) else {}
+        contenu_raw = a_faire.get("contenu")
+        if contenu_raw:
+            try:
+                contenu = base64.b64decode(contenu_raw).decode("utf-8")
+            except Exception:
+                contenu = str(contenu_raw)
         else:
             contenu = ""
         if clean_content:
             contenu = re.sub(CLEANR, "", contenu)
         return {
             "devoir_id": data.get("id"),
+            "eleve_id": eleve_id,
             "date": datetime.strptime(pour_le, "%Y-%m-%d"),
             "matiere": data.get("matiere"),
             "short_description": contenu[0:HOMEWORK_DESC_MAX_LENGTH],
             "description": contenu,
-            "effectue": data["aFaire"].get("effectue", False),
+            "effectue": a_faire.get("effectue", False),
             "interrogation": data.get("interrogation", False),
+            "documents": a_faire.get("documents", []),
         }
 
     async def post_homework(
@@ -364,6 +485,29 @@ class EDApiClient:
         )
         LOGGER.debug("post_homework response: %s", response)
         return response["code"] == ED_OK
+
+    async def iter_document(
+        self, file_id: int | str, file_type: str, chunk_size: int = 65536
+    ) -> AsyncIterator[bytes]:
+        """
+        Download a document and yield its content chunk by chunk.
+
+        Despite the library's docstring ("encoded file"), Ecole Directe sends
+        the raw file bytes directly: chunks are forwarded unchanged, which
+        keeps memory usage constant whatever the size of the file.
+        """
+        stream = await self.ed_client.download_file(file_id, file_type)
+        first = True
+        async for chunk in stream.iter_chunked(chunk_size):
+            if first:
+                first = False
+                if chunk.lstrip().startswith(b"{"):
+                    # JSON error message instead of the file
+                    error = (chunk + await stream.read())[:500]
+                    LOGGER.warning("download_file %s error: %s", file_id, error)
+                    msg = f"Ecole Directe refused to send document {file_id}"
+                    raise EDApiClientError(msg)
+            yield chunk
 
     async def get_grades_evaluations(
         self,
@@ -396,6 +540,7 @@ class EDApiClient:
         response["evaluations"] = []
         response["disciplines"] = []
         data = json_resp["data"]
+        response["periodes"] = get_periodes_moyennes_from_data(data)
         index1 = 0
         index2 = 0
         if "periodes" in data:
@@ -596,12 +741,106 @@ class EDApiClient:
         )
         return json_resp
 
-    async def get_formulaires(self, account_type: str, id_entity: str) -> list[Any]:
+    async def get_workspaces(
+        self, user_id: str | int, account_type: str | int
+    ) -> list[dict[str, Any]]:
+        """Get structured workspaces for an account."""
+        json_resp = await self.ed_client.get_all_espaces_travail(
+            user_id=user_id,
+            account_type=account_type,
+        )
+        await save_json_file(
+            json_resp, self.log_folder + f"{user_id}_get_workspaces.json"
+        )
+        if "data" not in json_resp or not isinstance(json_resp.get("data"), list):
+            LOGGER.warning("get_workspaces: [%s]", json_resp)
+            return []
+
+        data = json_resp["data"]
+        response = []
+        for wk_json in data:
+            if isinstance(wk_json, dict) and wk_json.get("estMembre", False):
+                response.append(get_workspace(wk_json))
+
+        return response
+
+    async def get_workspace_activities(
+        self,
+        workspace_id: str | int,
+        user_id: str | int,
+        account_type: str,
+    ) -> list[EDWorkspaceActivity]:
+        """Get structured activities for a workspace."""
+        response = await self.ed_client.get_activites_espace_travail(
+            espace_id=workspace_id,
+            user_id=user_id,
+            account_type=account_type,
+        )
+        await save_json_file(
+            response,
+            self.log_folder + f"workspace_{workspace_id}_activities.json",
+        )
+        activities = cast("list[EDWorkspaceActivity]", response.get("data", []))
+        for activity in activities:
+            if activity.get("cible") != "CLOUD":
+                continue
+
+            activity_id = (
+                activity.get("date").replace(":", "").replace("-", "").replace(" ", "")
+            )
+            activity_id = activity_id[:-2]
+            if activity_id is None:
+                LOGGER.warning(
+                    "get_workspace_activities: CLOUD activity has no identifier: %s",
+                    activity,
+                )
+                continue
+
+            cloud_response = (
+                await self.ed_client.get_details_cloudactivites_espace_travail(
+                    espace_id=workspace_id,
+                    user_id=activity.get("membre", {}).get("id", user_id),
+                    account_type=activity.get("membre", {}).get("profil", account_type),
+                    activityId=str(activity_id),
+                )
+            )
+            await save_json_file(
+                cloud_response,
+                self.log_folder
+                + f"workspace_{workspace_id}_activity_{activity_id}_cloud_details.json",
+            )
+            activity["cloud_details"] = cloud_response.get("data", {})
+
+        return activities
+
+    async def get_workspace_postits(
+        self, workspace_id: str | int
+    ) -> list[EDWorkspacePostit]:
+        """Get structured post-its for a workspace."""
+        response = await self.ed_client.get_postits(espace_id=workspace_id)
+        await save_json_file(
+            response,
+            self.log_folder + f"workspace_{workspace_id}_postits.json",
+        )
+        postits = cast("list[EDWorkspacePostit]", response.get("data", []))
+        for postit in postits:
+            if "contenu" in postit and isinstance(postit["contenu"], str):
+                with suppress(Exception):
+                    postit["contenu"] = base64.b64decode(postit["contenu"]).decode(
+                        "utf-8"
+                    )
+        return postits
+
+    async def get_formulaires(
+        self, annee_forms: str, account_type: str, id_entity: str
+    ) -> list[Any]:
         """Get formulaires."""
-        json_resp = await self.ed_client.get_formulaires(account_type, id_entity)
+        json_resp = await self.ed_client.get_formulaires(
+            annee_forms, account_type=account_type, id_entity=id_entity
+        )
         await save_json_file(
             json_resp,
-            self.log_folder + "get_formulaires.json",
+            self.log_folder + f"{id_entity}_get_formulaires.json",
         )
 
         response = []
@@ -617,6 +856,43 @@ class EDApiClient:
     async def get_classe(self, classe_id: str) -> None:
         """Get classe."""
         await self.ed_client.get_classe(classe_id=classe_id)
+
+
+def get_periodes_moyennes_from_data(data: dict) -> list[dict]:
+    """Récupère l'ensemble des périodes avec leurs moyennes générales."""
+    periodes_result = []
+    # Trier les périodes par date de début
+    periodes = sorted(data.get("periodes", []), key=operator.itemgetter("dateDebut"))
+
+    for periode_json in periodes:
+        # On extrait les infos de base de la période
+        periode_info = {
+            "idPeriode": periode_json.get("idPeriode"),
+            "codePeriode": periode_json.get("codePeriode"),
+            "nomPeriode": periode_json.get("periode"),
+            "annuel": periode_json.get("annuel", False),
+            "examenBlanc": periode_json.get("examenBlanc", False),
+            "cloture": periode_json.get("cloture", False),
+            "dateDebut": periode_json.get("dateDebut"),
+            "dateFin": periode_json.get("dateFin"),
+            "moyenne_generale": {},
+        }
+        # Extraire la moyenne générale de la période
+        ensemble = periode_json.get("ensembleMatieres", {})
+        if ensemble:
+            periode_info["moyenne_generale"] = {
+                "moyenneGenerale": (ensemble.get("moyenneGenerale") or "").replace(
+                    ",", "."
+                ),
+                "moyenneClasse": (ensemble.get("moyenneClasse") or "").replace(
+                    ",", "."
+                ),
+                "moyenneMin": (ensemble.get("moyenneMin") or "").replace(",", "."),
+                "moyenneMax": (ensemble.get("moyenneMax") or "").replace(",", "."),
+                "dateCalcul": ensemble.get("dateCalcul", ""),
+            }
+        periodes_result.append(periode_info)
+    return periodes_result
 
 
 async def load_json_file(file_path: str) -> dict:
@@ -744,6 +1020,24 @@ def get_disciplines_periode(data: Any) -> list:
     return disciplines
 
 
+LEVEL_MAPPING: dict[str, str] = {
+    "1": "Non atteint",
+    "2": "Partiellement atteint",
+    "3": "Atteint",
+    "4": "Dépassé",
+    "-1": "Absent",
+    "-2": "Dispensé",
+    "-3": "Non évalué",
+}
+
+
+def get_level(valeur: str | None) -> str:
+    """Retourne le niveau sous forme de texte selon la valeur."""
+    if valeur is None:
+        return "Inconnu"
+    return LEVEL_MAPPING.get(str(valeur), "Inconnu")
+
+
 def get_evaluation(data: Any, fallback_matiere: str | None = None) -> dict:
     """Get evaluation information."""
     try:
@@ -765,6 +1059,7 @@ def get_evaluation(data: Any, fallback_matiere: str | None = None) -> dict:
                     "competence": competence.get("libelleCompetence"),
                     "descriptif": competence.get("descriptif"),
                     "valeur": competence.get("valeur"),
+                    "level": get_level(competence.get("valeur")),
                 }
                 for competence in elements_programme
             ],
@@ -776,24 +1071,11 @@ def get_evaluation(data: Any, fallback_matiere: str | None = None) -> dict:
 
 def get_competence(data: Any) -> dict:
     """Get grade information."""
-    valeur = data.get("valeur")
-    match valeur:
-        case "1":
-            level = "Maîtrise insuffisante"
-        case "2":
-            level = "Maîtrise fragile"
-        case "3":
-            level = "Maîtrise satisfaisante"
-        case "4":
-            level = "Très bonne maîtrise"
-        case _:
-            level = "Unknown"
-
     return {
         "competence": data.get("libelleCompetence"),
         "descriptif": data.get("descriptif"),
-        "valeur": valeur,
-        "level": level,
+        "valeur": data.get("valeur"),
+        "level": get_level(data.get("valeur")),
     }
 
 
@@ -828,8 +1110,9 @@ def get_lesson(data: Any, lunch_break_time: time) -> dict:
         "end_time": end_date.strftime("%H:%M"),
         "lesson": data["text"],
         "salle": data["salle"],
-        "is_modifie": data["isModifie"],
+        "groupe_id": data["groupeId"],
         "is_annule": data["isAnnule"],
+        "is_modifie": data["isModifie"],
         "background_color": data["color"],
         "prof": data["prof"],
         "dispense": data["dispense"],
@@ -843,4 +1126,32 @@ def get_formulaire(data: Any) -> dict:
     return {
         "titre": data["titre"],
         "created": data["created"],
+    }
+
+
+def get_workspace(data: Any) -> dict[str, Any]:
+    """Get workspace information."""
+    if not isinstance(data, dict):
+        return {}
+
+    contenu = ""
+    resume_raw = data.get("resume")
+    if resume_raw:
+        try:
+            contenu = base64.b64decode(resume_raw).decode("utf-8")
+        except Exception:
+            contenu = str(resume_raw)
+
+    return {
+        "agenda": data.get("agenda"),
+        "cloud": data.get("cloud"),
+        "creeLe": data.get("creeLe"),
+        "creePar": data.get("creePar"),
+        "estMembre": data.get("estMembre"),
+        "id": data.get("id"),
+        "ouvert": data.get("ouvert"),
+        "public": data.get("public"),
+        "resume": contenu,
+        "titre": data.get("titre"),
+        "type": data.get("type"),
     }

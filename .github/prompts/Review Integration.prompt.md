@@ -21,7 +21,7 @@ If not provided, ask for:
 Run all validation tools first:
 
 ```bash
-script/check           # Type checking + linting + spell check
+script/check           # Type checking + linting
 script/lint-check      # Read-only lint check
 script/type-check      # Pyright only
 ```
@@ -76,6 +76,7 @@ async def async_setup_entry(
 ) -> bool:
     """Set up integration."""
 
+
 # ❌ Bad - Missing types
 async def async_setup_entry(hass, entry):
     """Set up integration."""
@@ -110,6 +111,7 @@ async with aiohttp.ClientSession() as session:
 
 # ❌ Bad - Blocking I/O or deprecated timeout
 import async_timeout  # DEPRECATED - use asyncio.timeout()
+
 time.sleep(5)
 requests.get(url)
 ```

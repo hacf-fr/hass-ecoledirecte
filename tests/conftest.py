@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """Fixtures for ecole_directe tests."""
 
 from __future__ import annotations

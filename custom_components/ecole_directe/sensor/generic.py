@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """Generic sensor for ecole_directe."""
 
 from __future__ import annotations
@@ -28,7 +31,7 @@ def is_too_big(obj: Any) -> bool:
 class EDGenericSensor(SensorEntity, EDEntity):
     """Representation of a ED sensor."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0917
         self,
         coordinator: EDDataUpdateCoordinator,
         entity_description: SensorEntityDescription,

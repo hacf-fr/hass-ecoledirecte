@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """HTTP view serving homework documents to the frontend."""
 
 from __future__ import annotations

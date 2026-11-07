@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """Tests for the ecole_directe workspace sensor platform."""
 
 from __future__ import annotations
@@ -221,7 +224,7 @@ def test_get_workspace_id_keys() -> None:
 
 
 @pytest.mark.integration
-async def test_workspace_sensors_setup_entry(
+async def test_workspace_sensors_setup_entry(  # noqa: PLR0917
     hass: HomeAssistant,
     mock_config_entry: MockConfigEntry,
     mock_api_client: MagicMock,
@@ -252,7 +255,7 @@ async def test_workspace_sensors_setup_entry(
 
 
 @pytest.mark.integration
-async def test_workspace_events_fired(
+async def test_workspace_events_fired(  # noqa: PLR0917
     hass: HomeAssistant,
     mock_config_entry: MockConfigEntry,
     mock_api_client: MagicMock,

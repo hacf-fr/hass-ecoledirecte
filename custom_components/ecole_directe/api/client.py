@@ -1,3 +1,6 @@
+# Copyright (c) 2024-2026
+# SPDX-License-Identifier: MIT
+
 """
 API Client for ecole_directe.
 
@@ -65,7 +68,7 @@ class EDApiClientAuthenticationError(
 class EDEleve:
     """Student information."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0917
         self,
         modules: list[str],
         data: Any = None,

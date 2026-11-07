@@ -25,8 +25,12 @@ class BaseEDCardEditor extends LitElement {
     if (typeof ev.target.checked !== "undefined") {
       _config[ev.target.configValue] = ev.target.checked;
     } else {
+      const value =
+        typeof ev.detail?.value !== "undefined"
+          ? ev.detail.value
+          : ev.target.value;
       _config[ev.target.configValue] =
-        ev.target.value == "" ? null : ev.target.value;
+        value == "" ? null : value;
     }
 
     this._config = _config;
@@ -44,9 +48,7 @@ class BaseEDCardEditor extends LitElement {
     for (let i = 0; i < options.length; i++) {
       let currentOption = options[i];
       selectOptions.push(
-        html`<ha-list-item .value="${currentOption.value}"
-          >${currentOption.label}</ha-list-item
-        >`
+        html`<ha-dropdown-item .value="${currentOption.value}">${currentOption.label}</ha-dropdown-item>`
       );
     }
 
@@ -55,7 +57,7 @@ class BaseEDCardEditor extends LitElement {
         label="${label}"
         .value=${value || default_value}
         .configValue=${config_key}
-        @change=${this._valueChanged}
+        @selected=${this._valueChanged}
         @closed=${(ev: any) => ev.stopPropagation()}
       >
         ${selectOptions}
@@ -82,7 +84,7 @@ class BaseEDCardEditor extends LitElement {
 
   buildNumberField(label: any, config_key: any, value: any, default_value?: any, step?: any) {
     return html`
-      <ha-textfield
+      <ha-input
         type="number"
         step="${step || 1}"
         label="${label}"
@@ -90,20 +92,20 @@ class BaseEDCardEditor extends LitElement {
         .configValue=${config_key}
         @change=${this._valueChanged}
       >
-      </ha-textfield>
+      </ha-input>
     `;
   }
 
   buildTextField(label: any, config_key: any, value: any, default_value?: any) {
     return html`
-      <ha-textfield
+      <ha-input
         label="${label}"
         .value=${value || default_value}
         .configValue=${config_key}
         @change=${this._valueChanged}
         @keyup=${this._valueChanged}
       >
-      </ha-textfield>
+      </ha-input>
     `;
   }
 
@@ -145,7 +147,7 @@ class BaseEDCardEditor extends LitElement {
         float: right;
       }
       ha-select,
-      ha-textfield {
+      ha-input {
         clear: right;
         width: 100%;
         padding-top: 15px;

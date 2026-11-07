@@ -33,6 +33,16 @@ def auto_enable_custom_integrations(
     return
 
 
+@pytest.fixture(autouse=True)
+def mock_frontend_registration() -> Generator[None]:
+    """Mock JSModuleRegistration to avoid lingering timers in tests."""
+    with patch(
+        "custom_components.ecole_directe.frontend.JSModuleRegistration.async_register",
+        new_callable=AsyncMock,
+    ):
+        yield
+
+
 @pytest.fixture
 def mock_eleve() -> EDEleve:
     """Fixture for a mock student with homeworks module."""
@@ -156,4 +166,11 @@ def mock_api_client(mock_eleve: EDEleve) -> Generator[MagicMock]:
         mock_instance.eleves = [mock_eleve]
         mock_instance.current_account_id_login = 2232
         mock_instance.get_homeworks = AsyncMock(return_value=[])
+        mock_instance.cn = "test_cn"
+        mock_instance.cv = "test_cv"
+        mock_instance.id = "test_user"
+        mock_instance.account_type = "Famille"
+        mock_instance.get_workspaces = AsyncMock(return_value=[])
+        mock_instance.get_workspace_activities = AsyncMock(return_value=[])
+        mock_instance.get_workspace_postits = AsyncMock(return_value=[])
         yield mock_instance

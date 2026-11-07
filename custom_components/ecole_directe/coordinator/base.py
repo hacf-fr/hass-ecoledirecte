@@ -59,7 +59,11 @@ if TYPE_CHECKING:
 
     from homeassistant.core import HomeAssistant
 
-    from custom_components.ecole_directe.api.client import EDEleve
+    from custom_components.ecole_directe.api.client import (
+        EDEleve,
+        EDWorkspaceActivity,
+        EDWorkspacePostit,
+    )
     from custom_components.ecole_directe.data import EDConfigEntry
 
 
@@ -273,6 +277,30 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         return key.removesuffix("_homeworks"), document
         return None
 
+    def find_workspace_document(
+        self, workspace_id: str, document_id: str
+    ) -> dict[str, Any] | None:
+        """Find a file added to a workspace cloud activity."""
+        if not self.data:
+            return None
+        activities = self.data.get("wk_activities", {}).get(workspace_id, [])
+        for activity in activities:
+            cloud_details = activity.get("cloud_details")
+            if isinstance(cloud_details, dict):
+                cloud_details = cloud_details.get("data", cloud_details)
+            if isinstance(cloud_details, dict):
+                cloud_details = [cloud_details]
+            if not isinstance(cloud_details, list):
+                continue
+            for detail in cloud_details:
+                if (
+                    isinstance(detail, dict)
+                    and detail.get("action") == "ajoutFichier"
+                    and str(detail.get("id")) == document_id
+                ):
+                    return detail
+        return None
+
     @asynccontextmanager
     async def async_logged_in_client(self) -> AsyncIterator[EDApiClient]:
         """
@@ -391,6 +419,49 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 return cache_path
             finally:
                 self._document_download_locks.pop(str(document_id), None)
+
+    async def async_get_workspace_document_path(
+        self, workspace_id: str, document: dict[str, Any]
+    ) -> Path:
+        """Download and cache a file from a workspace cloud activity."""
+        document_id = str(document["id"])
+        cache_path = self._document_cache_dir / (
+            f"{self.config_entry.entry_id}_workspace_{workspace_id}_{document_id}.bin"
+        )
+        cached = await self.hass.async_add_executor_job(
+            self._cached_document_if_valid, cache_path, None
+        )
+        if cached is not None:
+            return cached
+
+        lock_key = f"workspace_{workspace_id}_{document_id}"
+        lock = self._document_download_locks.setdefault(lock_key, asyncio.Lock())
+        async with lock:
+            try:
+                if await self.hass.async_add_executor_job(cache_path.exists):
+                    return cache_path
+
+                tmp_path = cache_path.with_suffix(".part")
+                try:
+                    async with (
+                        self.async_logged_in_client() as client,
+                        await anyio.open_file(tmp_path, "wb") as file,
+                    ):
+                        async for chunk in client.iter_document(document_id, "CLOUD"):
+                            await file.write(chunk)
+                    await self.hass.async_add_executor_job(tmp_path.rename, cache_path)
+                except Exception:
+                    await self.hass.async_add_executor_job(
+                        functools.partial(tmp_path.unlink, missing_ok=True)
+                    )
+                    raise
+
+                await self.hass.async_add_executor_job(
+                    self._evict_document_cache, cache_path
+                )
+                return cache_path
+            finally:
+                self._document_download_locks.pop(lock_key, None)
 
     def _evict_document_cache(self, keep: Path) -> None:
         """Delete the oldest cached documents once the cache exceeds its budget."""
@@ -536,6 +607,84 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     "Error while migrating legacy QCM file '%s': %s", file_path_str, err
                 )
 
+    async def _async_update_workspaces(
+        self,
+        client: EDApiClient,
+        previous_data: dict[str, Any] | None,
+    ) -> None:
+        """Fetch workspace data and emit events for changes since the last update."""
+        data_keys = ("workspaces", "wk_activities", "wk_postits")
+        try:
+            workspaces = await client.get_workspaces(client.id, client.account_type)
+            activities_by_workspace: dict[str, list[EDWorkspaceActivity]] = {}
+            postits_by_workspace: dict[str, list[EDWorkspacePostit]] = {}
+
+            for workspace in workspaces:
+                workspace_id = _get_workspace_id(workspace)
+                if workspace_id is None:
+                    LOGGER.warning(
+                        "Ignoring workspace without an identifier: %s", workspace
+                    )
+                    continue
+                activities_by_workspace[
+                    workspace_id
+                ] = await client.get_workspace_activities(
+                    workspace_id,
+                    client.id,
+                    str(client.account_type),
+                )
+                postits_by_workspace[workspace_id] = await client.get_workspace_postits(
+                    workspace_id
+                )
+
+            self.data["workspaces"] = workspaces
+            self.data["wk_activities"] = activities_by_workspace
+            self.data["wk_postits"] = postits_by_workspace
+        except Exception:
+            for key in data_keys:
+                if previous_data is not None and key in previous_data:
+                    self.data[key] = previous_data[key]
+            LOGGER.exception("Error getting workspace data from Ecole Directe")
+            return
+
+        self._compare_workspace_items(
+            previous_data,
+            "wk_postits",
+            "new_postit",
+        )
+        self._compare_workspace_items(
+            previous_data,
+            "wk_activities",
+            "new_activity",
+        )
+
+    def _compare_workspace_items(
+        self,
+        previous_data: dict[str, Any] | None,
+        data_key: str,
+        event_type: str,
+    ) -> None:
+        """Emit events only for workspace items with new identifiers or timestamps."""
+        if previous_data is None or data_key not in previous_data:
+            return
+
+        previous_items = previous_data[data_key]
+        current_items = self.data.get(data_key, {})
+        previous_signatures = {
+            (workspace_id, _workspace_item_signature(item))
+            for workspace_id, items in previous_items.items()
+            for item in items
+            if _workspace_item_signature(item) is not None
+        }
+        for workspace_id, items in current_items.items():
+            for item in items:
+                signature = _workspace_item_signature(item)
+                if (
+                    signature is not None
+                    and (workspace_id, signature) not in previous_signatures
+                ):
+                    self.trigger_event(event_type, None, item)
+
     async def _async_update_data(self) -> Any:
         """
         Fetch data from API endpoint.
@@ -615,6 +764,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                     "qcm_questions": previous_qcm_questions,
                     "qcm_selected_options": previous_qcm_selected_options,
                 }
+                await self._async_update_workspaces(client, previous_data)
 
                 current_year = datetime.now(self.timezone).year
                 if datetime.now(self.timezone).month >= AUGUST:
@@ -1091,6 +1241,39 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             "data": data,
         }
         self.hass.bus.fire(EVENT_TYPE, event_data)
+
+
+def _get_workspace_id(workspace: dict[str, Any]) -> str | None:
+    """Return a workspace identifier from an API object."""
+    for key in ("id", "idEspace", "espaceId", "workspaceId"):
+        value = workspace.get(key)
+        if value is not None:
+            return str(value)
+    return None
+
+
+def _workspace_item_signature(
+    item: dict[str, Any],
+) -> tuple[str | None, str | None] | None:
+    """Return an identifier/timestamp pair for an activity or post-it."""
+    identifier = next(
+        (str(item[key]) for key in ("id") if item.get(key) is not None),
+        None,
+    )
+    timestamp = next(
+        (
+            str(item[key])
+            for key in (
+                "dateCreation",
+                "date",
+            )
+            if item.get(key) is not None
+        ),
+        None,
+    )
+    if identifier is None and timestamp is None:
+        return None
+    return identifier, timestamp
 
 
 def get_next_day_list(

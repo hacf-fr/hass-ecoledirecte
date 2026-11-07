@@ -8,6 +8,11 @@ Les capteurs associés à un élève sont créés selon les modules accessibles 
 
 Le profil de chaque élève est toujours créé. Les portefeuilles apparaissent lorsqu'un solde est renvoyé par Ecole Directe. Certains capteurs existent au niveau du compte, d'autres pour chaque élève. Les variantes non applicables à un compte ou à un élève ne sont pas créées.
 
+Un capteur est créé pour chaque espace de travail renvoyé par Ecole Directe. Il
+affiche le nombre d'activités et fournit les données détaillées de l'espace, de ses
+activités et de ses post-it dans ses attributs. Les capteurs des nouveaux espaces
+sont ajoutés lors de leur découverte.
+
 Sauf indication contraire, les capteurs liés à un élève ont aussi l'attribut `prenom`. Les capteurs de compteur affichent `0` lorsque leur liste est vide. Un capteur dont la donnée n'est pas disponible est indisponible dans Home Assistant.
 
 ## Profil et portefeuille
@@ -86,3 +91,11 @@ Chaque élément de ces listes contient `date`, `type_element`, `display_date`, 
 | Formulaires (compte) | Nombre de formulaires | `Formulaires` : liste des formulaires |
 
 Chaque formulaire contient `titre` et `created`. Les compteurs de messagerie correspondent respectivement aux messages reçus, envoyés, archivés, reçus non lus et brouillons.
+
+## Espaces de travail
+
+| État | Attribut | Contenu |
+| --- | --- | --- |
+| Nombre d'activités | `Espace de travail` | Objet renvoyé par Ecole Directe |
+|  | `Activités` | Liste des activités structurées |
+|  | `Post-it` | Liste des post-it structurés |

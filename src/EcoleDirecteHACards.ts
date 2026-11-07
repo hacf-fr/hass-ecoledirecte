@@ -4,6 +4,8 @@ import "./cards/notes-card.js";
 import "./cards/moyennes-card.js";
 import "./cards/evaluations-card.js";
 import "./cards/absencesretards-card.js";
+import "./cards/postits-card.js";
+import "./cards/activites-card.js";
 
 import "./editors/emploi_temps-card-editor.js";
 import "./editors/devoirs-card-editor.js";
@@ -11,3 +13,5 @@ import "./editors/notes-card-editor.js";
 import "./editors/evaluations-card-editor.js";
 import "./editors/moyennes-card-editor.js";
 import "./editors/absencesretards-card-editor.js";
+import "./editors/postits-card-editor.js";
+import "./editors/activites-card-editor.js";

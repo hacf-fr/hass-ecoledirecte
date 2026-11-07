@@ -7,3 +7,13 @@ markers = [
     "unit: Fast, isolated unit tests",
     "integration: Integration tests with Home Assistant core or coordinator",
 ]
+
+[tool.pyright]
+include = ["custom_components/ecole_directe", "tests"]
+exclude = [
+    "**/__pycache__",
+    "config",
+    ".local",
+    "node_modules",
+]
+typeCheckingMode = "basic"

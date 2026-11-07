@@ -453,7 +453,8 @@ class EDApiClient:
         self, data: dict, pour_le: str, clean_content: bool, eleve_id: str
     ) -> dict:
         """Get homework information."""
-        a_faire = data.get("aFaire") if isinstance(data.get("aFaire"), dict) else {}
+        a_faire_data = data.get("aFaire")
+        a_faire = a_faire_data if isinstance(a_faire_data, dict) else {}
         contenu_raw = a_faire.get("contenu")
         if contenu_raw:
             try:

@@ -9,7 +9,7 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from homeassistant.components.http import StaticPathConfig
+from homeassistant.components.http.server import StaticPathConfig
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -29,6 +29,9 @@ class JSModuleRegistration:
 
     async def async_register(self) -> None:
         """Enregistrer les ressources frontend."""
+        if self.lovelace is None:
+            return
+
         await self._async_register_path()
         # Enregistrer les modules uniquement si Lovelace est en mode stockage
         if (
@@ -46,7 +49,7 @@ class JSModuleRegistration:
                 [
                     StaticPathConfig(
                         url_path=URL_BASE,
-                        path=Path(__file__).parent,
+                        path=str(Path(__file__).parent),
                         cache_headers=False,
                     )
                 ]
@@ -59,6 +62,9 @@ class JSModuleRegistration:
 
     async def _async_register_lovelace_modules(self) -> None:
         """Charger les ressources Lovelace puis enregistrer les modules."""
+        if self.lovelace is None:
+            return
+
         if not getattr(self.lovelace.resources, "loaded", True):
             try:
                 await self.lovelace.resources.async_get_info()
@@ -70,6 +76,9 @@ class JSModuleRegistration:
 
     async def _async_register_modules(self) -> None:
         """Enregistrer ou mettre à jour les modules JavaScript."""
+        if self.lovelace is None:
+            return
+
         _LOGGER.debug("Installation des modules JavaScript")
 
         # Récupérer les ressources existantes de cette intégration
@@ -126,6 +135,9 @@ class JSModuleRegistration:
 
     async def async_unregister(self) -> None:
         """Supprimer les ressources Lovelace de cette intégration."""
+        if self.lovelace is None:
+            return
+
         if self.lovelace.mode == "storage":
             for module in JSMODULES:
                 url = f"{URL_BASE}/{module['filename']}"

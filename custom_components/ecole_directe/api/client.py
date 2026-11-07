@@ -68,7 +68,7 @@ class EDApiClientAuthenticationError(
 class EDEleve:
     """Student information."""
 
-    def __init__(  # noqa: PLR0917
+    def __init__(
         self,
         modules: list[str],
         data: Any = None,
@@ -453,7 +453,8 @@ class EDApiClient:
         self, data: dict, pour_le: str, clean_content: bool, eleve_id: str
     ) -> dict:
         """Get homework information."""
-        a_faire = data.get("aFaire") if isinstance(data.get("aFaire"), dict) else {}
+        a_faire_data = data.get("aFaire")
+        a_faire = a_faire_data if isinstance(a_faire_data, dict) else {}
         contenu_raw = a_faire.get("contenu")
         if contenu_raw:
             try:
@@ -1101,6 +1102,7 @@ def get_lesson(data: Any, lunch_break_time: time) -> dict:
     start_date = datetime.strptime(data["start_date"], "%Y-%m-%d %H:%M")
     end_date = datetime.strptime(data["end_date"], "%Y-%m-%d %H:%M")
     return {
+        "id": data["id"],
         "start": start_date,
         "end": end_date,
         "start_at": start_date.strftime("%Y-%m-%d %H:%M"),

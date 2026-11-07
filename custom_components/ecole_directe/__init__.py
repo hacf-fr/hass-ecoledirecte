@@ -17,14 +17,18 @@ from datetime import timedelta
 from typing import TYPE_CHECKING
 
 import homeassistant.helpers.config_validation as cv
-import voluptuous as vol
+import probatio as vol
 from homeassistant.components import websocket_api
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
-from homeassistant.core import (
-    EVENT_HOMEASSISTANT_STARTED,
-    CoreState,
-    HomeAssistant,
+from homeassistant.components.websocket_api.decorators import (
+    async_response,
+    websocket_command,
 )
+from homeassistant.const import (
+    CONF_PASSWORD,
+    CONF_USERNAME,
+    EVENT_HOMEASSISTANT_STARTED,
+)
+from homeassistant.core import CoreState, Event, HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.loader import async_get_loaded_integration
 
@@ -43,8 +47,8 @@ from .frontend.document_view import EDDocumentView
 from .service_actions import async_setup_services
 
 if TYPE_CHECKING:
-    from homeassistant.core import HomeAssistant
-    from homeassistant.util.event_type import EventType
+    from homeassistant.components.websocket_api.connection import ActiveConnection
+    from homeassistant.helpers.typing import NoEventData
 
 # This integration is configured via config entries only
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -56,15 +60,15 @@ async def async_register_frontend(hass: HomeAssistant) -> None:
     await module_register.async_register()
 
 
-@websocket_api.websocket_command(
+@websocket_command(
     {
         vol.Required("type"): f"{DOMAIN}/version",
     }
 )
-@websocket_api.async_response
+@async_response
 async def websocket_get_version(
     hass: HomeAssistant,
-    connection: websocket_api.ActiveConnection,
+    connection: ActiveConnection,
     msg: dict,
 ) -> None:
     """Gérer la demande de version du frontend."""
@@ -74,16 +78,16 @@ async def websocket_get_version(
     )
 
 
-@websocket_api.websocket_command(
+@websocket_command(
     {
         vol.Required("type"): f"{DOMAIN}/get_stored_data",
         vol.Required("key"): str,
     }
 )
-@websocket_api.async_response
+@async_response
 async def websocket_get_stored_data(
     hass: HomeAssistant,
-    connection: websocket_api.ActiveConnection,
+    connection: ActiveConnection,
     msg: dict,
 ) -> None:
     """Gérer la demande de données stockées dans le Store."""
@@ -135,7 +139,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     # Vue HTTP pour télécharger les documents
     hass.http.register_view(EDDocumentView())
 
-    async def _setup_frontend(_event: EventType = None) -> None:
+    async def _setup_frontend(_event: Event[NoEventData] | None = None) -> None:
         await async_register_frontend(hass)
 
     # Si HA est déjà en cours d'exécution, enregistrer immédiatement

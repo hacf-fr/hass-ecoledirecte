@@ -31,7 +31,7 @@ def is_too_big(obj: Any) -> bool:
 class EDGenericSensor(SensorEntity, EDEntity):
     """Representation of a ED sensor."""
 
-    def __init__(  # noqa: PLR0917
+    def __init__(
         self,
         coordinator: EDDataUpdateCoordinator,
         entity_description: SensorEntityDescription,

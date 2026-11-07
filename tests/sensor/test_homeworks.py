@@ -72,10 +72,13 @@ def test_homeworks_sensor_device_info(mock_eleve: EDEleve) -> None:
 
     device_info = sensor.device_info
     assert device_info is not None
-    assert (DOMAIN, "ED - Benjamin No Name") in device_info["identifiers"]
-    assert device_info["name"] == "ED - Benjamin No Name"
-    assert device_info["manufacturer"] == "Ecole Directe"
-    assert device_info["model"] == "ED - Benjamin No Name"
+    device_info_values = dict(device_info)
+    assert device_info_values["identifiers"] == {
+        (DOMAIN, "ED - Benjamin No Name"),
+    }
+    assert device_info_values["name"] == "ED - Benjamin No Name"
+    assert device_info_values["manufacturer"] == "Ecole Directe"
+    assert device_info_values["model"] == "ED - Benjamin No Name"
 
 
 @pytest.mark.unit

@@ -224,7 +224,7 @@ def test_get_workspace_id_keys() -> None:
 
 
 @pytest.mark.integration
-async def test_workspace_sensors_setup_entry(  # noqa: PLR0917
+async def test_workspace_sensors_setup_entry(
     hass: HomeAssistant,
     mock_config_entry: MockConfigEntry,
     mock_api_client: MagicMock,
@@ -255,7 +255,7 @@ async def test_workspace_sensors_setup_entry(  # noqa: PLR0917
 
 
 @pytest.mark.integration
-async def test_workspace_events_fired(  # noqa: PLR0917
+async def test_workspace_events_fired(
     hass: HomeAssistant,
     mock_config_entry: MockConfigEntry,
     mock_api_client: MagicMock,

@@ -55,7 +55,7 @@ class EDMoyenneGeneraleSensor(EDGenericSensor):
         moyenne = self.coordinator.data[self._key]
         result = super().extra_state_attributes
 
-        if moyenne is None or moyenne == {}:
+        if moyenne is None or moyenne == {} or self._child_info is None:
             return result
 
         disciplines = self.coordinator.data[

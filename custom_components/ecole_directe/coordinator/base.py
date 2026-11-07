@@ -1127,16 +1127,6 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                                 )
                             )
 
-                            timetable_week1_key = (
-                                f"{eleve.get_fullname_lower()}_timetable_1"
-                            )
-                            timetable_week2_key = (
-                                f"{eleve.get_fullname_lower()}_timetable_2"
-                            )
-                            timetable_week3_key = (
-                                f"{eleve.get_fullname_lower()}_timetable_3"
-                            )
-
                             if (
                                 previous_data is not None
                                 and timetable_week1_key in previous_data

@@ -964,6 +964,18 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                                 )
                             )
 
+                            timetable_week1_key = (
+                                f"{eleve.get_fullname_lower()}_timetable_1"
+                            )
+                            timetable_week2_key = (
+                                f"{eleve.get_fullname_lower()}_timetable_2"
+                            )
+                            timetable_week3_key = (
+                                f"{eleve.get_fullname_lower()}_timetable_3"
+                            )
+
+                            self.compare_timetables(previous_data, eleve)
+
                         except Exception:
                             LOGGER.exception(
                                 "Error getting homeworks from ecole directe"
@@ -1115,6 +1127,92 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                                 )
                             )
 
+                            if (
+                                previous_data is not None
+                                and timetable_week1_key in previous_data
+                                and timetable_week1_key in self.data
+                                and self._is_same_week(
+                                    previous_data[timetable_week1_key],
+                                    current_week_begin,
+                                )
+                                and self._is_same_week(
+                                    self.data[timetable_week1_key], current_week_begin
+                                )
+                            ):
+                                self.compare_data_with_identifier(
+                                    previous_data,
+                                    timetable_week1_key,
+                                    [
+                                        "start_at",
+                                        "end_at",
+                                        "lesson",
+                                        "salle",
+                                        "prof",
+                                        "is_modifie",
+                                        "is_annule",
+                                    ],
+                                    "edt_changement",
+                                    eleve,
+                                    item_identifier="id",
+                                )
+                            if (
+                                previous_data is not None
+                                and timetable_week2_key in previous_data
+                                and timetable_week2_key in self.data
+                                and self._is_same_week(
+                                    previous_data[timetable_week2_key],
+                                    next_week_begin,
+                                )
+                                and self._is_same_week(
+                                    self.data[timetable_week2_key], next_week_begin
+                                )
+                            ):
+                                self.compare_data_with_identifier(
+                                    previous_data,
+                                    timetable_week2_key,
+                                    [
+                                        "start_at",
+                                        "end_at",
+                                        "lesson",
+                                        "salle",
+                                        "prof",
+                                        "is_modifie",
+                                        "is_annule",
+                                    ],
+                                    "edt_changement",
+                                    eleve,
+                                    item_identifier="id",
+                                )
+
+                            if (
+                                previous_data is not None
+                                and timetable_week3_key in previous_data
+                                and timetable_week3_key in self.data
+                                and self._is_same_week(
+                                    previous_data[timetable_week3_key],
+                                    after_next_week_begin,
+                                )
+                                and self._is_same_week(
+                                    self.data[timetable_week3_key],
+                                    after_next_week_begin,
+                                )
+                            ):
+                                self.compare_data_with_identifier(
+                                    previous_data,
+                                    timetable_week3_key,
+                                    [
+                                        "start_at",
+                                        "end_at",
+                                        "lesson",
+                                        "salle",
+                                        "prof",
+                                        "is_modifie",
+                                        "is_annule",
+                                    ],
+                                    "edt_changement",
+                                    eleve,
+                                    item_identifier="id",
+                                )
                         except Exception:
                             LOGGER.exception("Error getting Lessons from ecole directe")
 
@@ -1222,7 +1320,7 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                         }:
                             found = True
                             break
-                    if found is False:
+                    if not found:
                         not_found_items.append(item)
                 for not_found_item in not_found_items:
                     self.trigger_event(event_type, eleve, not_found_item)
@@ -1234,6 +1332,106 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
                 data_key,
             )
 
+    def compare_data_with_identifier(
+        self,
+        previous_data: dict | None,
+        data_key: str,
+        compare_keys: list[str],
+        event_type: str,
+        eleve: EDEleve | None,
+        item_identifier: str | None = None,
+    ) -> None:
+        """Compare data and include matching previous item when available.
+
+        Returns events with a payload containing both the `previous` and
+        `current` item when a matching previous item exists (or `None` if not).
+        Matching is attempted first by `item_identifier` (if provided) and
+        then by `compare_keys` as a fallback.
+        """
+        try:
+            if (
+                previous_data is None
+                or data_key not in previous_data
+                or data_key not in self.data
+            ):
+                return
+
+            not_found_items: list[dict] = []
+
+            for item in self.data[data_key]:
+                found = False
+                matched_previous = None
+
+                for previous_item in previous_data[data_key]:
+                    # Identifier le même cours avec son ID
+                    if (
+                        item_identifier is not None
+                        and item_identifier in item
+                        and item_identifier in previous_item
+                        and item[item_identifier] == previous_item[item_identifier]
+                    ):
+                        matched_previous = previous_item
+
+                        previous_values = {
+                            key: previous_item.get(key) for key in compare_keys
+                        }
+
+                        current_values = {key: item.get(key) for key in compare_keys}
+
+                        if previous_values == current_values:
+                            found = True
+                        break
+
+                if not found:
+                    changes = {}
+
+                    if matched_previous is not None:
+                        for key in compare_keys:
+                            previous_value = matched_previous.get(key)
+                            current_value = item.get(key)
+
+                            if previous_value != current_value:
+                                changes[key] = {
+                                    "previous": previous_value,
+                                    "current": current_value,
+                                }
+
+                    not_found_items.append(
+                        {
+                            "id": item.get(item_identifier)
+                            if item_identifier
+                            else None,
+                            "lesson": item.get("lesson"),
+                            "start": item.get("start"),
+                            "end": item.get("end"),
+                            "previous": matched_previous,
+                            "current": item,
+                            "changes": changes,
+                        }
+                    )
+
+            for not_found_item in not_found_items:
+                self.trigger_event(
+                    event_type,
+                    eleve,
+                    not_found_item,
+                )
+
+        except Exception:
+            LOGGER.exception(
+                "Error comparing data: self[%s] previous_data[%s] data_key[%s]",
+                self,
+                previous_data,
+                data_key,
+            )
+
+    def _is_same_week(self, lessons: list, week_begin: date) -> bool:
+        """Return True if lesson list belongs to the requested week."""
+        if len(lessons) == 0:
+            return False
+        lesson_date = lessons[0]["start"].astimezone(self.timezone).date()
+        return week_begin <= lesson_date <= week_begin + timedelta(days=6)
+
     def trigger_event(self, event_type: str, eleve: EDEleve | None, data: Any) -> None:
         """Trigger an event if there is new data."""
         name = "" if eleve is None else eleve.get_fullname()
@@ -1244,6 +1442,75 @@ class EDDataUpdateCoordinator(TimestampDataUpdateCoordinator):
             "data": data,
         }
         self.hass.bus.fire(EVENT_TYPE, event_data)
+
+    @staticmethod
+    def _lesson_key(lesson: dict) -> tuple:
+        """Clé d'identification d'un cours (id si dispo, sinon créneau)."""
+        if lesson.get("id") is not None:
+            return ("id", lesson["id"])
+        return (
+            "slot",
+            lesson.get("start_at"),
+            lesson.get("lesson"),
+            lesson.get("groupe_id"),
+        )
+
+    def compare_timetables(self, previous_data: dict | None, eleve: EDEleve) -> None:
+        """Détecte les changements d'EDT sur les 3 semaines, jour par jour."""
+        if previous_data is None:
+            return
+        try:
+            prefix = eleve.get_fullname_lower()
+            keys = [f"{prefix}_timetable_{i}" for i in (1, 2, 3)]
+            previous = [m for k in keys for m in (previous_data.get(k) or [])]
+            current = [n for k in keys for n in (self.data.get(k) or [])]
+            if not previous:
+                return
+
+            compare_keys = [
+                "start_at",
+                "end_at",
+                "lesson",
+                "salle",
+                "prof",
+                "is_modifie",
+                "is_annule",
+            ]
+            previous_by_key = {self._lesson_key(m): m for m in previous}
+            known_days = {n["start"].astimezone(self.timezone).date() for n in previous}
+
+            for item in current:
+                day = item["start"].astimezone(self.timezone).date()
+                if day not in known_days:
+                    continue  # jour/semaine qui vient d'apparaître : pas un changement
+
+                matched_previous = previous_by_key.get(self._lesson_key(item))
+                changes = {}
+                if matched_previous is not None:
+                    for key in compare_keys:
+                        if matched_previous.get(key) != item.get(key):
+                            changes[key] = {
+                                "previous": matched_previous.get(key),
+                                "current": item.get(key),
+                            }
+                    if not changes:
+                        continue  # cours identique
+
+                self.trigger_event(
+                    "edt_changement",
+                    eleve,
+                    {
+                        "id": item.get("id"),
+                        "lesson": item.get("lesson"),
+                        "start": item.get("start"),
+                        "end": item.get("end"),
+                        "previous": matched_previous,
+                        "current": item,
+                        "changes": changes,
+                    },
+                )
+        except Exception:
+            LOGGER.exception("Error comparing timetables")
 
 
 def _get_workspace_id(workspace: dict[str, Any]) -> str | None:

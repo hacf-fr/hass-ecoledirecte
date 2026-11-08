@@ -693,6 +693,11 @@ class EDApiClient:
         else:
             data = json_resp["data"]
             for lesson_json in data:
+                if str(lesson_json.get("text", "")).strip().upper() in (
+                    "CONGÉS",
+                    "CONGES",
+                ):
+                    continue
                 response.append(get_lesson(lesson_json, lunch_break_time))
             if response is not None:
                 response.sort(key=operator.itemgetter("start"))
